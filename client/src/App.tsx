@@ -112,7 +112,7 @@ export default function App() {
     setLoadingReplies(prev => new Set(prev).add(rootId));
     try {
       const replies = await fetchReplies(rootId);
-      setReplyTrees(prev => ({ ...prev, [rootId]: replies }));
+      setReplyTrees(prev => ({ ...prev, [rootId]: replies.data }));
     } finally {
       setLoadingReplies(prev => { const n = new Set(prev); n.delete(rootId); return n; });
     }

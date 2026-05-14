@@ -27,12 +27,6 @@ export const admin = new Elysia({ prefix: "/api/admin" })
           await db.update(messages).set({ deleted: 0 }).where(eq(messages.id, id));
           return { success: true };
         }, { params: t.Object({ id: t.String() }) })
-        .delete("/messages/:id", async ({ params, set }) => {
-          const id = Number(params.id);
-          if (isNaN(id)) { set.status = 400; return { success: false, error: "INVALID_ID" }; }
-          await db.delete(messages).where(eq(messages.id, id));
-          return { success: true };
-        }, { params: t.Object({ id: t.String() }) })
         .get("/users", async () => {
           const list = await db.select({
             id: users.id, username: users.username, email: users.email,

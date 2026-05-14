@@ -29,15 +29,21 @@ client/src/    App.tsx → Header / SubmitForm / MessageList(→MessageCard/Recu
 
 ## API 速查
 
-| 端点 | 要点 |
-|------|------|
-| GET /api/messages | `?offset=&limit=&q=` 分页搜索，嵌 likeCount |
-| POST /api/message | `{ content, parentId? }` 需登录，name 取自 session |
-| PATCH /api/message/:id | 需 `currentUser.username === msg.name` |
-| POST /api/messages/:id/like (bookmark) | 需登录，toggle |
-| POST /api/auth/sign-up (/sign-in) | `{ username, email?, password }` |
-| GET /api/admin/* | guard isAdmin |
-| POST /api/captcha/verify | Turnstile token 验证 |
+| 端点 | 要点 | 错误码 |
+|------|------|--------|
+| GET /api/messages | `?offset=&limit=&q=` 分页搜索 | — |
+| POST /api/message | `{ content, parentId? }` 登录 | 400/PARENT_NOT_FOUND 409/MAX_DEPTH |
+| PATCH /api/message/:id | 需作者本人 | 403/FORBIDDEN 404/NOT_FOUND |
+| POST /api/messages/:id/like | 登录，toggle | 422/INVALID_ID |
+| POST /api/messages/:id/bookmark | 登录，toggle | 422/INVALID_ID |
+| GET /api/messages/:id/replies | — | 400/INVALID_ID |
+| POST /api/auth/sign-up | `{ username, email, password, captchaToken }` 后端自验 | 409/DUPLICATE 429/CAPTCHA_FAIL |
+| POST /api/auth/sign-in | `{ username, password }` | 401/INVALID_CREDENTIALS |
+| GET /api/admin/* | guard isAdmin | 403/FORBIDDEN |
+| POST /api/upload | 登录，MIME 映射扩展名 | 401/AUTH_REQUIRED |
+
+**错误码规范**：所有错误必须 `return status(N, { success: false, error: "CODE" })`，不裸 `return {}`。<br>
+**前端调用**：统一 `requestJSON<T>(url, init)` → `[HTTP_NNN]` / `[API]` Error 前缀。
 
 ## 数据库
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { t, type Lang } from "../i18n";
-import { adminFetchMessages, adminFetchUsers, adminRestoreMessage, adminDeleteMessage, adminToggleAdmin, type Message, type AdminUser } from "../api";
+import { adminFetchMessages, adminFetchUsers, adminRestoreMessage, adminToggleAdmin, type Message, type AdminUser } from "../api";
 
 export function AdminPanel({ lang, onClose }: { lang: Lang; onClose: () => void }) {
   const [tab, setTab] = useState<"messages" | "users">("messages");
@@ -23,11 +23,6 @@ export function AdminPanel({ lang, onClose }: { lang: Lang; onClose: () => void 
 
   const restore = async (id: number) => {
     try { await adminRestoreMessage(id); loadMessages(); }
-    catch { setError(t(lang, "admin.loadFail")); }
-  };
-  const hardDelete = async (id: number) => {
-    if (!confirm(t(lang, "admin.confirmDelete"))) return;
-    try { await adminDeleteMessage(id); loadMessages(); }
     catch { setError(t(lang, "admin.loadFail")); }
   };
   const toggleAdmin = async (id: number, makeAdmin: boolean) => {
@@ -53,10 +48,11 @@ export function AdminPanel({ lang, onClose }: { lang: Lang; onClose: () => void 
             <div key={m.id} className={`admin-item ${m.deleted ? "deleted" : ""}`}>
               <div><strong>{m.name}</strong> <span className="admin-meta">{new Date(m.createdAt).toLocaleString(lang === "ja" ? "ja-JP" : "zh-CN")}</span></div>
               <div className="admin-content">{m.content.slice(0, 100)}</div>
-              <div className="admin-actions">
-                {m.deleted ? <button className="auth-btn" onClick={() => restore(m.id)}>{t(lang, "admin.restore")}</button> : null}
-                <button className="auth-btn del-btn" onClick={() => hardDelete(m.id)}>{t(lang, "admin.hardDelete")}</button>
-              </div>
+              {m.deleted ? (
+                <div className="admin-actions">
+                  <button className="auth-btn" onClick={() => restore(m.id)}>{t(lang, "admin.restore")}</button>
+                </div>
+              ) : null}
             </div>
           ))}
         </div>

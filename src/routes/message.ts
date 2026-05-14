@@ -20,8 +20,8 @@ export const messageRoute = new Elysia({ prefix: "/api" })
           .from(messages)
           .where(and(eq(messages.id, body.parentId), eq(messages.deleted, 0)))
           .limit(1);
-        if (!parent) return { success: false, error: "PARENT_NOT_FOUND" };
-        if (parent.depth >= MAX_DEPTH) return { success: false, error: "MAX_DEPTH" };
+        if (!parent) return status(400, { success: false, error: "PARENT_NOT_FOUND" });
+        if (parent.depth >= MAX_DEPTH) return status(409, { success: false, error: "MAX_DEPTH" });
         depth = parent.depth + 1;
         rootId = parent.rootId ?? parent.id;
       }
@@ -74,9 +74,9 @@ export const messageRoute = new Elysia({ prefix: "/api" })
   // ── 回复树 ──
   .get(
     "/messages/:id/replies",
-    async ({ params }) => {
+    async ({ params, status }) => {
       const id = Number(params.id);
-      if (isNaN(id)) return { success: false, error: "INVALID_ID" };
+      if (isNaN(id)) return status(400, { success: false, error: "INVALID_ID" });
       const list = await db.select({
         id: messages.id, name: messages.name, content: messages.content,
         createdAt: messages.createdAt, updatedAt: messages.updatedAt,
@@ -118,7 +118,7 @@ export const messageRoute = new Elysia({ prefix: "/api" })
     async ({ params, currentUser, set }) => {
       if (!currentUser) { set.status = 401; return { success: false, error: "AUTH_REQUIRED" }; }
       const messageId = Number(params.id);
-      if (isNaN(messageId)) return { success: false, error: "INVALID_ID" };
+      if (isNaN(messageId)) return status(422, { success: false, error: "INVALID_ID" });
       const [existing] = await db.select().from(likes).where(and(eq(likes.userId, currentUser.id), eq(likes.messageId, messageId))).limit(1);
       if (existing) {
         await db.delete(likes).where(and(eq(likes.userId, currentUser.id), eq(likes.messageId, messageId)));
@@ -136,7 +136,7 @@ export const messageRoute = new Elysia({ prefix: "/api" })
     async ({ params, currentUser, set }) => {
       if (!currentUser) { set.status = 401; return { success: false, error: "AUTH_REQUIRED" }; }
       const messageId = Number(params.id);
-      if (isNaN(messageId)) return { success: false, error: "INVALID_ID" };
+      if (isNaN(messageId)) return status(422, { success: false, error: "INVALID_ID" });
       const [existing] = await db.select().from(bookmarks).where(and(eq(bookmarks.userId, currentUser.id), eq(bookmarks.messageId, messageId))).limit(1);
       if (existing) {
         await db.delete(bookmarks).where(and(eq(bookmarks.userId, currentUser.id), eq(bookmarks.messageId, messageId)));

@@ -31,6 +31,9 @@
 | 23 | 前端错误属性不匹配 | 🔇 静默 | ✅ |
 | 24 | 问题分类总结（8 类 37 项） | 📋 元 | ✅ |
 | 25 | auth/admin 前缀不匹配 Vite 代理 | 🔇 静默 | ✅ |
+| 26 | 6 处 API 错误缺 HTTP 状态码（bare return） | 🔧 不一致 | ✅ |
+| 27 | 前端 API 层 12 函数缺 res.ok 检查 → 静默失败 | 🔧 不一致 | ✅ |
+| 28 | 管理端硬删除 → FK 冲突隐患 | 🗄️ 数据 | ✅ |
 
 > 图例：✅已修复 ⚠️已知待修 N/A不适用
 
@@ -337,3 +340,39 @@ import { unique } from "drizzle-orm/sqlite-core";
 | Drizzle unique 语法 | `{ unique: [...] }` 错误写法 vs `unique().on()` | schema.ts |
 | PowerShell `&&` | 不支持，需 `;` 或 `--cwd` | 全局 |
 | Elysia 挂载顺序 | auth 必须在 messageRoute 之前 | index.ts |
+
+---
+
+## 25. auth/admin 前缀不匹配 Vite 代理
+
+**现象**：auth `prefix: "/auth"`，admin `prefix: "/admin"`，但前端 `BASE="/api"` + Vite 代理只转 `/api`。请求 404 静默失败。
+
+**修复**：auth → `/api/auth`，admin → `/api/admin`。
+
+---
+
+## 26. 6 处 API 错误缺 HTTP 状态码
+
+**现象**：PARENT_NOT_FOUND、MAX_DEPTH、INVALID_ID 等返回 `{ success: false }` 但不设 `set.status`，全以 200 OK 返回。前端无法仅靠 HTTP 状态区分成功/失败。
+
+**修复**：统一 `status(N, { error })`：
+- PARENT_NOT_FOUND → 400
+- MAX_DEPTH → 409
+- INVALID_ID（GET）→ 400
+- INVALID_ID（POST）→ 422
+
+---
+
+## 27. 前端 API 层 12+ 函数缺 res.ok 检查
+
+**现象**：toggleLike、toggleBookmark、signUp、signIn、fetchMe、admin 函数等 12 个函数 `fetch` 后直接 `res.json()`，不检查 `res.ok`。返回非 200 时静默消费或 JSON 解析失败。
+
+**修复**：创建 `requestJSON<T>(url, init)` 统一封装——检查 `res.ok` + `data.success`，失败 throw Error（`[HTTP_NNN]` / `[API]` 前缀）。17 函数全量迁移。同时删除不再使用的 `verifyCaptcha`（auth.ts 已内联 Turnstile 验证）。
+
+---
+
+## 28. 管理端硬删除 → FK 冲突
+
+**现象**：admin DELETE 端点直接 `db.delete(messages)`，但 likes/bookmarks 外键无 CASCADE。管理员硬删除被互动过的留言可能失败或产生孤儿记录。
+
+**修复**：前端 AdminPanel 去掉「完全削除」按钮 + 后端 DELETE 端点删除。管理端只保留软删除 + 恢复。
