@@ -9,8 +9,8 @@ const MIME_EXT: Record<string, string> = {
 
 export const uploadRoute = new Elysia({ prefix: "/api" }).post(
   "/upload",
-  async ({ body: { file }, currentUser, set }) => {
-    if (!currentUser) { set.status = 401; return { success: false, error: "AUTH_REQUIRED" }; }
+  async ({ body: { file }, currentUser, status }) => {
+    if (!currentUser) return status(401, { success: false, error: "AUTH_REQUIRED" });
     mkdirSync(UPLOAD_DIR, { recursive: true });
     const ext = MIME_EXT[file.type] ?? "bin";
     const filename = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;

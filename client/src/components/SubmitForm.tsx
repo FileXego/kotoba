@@ -6,11 +6,9 @@ interface Props {
   onSubmit: (content: string, parentId?: number) => Promise<void>;
   onImageUpload: (file: File) => Promise<string>;
   loggedIn: boolean;
-  replyTo?: { id: number; name: string } | null;
-  onCancelReply?: () => void;
 }
 
-export function SubmitForm({ lang, onSubmit, onImageUpload, loggedIn, replyTo, onCancelReply }: Props) {
+export function SubmitForm({ lang, onSubmit, onImageUpload, loggedIn }: Props) {
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -20,11 +18,8 @@ export function SubmitForm({ lang, onSubmit, onImageUpload, loggedIn, replyTo, o
     e.preventDefault();
     if (!content.trim()) return;
     setSending(true);
-    try {
-      await onSubmit(content.trim(), replyTo?.id);
-      setContent("");
-      onCancelReply?.();
-    } finally { setSending(false); }
+    try { await onSubmit(content.trim()); setContent(""); }
+    finally { setSending(false); }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,23 +29,17 @@ export function SubmitForm({ lang, onSubmit, onImageUpload, loggedIn, replyTo, o
     setUploading(true);
     try {
       const url = await onImageUpload(file);
-      setContent((prev) => prev + (prev ? "\n" : "") + `![](${url})`);
+      setContent((prev) => prev + (prev ? "\n" : "") + `[image:${url}]`);
     } catch { alert(t(lang, "form.imageFail")); }
     finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = ""; }
   };
 
-  if (!loggedIn && !replyTo) {
+  if (!loggedIn) {
     return <div className="submit-form auth-prompt"><p>{t(lang, "auth.needLogin")}</p></div>;
   }
 
   return (
     <form className="submit-form" onSubmit={handleSubmit}>
-      {replyTo && (
-        <div className="reply-notice">
-          <span>{replyTo.name} {t(lang, "form.replyTo")}</span>
-          <button type="button" className="reply-cancel" onClick={onCancelReply}>×</button>
-        </div>
-      )}
       <label htmlFor="content">{t(lang, "form.thought")}</label>
       <textarea id="content" value={content} onChange={(e) => setContent(e.target.value)}
         maxLength={500} placeholder={t(lang, "form.placeholder")} required />
@@ -60,7 +49,7 @@ export function SubmitForm({ lang, onSubmit, onImageUpload, loggedIn, replyTo, o
           {uploading ? "···" : "🖼"}
         </button>
         <button type="submit" className="submit-btn" disabled={sending || uploading}>
-          {sending ? "···" : replyTo ? t(lang, "form.reply") : t(lang, "form.submit")}
+          {sending ? "···" : t(lang, "form.submit")}
         </button>
       </div>
     </form>

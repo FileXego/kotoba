@@ -15,15 +15,15 @@ export const admin = new Elysia({ prefix: "/api/admin" })
         .get("/messages", async ({ query }) => {
           const offset = query.offset ?? 0;
           const limit = query.limit ?? 50;
-          const [list, [{ count }]] = await Promise.all([
+          const [list, count] = await Promise.all([
             db.select().from(messages).orderBy(desc(messages.createdAt)).limit(limit).offset(offset),
             db.$count(messages),
           ]);
           return { success: true, data: list, total: count, offset, limit };
         }, { query: t.Object({ offset: t.Optional(t.Numeric()), limit: t.Optional(t.Numeric()) }) })
-        .patch("/messages/:id/restore", async ({ params, set }) => {
+        .patch("/messages/:id/restore", async ({ params, status }) => {
           const id = Number(params.id);
-          if (isNaN(id)) { set.status = 400; return { success: false, error: "INVALID_ID" }; }
+          if (isNaN(id)) return status(400, { success: false, error: "INVALID_ID" });
           await db.update(messages).set({ deleted: 0 }).where(eq(messages.id, id));
           return { success: true };
         }, { params: t.Object({ id: t.String() }) })
@@ -34,16 +34,13 @@ export const admin = new Elysia({ prefix: "/api/admin" })
           }).from(users).orderBy(desc(users.createdAt));
           return { success: true, data: list };
         })
-        .patch("/users/:id/admin", async ({ params, body, currentUser, set }) => {
+        .patch("/users/:id/admin", async ({ params, body, currentUser, status }) => {
           const targetId = Number(params.id);
-          if (isNaN(targetId)) { set.status = 400; return { success: false, error: "INVALID_ID" }; }
+          if (isNaN(targetId)) return status(400, { success: false, error: "INVALID_ID" });
           if (currentUser && currentUser.id === targetId) {
-            set.status = 400; return { success: false, error: "SELF_ADMIN" };
+            return status(400, { success: false, error: "SELF_ADMIN" });
           }
           await db.update(users).set({ isAdmin: body.admin ? 1 : 0 }).where(eq(users.id, targetId));
           return { success: true };
-        }, {
-          params: t.Object({ id: t.String() }),
-          body: t.Object({ admin: t.Boolean() }),
-        })
+        }, { params: t.Object({ id: t.String() }), body: t.Object({ admin: t.Boolean() }) })
   );

@@ -41,21 +41,20 @@ export const auth = new Elysia({ prefix: "/api/auth" })
   })
   .post(
     "/sign-up",
-    async ({ body, cookie: { session }, set }) => {
-      // verify captcha server-side
+    async ({ body, cookie: { session }, status }) => {
       try {
         const fd = new FormData();
         fd.append("secret", TURNSTILE_SECRET);
         fd.append("response", body.captchaToken);
         const vr = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: fd }).then(r => r.json());
-        if (!vr.success) { set.status = 429; return { success: false, error: "CAPTCHA_FAIL" }; }
-      } catch { set.status = 429; return { success: false, error: "CAPTCHA_FAIL" }; }
+        if (!vr.success) return status(429, { success: false, error: "CAPTCHA_FAIL" });
+      } catch { return status(429, { success: false, error: "CAPTCHA_FAIL" }); }
 
       const passwordHash = await Bun.password.hash(body.password);
       const [user] = await db.insert(users).values({
         username: body.username, email: body.email, passwordHash,
       }).onConflictDoNothing().returning({ id: users.id, username: users.username, email: users.email, isAdmin: users.isAdmin });
-      if (!user) { set.status = 409; return { success: false, error: "DUPLICATE" }; }
+      if (!user) return status(409, { success: false, error: "DUPLICATE" });
       setSession(session, user.id);
       return { success: true, user };
     },
@@ -63,12 +62,12 @@ export const auth = new Elysia({ prefix: "/api/auth" })
   )
   .post(
     "/sign-in",
-    async ({ body, cookie: { session }, set }) => {
+    async ({ body, cookie: { session }, status }) => {
       const [user] = await db
         .select({ id: users.id, username: users.username, email: users.email, isAdmin: users.isAdmin, passwordHash: users.passwordHash })
         .from(users).where(eq(users.username, body.username)).limit(1);
       if (!user || !(await Bun.password.verify(body.password, user.passwordHash))) {
-        set.status = 401; return { success: false, error: "INVALID_CREDENTIALS" };
+        return status(401, { success: false, error: "INVALID_CREDENTIALS" });
       }
       setSession(session, user.id);
       const { passwordHash: _, ...safe } = user;
