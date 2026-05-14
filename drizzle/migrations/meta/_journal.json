@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1778574840717,
+      "tag": "0000_shiny_shiver_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1778579620102,
+      "tag": "0001_greedy_ego",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1778658504588,
+      "tag": "0002_amusing_wildside",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1778661854469,
+      "tag": "0003_lively_cardiac",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1778662862319,
+      "tag": "0004_pink_fallen_one",
+      "breakpoints": true
+    }
+  ]
+}

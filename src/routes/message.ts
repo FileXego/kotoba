@@ -1,0 +1,165 @@
+import { Elysia, t } from "elysia";
+import { db } from "../db";
+import { messages, likes, bookmarks } from "../db/schema";
+import { desc, eq, and, isNull, or, like, sql } from "drizzle-orm";
+
+const MAX_DEPTH = 2;
+
+export const messageRoute = new Elysia({ prefix: "/api" })
+  // ── 提交留言 / 回复 ──
+  .post(
+    "/message",
+    async ({ body, currentUser, set }) => {
+      if (!currentUser) { set.status = 401; return { success: false, error: "AUTH_REQUIRED" }; }
+      let depth = 0;
+      let rootId: number | null = null;
+
+      if (body.parentId !== undefined) {
+        const [parent] = await db
+          .select({ id: messages.id, depth: messages.depth, rootId: messages.rootId })
+          .from(messages)
+          .where(and(eq(messages.id, body.parentId), eq(messages.deleted, 0)))
+          .limit(1);
+        if (!parent) return { success: false, error: "PARENT_NOT_FOUND" };
+        if (parent.depth >= MAX_DEPTH) return { success: false, error: "MAX_DEPTH" };
+        depth = parent.depth + 1;
+        rootId = parent.rootId ?? parent.id;
+      }
+
+      const [result] = await db.insert(messages).values({
+        name: currentUser.username,
+        content: body.content,
+        parentId: body.parentId ?? null,
+        rootId,
+        depth,
+      }).returning({ id: messages.id });
+
+      return { success: true, id: result.id };
+    },
+    {
+      body: t.Object({
+        content: t.String({ minLength: 1, maxLength: 500 }),
+        parentId: t.Optional(t.Number()),
+      }),
+    }
+  )
+  // ── 留言列表（分页 + 搜索 + 仅顶层 + likeCount） ──
+  .get(
+    "/messages",
+    async ({ query }) => {
+      const offset = query.offset ?? 0;
+      const limit = query.limit ?? 20;
+      const q = query.q?.trim();
+
+      const where = and(
+        eq(messages.deleted, 0),
+        isNull(messages.parentId),
+        q ? or(like(messages.name, `%${q}%`), like(messages.content, `%${q}%`)) : undefined
+      );
+
+      const [list, count] = await Promise.all([
+        db.select({
+          id: messages.id, name: messages.name, content: messages.content,
+          createdAt: messages.createdAt, updatedAt: messages.updatedAt,
+          parentId: messages.parentId, rootId: messages.rootId, depth: messages.depth,
+          likeCount: sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.message_id = messages.id)`,
+        }).from(messages).where(where).orderBy(desc(messages.createdAt)).limit(limit).offset(offset),
+        db.$count(messages, where),
+      ]);
+
+      return { success: true, data: list, total: count, offset, limit };
+    },
+    { query: t.Object({ offset: t.Optional(t.Numeric()), limit: t.Optional(t.Numeric()), q: t.Optional(t.String()) }) }
+  )
+  // ── 回复树 ──
+  .get(
+    "/messages/:id/replies",
+    async ({ params }) => {
+      const id = Number(params.id);
+      if (isNaN(id)) return { success: false, error: "INVALID_ID" };
+      const list = await db.select({
+        id: messages.id, name: messages.name, content: messages.content,
+        createdAt: messages.createdAt, updatedAt: messages.updatedAt,
+        parentId: messages.parentId, rootId: messages.rootId, depth: messages.depth,
+        likeCount: sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.message_id = messages.id)`,
+      }).from(messages).where(and(eq(messages.deleted, 0), or(eq(messages.rootId, id), eq(messages.id, id)))).orderBy(messages.createdAt);
+
+      return { success: true, data: list };
+    },
+    { params: t.Object({ id: t.String() }) }
+  )
+  // ── 编辑 / 软删除 ──
+  .patch(
+    "/message/:id",
+    async ({ params, body, currentUser, set }) => {
+      const id = Number(params.id);
+      if (isNaN(id)) { set.status = 400; return { success: false, error: "INVALID_ID" }; }
+      // auth: only author can edit/delete
+      const [msg] = await db.select({ name: messages.name }).from(messages).where(eq(messages.id, id)).limit(1);
+      if (!msg) { set.status = 404; return { success: false, error: "NOT_FOUND" }; }
+      if (!currentUser || currentUser.username !== msg.name) { set.status = 403; return { success: false, error: "FORBIDDEN" }; }
+      const update: Record<string, unknown> = { updatedAt: new Date() };
+      if (body.content !== undefined) update.content = body.content;
+      if (body.deleted !== undefined) update.deleted = body.deleted;
+      await db.update(messages).set(update).where(eq(messages.id, id));
+      return { success: true };
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      body: t.Object({
+        content: t.Optional(t.String({ minLength: 1, maxLength: 500 })),
+        deleted: t.Optional(t.Number({ minimum: 0, maximum: 1 })),
+      }),
+    }
+  )
+  // ── 点赞 toggle ──
+  .post(
+    "/messages/:id/like",
+    async ({ params, currentUser, set }) => {
+      if (!currentUser) { set.status = 401; return { success: false, error: "AUTH_REQUIRED" }; }
+      const messageId = Number(params.id);
+      if (isNaN(messageId)) return { success: false, error: "INVALID_ID" };
+      const [existing] = await db.select().from(likes).where(and(eq(likes.userId, currentUser.id), eq(likes.messageId, messageId))).limit(1);
+      if (existing) {
+        await db.delete(likes).where(and(eq(likes.userId, currentUser.id), eq(likes.messageId, messageId)));
+      } else {
+        await db.insert(likes).values({ userId: currentUser.id, messageId });
+      }
+      const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(likes).where(eq(likes.messageId, messageId));
+      return { success: true, liked: !existing, count };
+    },
+    { params: t.Object({ id: t.String() }) }
+  )
+  // ── 收藏 toggle ──
+  .post(
+    "/messages/:id/bookmark",
+    async ({ params, currentUser, set }) => {
+      if (!currentUser) { set.status = 401; return { success: false, error: "AUTH_REQUIRED" }; }
+      const messageId = Number(params.id);
+      if (isNaN(messageId)) return { success: false, error: "INVALID_ID" };
+      const [existing] = await db.select().from(bookmarks).where(and(eq(bookmarks.userId, currentUser.id), eq(bookmarks.messageId, messageId))).limit(1);
+      if (existing) {
+        await db.delete(bookmarks).where(and(eq(bookmarks.userId, currentUser.id), eq(bookmarks.messageId, messageId)));
+      } else {
+        await db.insert(bookmarks).values({ userId: currentUser.id, messageId });
+      }
+      return { success: true, bookmarked: !existing };
+    },
+    { params: t.Object({ id: t.String() }) }
+  )
+  // ── 当前用户互动状态 ──
+  .get(
+    "/me/likes",
+    async ({ currentUser }) => {
+      if (!currentUser) return { success: true, liked: [], bookmarked: [] };
+      const [likedRows, bookmarkedRows] = await Promise.all([
+        db.select({ messageId: likes.messageId }).from(likes).where(eq(likes.userId, currentUser.id)),
+        db.select({ messageId: bookmarks.messageId }).from(bookmarks).where(eq(bookmarks.userId, currentUser.id)),
+      ]);
+      return {
+        success: true,
+        liked: likedRows.map((r) => r.messageId),
+        bookmarked: bookmarkedRows.map((r) => r.messageId),
+      };
+    }
+  );
