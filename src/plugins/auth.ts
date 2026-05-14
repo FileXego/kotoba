@@ -3,8 +3,14 @@ import { db } from "../db";
 import { users } from "../db/schema";
 import { eq } from "drizzle-orm";
 
-const COOKIE_SECRET = import.meta.env.COOKIE_SECRET ?? "dev-secret-change-me";
+const isProd = import.meta.env.NODE_ENV === "production";
+const rawSecret = import.meta.env.COOKIE_SECRET;
+if (!rawSecret) {
+  if (isProd) { console.error("COOKIE_SECRET is required in production"); process.exit(1); }
+}
+const COOKIE_SECRET = rawSecret ?? "dev-secret-change-me";
 const SESSION_AGE = 60 * 60 * 24 * 7;
+const TURNSTILE_SECRET = import.meta.env.TURNSTILE_SECRET ?? "1x0000000000000000000000000000000AA";
 
 async function lookupUser(userId: number) {
   const [user] = await db
@@ -16,6 +22,8 @@ async function lookupUser(userId: number) {
 const setSession = (session: any, userId: number) => {
   session.value = String(userId); session.secret = COOKIE_SECRET;
   session.path = "/"; session.httpOnly = true; session.maxAge = SESSION_AGE;
+  session.sameSite = "lax";
+  session.secure = isProd;
 };
 
 export const auth = new Elysia({ prefix: "/api/auth" })
@@ -24,6 +32,7 @@ export const auth = new Elysia({ prefix: "/api/auth" })
       username: t.String({ minLength: 1, maxLength: 30 }),
       email: t.String({ format: "email" }),
       password: t.String({ minLength: 6 }),
+      captchaToken: t.String(),
     }),
     signIn: t.Object({
       username: t.String(),
@@ -33,6 +42,15 @@ export const auth = new Elysia({ prefix: "/api/auth" })
   .post(
     "/sign-up",
     async ({ body, cookie: { session }, set }) => {
+      // verify captcha server-side
+      try {
+        const fd = new FormData();
+        fd.append("secret", TURNSTILE_SECRET);
+        fd.append("response", body.captchaToken);
+        const vr = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: fd }).then(r => r.json());
+        if (!vr.success) { set.status = 429; return { success: false, error: "CAPTCHA_FAIL" }; }
+      } catch { set.status = 429; return { success: false, error: "CAPTCHA_FAIL" }; }
+
       const passwordHash = await Bun.password.hash(body.password);
       const [user] = await db.insert(users).values({
         username: body.username, email: body.email, passwordHash,
@@ -52,11 +70,7 @@ export const auth = new Elysia({ prefix: "/api/auth" })
       if (!user || !(await Bun.password.verify(body.password, user.passwordHash))) {
         set.status = 401; return { success: false, error: "INVALID_CREDENTIALS" };
       }
-      session.value = String(user.id);
-      session.secret = COOKIE_SECRET;
-      session.path = "/";
-      session.httpOnly = true;
-      session.maxAge = SESSION_AGE;
+      setSession(session, user.id);
       const { passwordHash: _, ...safe } = user;
       return { success: true, user: safe };
     },

@@ -77,6 +77,8 @@ export const ja = {
   "error.INVALID_CREDENTIALS": "ユーザー名またはパスワードが間違っています",
   "error.SELF_ADMIN": "自分自身の管理者権限は変更できません",
   "error.SUBMIT_FAIL": "投稿に失敗しました",
+  "error.CAPTCHA_FAIL": "認証に失敗しました",
+  "error.RATE_LIMITED": "リクエストが多すぎます",
 } as const;
 
 export const zh: Record<Key, string> = {
@@ -155,6 +157,8 @@ export const zh: Record<Key, string> = {
   "error.INVALID_CREDENTIALS": "用户名或密码错误",
   "error.SELF_ADMIN": "不能修改自己的管理员权限",
   "error.SUBMIT_FAIL": "提交失败",
+  "error.CAPTCHA_FAIL": "验证失败",
+  "error.RATE_LIMITED": "请求过于频繁",
 };
 
 export function t(lang: Lang, key: Key): string {

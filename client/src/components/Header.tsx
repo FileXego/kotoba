@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type FormEvent } from "react";
-import { signUp, signIn, signOut, verifyCaptcha, type User } from "../api";
+import { signUp, signIn, signOut, type User } from "../api";
 import { t, type Lang } from "../i18n";
 
 declare global { interface Window { turnstile: any } }
@@ -31,14 +31,13 @@ export function Header({ theme, lang, onToggleTheme, onToggleLang, user, onUserC
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault(); setError(""); setLoading(true);
     try {
+      let token = "";
       if (mode === "up") {
-        const token = window.turnstile?.getResponse(widgetId.current) ?? "";
+        token = window.turnstile?.getResponse(widgetId.current) ?? "";
         if (!token) { setError(t(lang, "auth.captcha")); setLoading(false); return; }
-        const verify = await verifyCaptcha(token);
-        if (!verify.success) { setError(t(lang, "auth.captchaFail")); setLoading(false); return; }
       }
       const result = mode === "up"
-        ? await signUp(username, email, password) : await signIn(username, password);
+        ? await signUp(username, email, password, token) : await signIn(username, password);
       if (result.success && result.user) {
         onUserChange(result.user); setShowAuth(false); setUsername(""); setEmail(""); setPassword("");
       } else { setError(t(lang, ("error." + result.error) as any) || result.error || t(lang, "auth.error")); }

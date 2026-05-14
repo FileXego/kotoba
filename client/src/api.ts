@@ -107,12 +107,12 @@ export interface User {
 }
 
 export async function signUp(
-  username: string, email: string, password: string
+  username: string, email: string, password: string, captchaToken: string
 ): Promise<{ success: boolean; user?: User; error?: string }> {
   const res = await fetch(`${BASE}/auth/sign-up`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, email, password }),
+    body: JSON.stringify({ username, email, password, captchaToken }),
   });
   return res.json();
 }
