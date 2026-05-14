@@ -18,7 +18,7 @@ const setSession = (session: any, userId: number) => {
   session.path = "/"; session.httpOnly = true; session.maxAge = SESSION_AGE;
 };
 
-export const auth = new Elysia({ prefix: "/auth" })
+export const auth = new Elysia({ prefix: "/api/auth" })
   .model({
     signUp: t.Object({
       username: t.String({ minLength: 1, maxLength: 30 }),

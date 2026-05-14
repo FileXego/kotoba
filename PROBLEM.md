@@ -30,8 +30,19 @@
 | 22 | 路径穿越漏洞 | 🔒 安全 | ✅ |
 | 23 | 前端错误属性不匹配 | 🔇 静默 | ✅ |
 | 24 | 问题分类总结（8 类 37 项） | 📋 元 | ✅ |
+| 25 | auth/admin 前缀不匹配 Vite 代理 | 🔇 静默 | ✅ |
 
 > 图例：✅已修复 ⚠️已知待修 N/A不适用
+
+---
+
+## 25. auth/admin 插件 prefix 与前端 BASE 不一致
+
+**现象**：auth 插件 `prefix: "/auth"`，admin `prefix: "/admin"`，但前端 `BASE="/api"` 调用 `/api/auth/*` 和 `/api/admin/*`。Vite 代理不 strip 前缀，请求到达后端路径不匹配 → 404 静默失败。
+
+**根因**：captcha 自带 `prefix: "/api"`，message 也带，auth 和 admin 却漏了。约定漂移——插件创建时间不同，prefix 不统一。
+
+**修复**：auth → `prefix: "/api/auth"`，admin → `prefix: "/api/admin"`。
 
 ---
 

@@ -53,7 +53,7 @@ bookmarks(user_id, message_id, created_at) UNIQUE(user_id, message_id)
 
 1. **复制传播** — 加新端点前，grep 旧端点确认无已知缺陷
 2. **快乐路径** — 每个 await 后必须处理失败（try/catch 或 error 返回）
-3. **约定漂移** — 写完 grep 同类模式统一为新写法（$count 不是 sql count(*)）
+3. **约定漂移** — 写完 grep 同类模式统一为新写法；所有插件 `prefix` 必须含 `/api`（前端 `BASE="/api"`，Vite 代理只转 `/api`）
 4. **硬编码** — UI 文字第一次就进 i18n.ts，不写死
 5. **CSS 覆盖** — 多次 edit 同锚点会覆盖前次内容，大批量改动用 write 重写
 6. **验证两端** — 改 src/ 验后端，改 client/ 验前端，都改都验

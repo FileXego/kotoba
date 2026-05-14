@@ -3,7 +3,7 @@ import { db } from "../db";
 import { messages, users } from "../db/schema";
 import { eq, desc } from "drizzle-orm";
 
-export const admin = new Elysia({ prefix: "/admin" })
+export const admin = new Elysia({ prefix: "/api/admin" })
   .guard(
     {
       beforeHandle({ currentUser, status }) {

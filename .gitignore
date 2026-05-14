@@ -35,6 +35,9 @@ uploads/
 .cache
 *.tsbuildinfo
 
+# meta
+OTHERS.md
+
 # IntelliJ based IDEs
 .idea
 
