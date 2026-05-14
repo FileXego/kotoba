@@ -26,9 +26,9 @@
 
 | # | 任务 | 文件 | 决定 |
 |---|------|------|------|
-| 7 | 所有错误返回统一 `status(N, {...})` | message.ts | `PARENT_NOT_FOUND→404, MAX_DEPTH→409, INVALID_ID→400` |
-| 8 | 前端加 `requestJSON<T>()` 统一封装 | api.ts | 检查 `res.ok` + `data.success`，失败 throw |
-| 9 | 所有 API 函数迁移到 `requestJSON` | api.ts | 全量一次性迁移 |
+| 7 | 所有错误返回统一 `status(N, {...})` | message.ts | PARENT_NOT_FOUND→400, MAX_DEPTH→409, INVALID_ID→400(GET)/422(POST), captcha 异常→保持200 |
+| 8 | 前端加 `requestJSON<T>()` 统一封装 | api.ts | `[HTTP_NNN]` / `[API]` 前缀区分异常；删除 verifyCaptcha（auth.ts 已内联） |
+| 9 | 所有 API 函数迁移到 `requestJSON` | api.ts | 17 函数 + signOut 全量一次性迁移 |
 
 ---
 
@@ -38,7 +38,7 @@
 
 | # | 任务 | 文件 | 决定 |
 |---|------|------|------|
-| 10 | admin 面板去掉硬删除按钮 | admin.ts + AdminPanel.tsx | 只保留软删除+恢复，消除 FK 隐患 |
+| 10 | 去掉硬删除 | admin.ts + AdminPanel.tsx | 前端按钮删 + 后端 DELETE 端点删 |
 
 ---
 
