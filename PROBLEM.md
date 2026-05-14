@@ -34,6 +34,9 @@
 | 26 | 6 处 API 错误缺 HTTP 状态码（bare return） | 🔧 不一致 | ✅ |
 | 27 | 前端 API 层 12 函数缺 res.ok 检查 → 静默失败 | 🔧 不一致 | ✅ |
 | 28 | 管理端硬删除 → FK 冲突隐患 | 🗄️ 数据 | ✅ |
+| 29 | 3 handler `return status()` 未解构 → ReferenceError | 🔴 运行时 | ✅ |
+| 30 | 12 处 `set.status` 旧写法与标准不一致 | 🔧 不一致 | ✅ |
+| 31 | i18n + SubmitForm 死代码 | 🟢 死代码 | ✅ |
 
 > 图例：✅已修复 ⚠️已知待修 N/A不适用
 
@@ -376,3 +379,27 @@ import { unique } from "drizzle-orm/sqlite-core";
 **现象**：admin DELETE 端点直接 `db.delete(messages)`，但 likes/bookmarks 外键无 CASCADE。管理员硬删除被互动过的留言可能失败或产生孤儿记录。
 
 **修复**：前端 AdminPanel 去掉「完全削除」按钮 + 后端 DELETE 端点删除。管理端只保留软删除 + 恢复。
+
+---
+
+## 29. 3 handler `return status()` 未解构 → ReferenceError
+
+**现象**：0.8.2 将 bare return 改为 `return status(N, { error })`，但 POST /message、POST /like、POST /bookmark 三个 handler 未解构 `status` 参数。触发 PARENT_NOT_FOUND 等错误路径时 → `ReferenceError: status is not defined` → 500 crash。
+
+**修复**：3 个 handler 加 `status` 到解构。同时全项目统一为 `return status(N, ...)`（替换 12 处 `set.status = N; return`），消除两种写法共存的不一致。
+
+---
+
+## 30. 12 处 set.status 旧写法与标准不一致
+
+**现象**：AGENTS.md 规定 `return status(N, { error })`，但 12 处仍用 `set.status = N; return { ... }`。功能等价但写法不统一。
+
+**修复**：全项目 5 个文件统一为 `return status(N, { ... })`。
+
+---
+
+## 31. 硬删除移除后遗留死代码
+
+**现象**：0.8.3 去硬删除后，i18n 的 `admin.hardDelete`/`admin.confirmDelete` 4 个 key 无人引用；SubmitForm 的 `replyTo`/`onCancelReply` props + reply-notice JSX 从未被传参。
+
+**修复**：删除死 key（ja+zh）+ 清理 SubmitForm。
