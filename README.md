@@ -2,8 +2,6 @@
 
 > A zen-minimalist message board. Washi paper aesthetic. Dark mode with ink-wash transition. Japanese / Chinese bilingual.
 
-![screenshot](https://via.placeholder.com/800x500/f7f3eb/2d2d2d?text=%E8%A8%80+%E8%91%89+Screenshot)
-
 ## Features
 
 - 📝 Post messages with image attachments
