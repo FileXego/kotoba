@@ -44,6 +44,15 @@ case "${1:-update}" in
   init)
     log "=== Kotoba first-time deployment ==="
 
+    # check Bun version
+    BUN_VER=$(bun --version 2>/dev/null || echo "0")
+    if [ "$(printf '%s\n' "1.1" "$BUN_VER" | sort -V | head -1)" != "1.1" ]; then
+      log "❌ Bun >= 1.1 required. Current: $BUN_VER"
+      log "   Install: curl -fsSL https://bun.sh/install | bash"
+      exit 1
+    fi
+    log "✅ Bun $BUN_VER"
+
     TAG=$(cd /opt/kotoba 2>/dev/null && latest_tag || echo "v1.0.0")
     APP_DIR="$APP_BASE/kotoba-$TAG"
 
