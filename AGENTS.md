@@ -39,8 +39,9 @@ client/src/    App.tsx → Header / SubmitForm / MessageList(→MessageCard/Recu
 | GET /api/messages/:id/replies | — | 400/INVALID_ID |
 | POST /api/auth/sign-up | `{ username, email, password, captchaToken }` 后端自验 | 409/DUPLICATE 429/CAPTCHA_FAIL |
 | POST /api/auth/sign-in | `{ username, password }` | 401/INVALID_CREDENTIALS |
-| GET /api/admin/* | guard isAdmin | 403/FORBIDDEN |
+| GET /api/admin/* | guard isAdmin，restore/toggle | 403/FORBIDDEN 400/SELF_ADMIN |
 | POST /api/upload | 登录，MIME 映射扩展名 | 401/AUTH_REQUIRED |
+| 全局限频 | sign-up 3次/分，upload 5次/分 | 429/RATE_LIMITED |
 
 **错误码规范**：所有错误必须 `return status(N, { success: false, error: "CODE" })`，不裸 `return {}`。<br>
 **前端调用**：统一 `requestJSON<T>(url, init)` → `[HTTP_NNN]` / `[API]` Error 前缀。

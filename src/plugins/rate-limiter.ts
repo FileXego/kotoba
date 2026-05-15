@@ -21,10 +21,10 @@ export const rateLimiter = new Elysia()
     const url = new URL(request.url);
 
     // only limit high-risk endpoints
-    if (url.pathname.includes("/sign-up")) {
+    if (url.pathname === "/api/auth/sign-up") {
       if (!checkIP(ip, 3)) return status(429, { success: false, error: "RATE_LIMITED" });
     }
-    if (url.pathname.includes("/upload")) {
+    if (url.pathname === "/api/upload") {
       if (!checkIP(ip, 5)) return status(429, { success: false, error: "RATE_LIMITED" });
     }
   });

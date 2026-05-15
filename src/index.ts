@@ -3,7 +3,6 @@ import { rateLimiter } from "./plugins/rate-limiter";
 import { messageRoute } from "./routes/message";
 import { uploadRoute } from "./routes/upload";
 import { auth } from "./plugins/auth";
-import { captcha } from "./plugins/captcha";
 import { admin } from "./plugins/admin";
 
 const app = new Elysia({
@@ -11,15 +10,14 @@ const app = new Elysia({
 })
   .use(rateLimiter)
   .use(auth)
-  .use(captcha)
   .use(admin)
   .use(messageRoute)
   .use(uploadRoute)
   .get("/", () => "🦊 ElysiaJS is running!")
-  .get("/uploads/*", ({ request, set }) => {
+  .get("/uploads/*", ({ request, status }) => {
     const url = new URL(request.url);
     const filename = url.pathname.split("/uploads/")[1];
-    if (!filename || filename.includes("..")) { set.status = 403; return ""; }
+    if (!filename || filename.includes("..")) return status(403, "");
     return Bun.file(`./uploads/${filename}`);
   })
   .listen(3000);
