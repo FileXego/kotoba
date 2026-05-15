@@ -81,3 +81,5 @@ bookmarks(user_id, message_id, created_at) UNIQUE(user_id, message_id)
 ## 审查
 
 @oracle 开新 session（不 resume 旧 session，文件快照不可见后续 edit）。审查报告与代码冲突时自行 read 确认。遇到问题查 PROBLEM.md。
+
+**Elysia tsc 限制**：`derive({ as: "global" })` 注入的类型（如 `currentUser`）独立 `tsc --noEmit` 看不到——Elysia 类型是运行时 `.use()` 组合推导的。CI 后端用 `bun run src/index.ts` 烟雾测试代替 typecheck。前端 `tsc -b` 正常。
