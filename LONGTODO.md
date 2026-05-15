@@ -79,3 +79,54 @@
 安全默认值合格 + API 契约统一 + README 与实际一致 + 上传可信 + 管理不破坏数据 + CI 能跑通。
 
 > 1.0 前不做：markdown 渲染器、Zustand/Redux/React Query、Postgres、复杂 observability、为"专业"堆依赖。
+
+---
+
+## 2.0.0 🎨 个性化 + 收藏页
+
+**核心词**：可维护扩展。不加依赖，适度解耦，pushState 路由。
+
+### 架构基础
+
+| # | 任务 | 决定 |
+|---|------|------|
+| A | messages 表加 `userId` | migration + 全量补旧留言（name 反查 users） |
+| B | pushState 路由 | ~15 行 `useRouter` hook，0 依赖，/、/admin、/bookmarks |
+| C | PATCH /api/auth/me 扩展 | `t.Optional` 局部更新，不加新端点 |
+
+### 头像
+
+| # | 任务 | 决定 |
+|---|------|------|
+| 1 | users 表加 `avatar_url` | TEXT, nullable |
+| 2 | PATCH /api/auth/avatar | 独立端点，256KB max，png/jpeg/webp |
+| 3 | MessageCard + Header 渲染头像 | 有 avatar_url 时替代首字母圆 |
+
+### 签名
+
+| # | 任务 | 决定 |
+|---|------|------|
+| 4 | users 表加 `signature` | TEXT, max 100 chars |
+| 5 | MessageCard 独立渲染签名 | 卡片底部，作者本人可见；需 userId 匹配 |
+
+### 主题扩展
+
+| # | 任务 | 决定 |
+|---|------|------|
+| 6 | users 表加 `theme` | TEXT, default "light"。PATCH /me |
+| 7 | 预设主题系统 | 3-4 套 CSS 变量（和纸/星夜/墨染/樱）。DB 存储 + localStorage 缓存。删主题 fallback "light" |
+
+### 收藏页
+
+| # | 任务 | 决定 |
+|---|------|------|
+| 8 | GET /api/bookmarks | 当前用户的收藏列表，分页 |
+| 9 | BookmarksPage 组件 | 复用 MessageList 样式，独立 pushState 路由 |
+
+### 隐患排查
+
+| # | 隐患 | 处理 |
+|---|------|------|
+| H1 | 头像和消息图片共用 upload | 头像独立端点 PATCH /api/auth/avatar |
+| H2 | 旧留言 name 匹配不到用户 | userId=NULL，签名不显示（可接受） |
+| H3 | 主题删除后用户引用失效 | fallback "light" |
