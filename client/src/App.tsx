@@ -115,6 +115,8 @@ export default function App() {
     try {
       const replies = await fetchReplies(rootId);
       setReplyTrees(prev => ({ ...prev, [rootId]: replies.data }));
+    } catch {
+      console.error("Failed to load replies for", rootId);
     } finally {
       setLoadingReplies(prev => { const n = new Set(prev); n.delete(rootId); return n; });
     }

@@ -14,15 +14,17 @@ const app = new Elysia({
   .use(messageRoute)
   .use(uploadRoute)
   // static: client/dist/ assets
-  .get("/assets/*", ({ request }) => {
+  .get("/assets/*", ({ request, status }) => {
     const url = new URL(request.url);
-    return Bun.file(`./client/dist${url.pathname}`);
+    const path = url.pathname.split("/assets/")[1];
+    if (!path || path.includes("..")) return status(403, { success: false, error: "FORBIDDEN" });
+    return Bun.file(`./client/dist/assets/${path}`);
   })
   // uploads
   .get("/uploads/*", ({ request, status }) => {
     const url = new URL(request.url);
     const filename = url.pathname.split("/uploads/")[1];
-    if (!filename || filename.includes("..")) return status(403, "");
+    if (!filename || filename.includes("..")) return status(403, { success: false, error: "FORBIDDEN" });
     return Bun.file(`./uploads/${filename}`);
   })
   // SPA fallback: all other routes → index.html
