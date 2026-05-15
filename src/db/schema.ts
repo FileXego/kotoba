@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, unique } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, unique, index } from "drizzle-orm/sqlite-core";
 
 export const messages = sqliteTable("messages", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -12,7 +12,10 @@ export const messages = sqliteTable("messages", {
   parentId: integer("parent_id"),
   rootId: integer("root_id"),
   depth: integer("depth").notNull().default(0),
-});
+}, (t) => ({
+  listIdx: index("messages_list_idx").on(t.deleted, t.parentId, t.createdAt),
+  rootIdx: index("messages_root_idx").on(t.rootId, t.createdAt),
+}));
 
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -33,6 +36,7 @@ export const likes = sqliteTable("likes", {
     .$defaultFn(() => new Date()),
 }, (t) => ({
   unqLikes: unique().on(t.userId, t.messageId),
+  msgIdx: index("likes_message_idx").on(t.messageId),
 }));
 
 export const bookmarks = sqliteTable("bookmarks", {
@@ -43,4 +47,5 @@ export const bookmarks = sqliteTable("bookmarks", {
     .$defaultFn(() => new Date()),
 }, (t) => ({
   unqBookmarks: unique().on(t.userId, t.messageId),
+  msgIdx: index("bookmarks_message_idx").on(t.messageId),
 }));
