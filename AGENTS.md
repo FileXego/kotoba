@@ -20,12 +20,12 @@ Bun · ElysiaJS (TypeBox) · Drizzle ORM + SQLite · React 19 + Vite 8
 ## 架构
 
 ```
-src/plugins/   auth.ts / admin.ts / captcha.ts     ← Elysia 插件
+src/plugins/   auth.ts / admin.ts / rate-limiter.ts   ← Elysia 插件
 src/routes/    message.ts / upload.ts              ← 路由
 src/db/        schema.ts / index.ts                ← Drizzle
-client/src/    App.tsx → Header / SubmitForm / MessageList(→MessageCard/RecursiveReply) / AdminPanel
+client/src/    App.tsx → Header / SubmitForm / MessageList(→MessageCard) / AdminPanel
 ```
-插件挂载顺序：**auth → captcha → admin → messageRoute → uploadRoute**（derive 依赖 auth 在前）
+插件挂载顺序：**rateLimiter → auth → admin → messageRoute → uploadRoute**（derive 依赖 auth 在前）
 
 ## API 速查
 
