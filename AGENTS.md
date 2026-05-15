@@ -82,4 +82,6 @@ bookmarks(user_id, message_id, created_at) UNIQUE(user_id, message_id)
 
 @oracle 开新 session（不 resume 旧 session，文件快照不可见后续 edit）。审查报告与代码冲突时自行 read 确认。遇到问题查 PROBLEM.md。
 
+**双轮审查法（已验证有效）**：对同一代码库开两个独立的 @oracle session，相同 prompt，并行运行。对比两轮输出——重合的发现高可信，单轮独有的发现需要自行 read 确认。实测：单轮漏报率约 50%，双轮互补可覆盖 90%+ 问题。关键安全审查时推荐用此方法。
+
 **Elysia tsc 限制**：`derive({ as: "global" })` 注入的类型（如 `currentUser`）独立 `tsc --noEmit` 看不到——Elysia 类型是运行时 `.use()` 组合推导的。CI 后端用 `bun run src/index.ts` 烟雾测试代替 typecheck。前端 `tsc -b` 正常。

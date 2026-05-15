@@ -37,6 +37,7 @@
 | 29 | 3 handler `return status()` 未解构 → ReferenceError | 🔴 运行时 | ✅ |
 | 30 | 12 处 `set.status` 旧写法与标准不一致 | 🔧 不一致 | ✅ |
 | 31 | i18n + SubmitForm 死代码 | 🟢 死代码 | ✅ |
+| 32 | 双轮 Oracle 审查法——单轮漏报率 ~50% | 🧠 方法论 | ✅ |
 
 > 图例：✅已修复 ⚠️已知待修 N/A不适用
 

@@ -17,7 +17,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with: { bun-version: latest }
       - run: bun install
-      - run: timeout 5 bun run src/index.ts || true
+      - run: bun run db:generate && bun run db:migrate
+      - run: bun run src/index.ts &
+      - run: sleep 3 && curl -f http://localhost:3000/
 
   frontend:
     runs-on: ubuntu-latest
