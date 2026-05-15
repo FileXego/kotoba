@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, type FormEvent } from "react";
 import { signUp, signIn, signOut, type User } from "../api";
 import { t, type Lang } from "../i18n";
 
-declare global { interface Window { turnstile: any } }
+declare global { interface Window { turnstile: { render: (el: HTMLElement, opts: { sitekey: string }) => string; getResponse: (id?: string) => string; reset: (id?: string) => void } } }
 const SITE_KEY = "1x00000000000000000000AA";
 
 interface Props {
@@ -40,7 +40,8 @@ export function Header({ theme, lang, onToggleTheme, onToggleLang, user, onUserC
         ? await signUp(username, email, password, token) : await signIn(username, password);
       if (result.success && result.user) {
         onUserChange(result.user); setShowAuth(false); setUsername(""); setEmail(""); setPassword("");
-      } else { setError(t(lang, ("error." + result.error) as any) || result.error || t(lang, "auth.error")); }
+      } else { // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setError(t(lang, ("error." + result.error) as any) || result.error || t(lang, "auth.error")); }
     } catch { setError(t(lang, "auth.network")); }
     finally { setLoading(false); window.turnstile?.reset(widgetId.current); }
   };

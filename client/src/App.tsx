@@ -85,12 +85,14 @@ export default function App() {
 
   // load user + interactions
   useEffect(() => { fetchMe().then((r) => setUser(r.user)); }, []);
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!user) { setLikedIds(new Set()); setBookmarkedIds(new Set()); return; }
     fetchInteractions().then((r) => {
       setLikedIds(new Set(r.liked)); setBookmarkedIds(new Set(r.bookmarked));
     });
   }, [user]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // search debounce
   const q = searchQuery.trim();
@@ -120,6 +122,7 @@ export default function App() {
 
   const handleSubmit = async (content: string, parentId?: number) => {
     const result = await submitMessage(content, parentId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (!result.success) throw new Error(t(lang, ("error." + result.error) as any) || result.error || t(lang, "error.SUBMIT_FAIL"));
     if (parentId) {
       const rootId = (() => {
@@ -143,24 +146,24 @@ export default function App() {
 
   const handleToggleLike = async (id: number) => {
     const wasLiked = likedIds.has(id);
-    setLikedIds(p => { const n = new Set(p); wasLiked ? n.delete(id) : n.add(id); return n; });
+    setLikedIds(p => { const n = new Set(p); if (wasLiked) n.delete(id); else n.add(id); return n; });
     try {
       const res = await toggleLike(id);
-      setLikedIds(p => { const n = new Set(p); res.liked ? n.add(id) : n.delete(id); return n; });
+      setLikedIds(p => { const n = new Set(p); if (res.liked) n.add(id); else n.delete(id); return n; });
       setMessages(prev => prev.map(m => m.id === id ? { ...m, likeCount: res.count } : m));
     } catch {
-      setLikedIds(p => { const n = new Set(p); wasLiked ? n.add(id) : n.delete(id); return n; });
+      setLikedIds(p => { const n = new Set(p); if (wasLiked) n.add(id); else n.delete(id); return n; });
     }
   };
 
   const handleToggleBookmark = async (id: number) => {
     const wasBookmarked = bookmarkedIds.has(id);
-    setBookmarkedIds(p => { const n = new Set(p); wasBookmarked ? n.delete(id) : n.add(id); return n; });
+    setBookmarkedIds(p => { const n = new Set(p); if (wasBookmarked) n.delete(id); else n.add(id); return n; });
     try {
       const res = await toggleBookmark(id);
-      setBookmarkedIds(p => { const n = new Set(p); res.bookmarked ? n.add(id) : n.delete(id); return n; });
+      setBookmarkedIds(p => { const n = new Set(p); if (res.bookmarked) n.add(id); else n.delete(id); return n; });
     } catch {
-      setBookmarkedIds(p => { const n = new Set(p); wasBookmarked ? n.add(id) : n.delete(id); return n; });
+      setBookmarkedIds(p => { const n = new Set(p); if (wasBookmarked) n.add(id); else n.delete(id); return n; });
     }
   };
 
