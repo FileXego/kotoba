@@ -6,7 +6,7 @@
 
 - 📝 Post messages with image attachments
 - 💬 3-level nested replies
-- 🔍 Full-text search + pagination
+- 🔍 Keyword search + pagination
 - ❤️ Like & bookmark with persistence
 - 🌙 Dark mode with ink-spread transition animation
 - 🇯🇵🇨🇳 Japanese / Chinese bilingual UI

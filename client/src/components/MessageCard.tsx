@@ -28,6 +28,23 @@ function formatTime(lang: Lang, iso: string): string {
 
 const TRUNCATE_AT = 120; const MAX_DEPTH = 2;
 
+const IMG_RE = /\[image:(\/uploads\/[^\]]+\.(png|jpg|jpeg|webp))\]/gi;
+
+function renderContent(content: string) {
+  const parts: (string | { src: string; key: number })[] = [];
+  let last = 0, m: RegExpExecArray | null;
+  while ((m = IMG_RE.exec(content)) !== null) {
+    if (m.index > last) parts.push(content.slice(last, m.index));
+    parts.push({ src: m[1], key: m.index });
+    last = m.index + m[0].length;
+  }
+  if (last < content.length) parts.push(content.slice(last));
+  if (parts.length === 1 && typeof parts[0] === "string") return content;
+  return parts.map((p) =>
+    typeof p === "string" ? p : <img key={p.key} src={p.src} alt="" className="msg-image" loading="lazy" />
+  );
+}
+
 export function MessageCard({
   lang, message: { id, name, content, createdAt, depth = 0, likeCount = 0 },
   replies, loadingReplies, currentUser, likedIds, bookmarkedIds,
@@ -87,7 +104,9 @@ export function MessageCard({
             {editError && <p className="auth-error">{editError}</p>}
           </div>
         ) : (
-          <p className="card-content">{long && !expanded ? content.slice(0, TRUNCATE_AT) + "…" : content}</p>
+          <div className="card-content">
+            {long && !expanded ? content.slice(0, TRUNCATE_AT) + "…" : renderContent(content)}
+          </div>
         )}
         <div className="card-actions">
           {long && !editing && (
