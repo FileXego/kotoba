@@ -27,6 +27,7 @@ export function BookmarksPage({ lang, currentUser }: Props) {
     } finally { setLoading(false); setLoadingMore(false); }
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, []);
 
   if (loading) return <div className="loading">{t(lang, "list.loading")}</div>;
