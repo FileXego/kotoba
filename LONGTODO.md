@@ -120,9 +120,10 @@
 
 | # | 任务 | 决定 |
 |---|------|------|
-| A | messages 表加 `userId` | migration + 全量补旧留言（name 反查 users） |
+| A | messages 表加 `userId` | migration + 全量补旧留言（name 反查 users）。userId=NULL 旧留言不被同名新用户认领 |
 | B | pushState 路由 | ~15 行 `useRouter` hook，0 依赖，/、/admin、/bookmarks |
-| C | PATCH /api/auth/me 扩展 | `t.Optional` 局部更新，不加新端点 |
+| C | PATCH /api/auth/me 扩展 | `t.Optional` 局部更新，不加新端点。signature>100→INVALID_PROFILE，theme 不在白名单→INVALID_THEME |
+| D | 主题预设 | light/dark/sumi/sakura。DB 存储 + localStorage 缓存。删主题 fallback "light" |
 
 ### 头像
 
@@ -144,7 +145,8 @@
 | # | 任务 | 决定 |
 |---|------|------|
 | 6 | users 表加 `theme` | TEXT, default "light"。PATCH /me |
-| 7 | 预设主题系统 | 3-4 套 CSS 变量（和纸/星夜/墨染/樱）。DB 存储 + localStorage 缓存。删主题 fallback "light" |
+| 7 | 预设主题系统 | 4 套 CSS 变量（light/dark/sumi/sakura）。DB 存储 + localStorage 缓存。删主题 fallback "light"。主题切换升级：CSS palette 驱动 + 三阶段动画（落笔→洇开→换纸）+ reduced motion 尊重 |
+| H4 | 墨水动画多主题兼容 | CSS palette 替代硬编码 [data-target]，不引入 Canvas |
 
 ### 收藏页
 
@@ -160,6 +162,16 @@
 | H1 | 头像和消息图片共用 upload | 头像独立端点 PATCH /api/auth/avatar |
 | H2 | 旧留言 name 匹配不到用户 | userId=NULL，签名不显示（可接受） |
 | H3 | 主题删除后用户引用失效 | fallback "light" |
+| H4 | 墨水动画多主题兼容 | CSS palette 替代硬编码 [data-target] |
+
+### 后端增强
+
+| # | 任务 | 决定 |
+|---|------|------|
+| 10 | onError 全局兜底 | VALIDATION→422，NOT_FOUND→404，未处理→500，全部 error code |
+| 11 | GET /api/health | `{ success: true, version }` |
+| 12 | bun:test 基础覆盖 | app.handle() 测 auth/NAN/权限。先抽 createApp()，测试 import 它 |
+| 13 | SUGGESTION.md 参考 | 1970 行详细实施建议——数据层/API/前端/App/主题/Elysia 最佳实践 |
 
 ---
 
@@ -169,8 +181,9 @@
 |------|------|
 | 跨平台 | iOS 原生（SwiftUI）+ Android 原生（Kotlin/Compose） |
 | API | 共享现有后端 /api/* |
-| 鉴权 | JWT（@elysia/jwt），Web 保持 cookie |
+| 鉴权 | JWT（@elysia/jwt），Web 保持 cookie。独立 /api/mobile/* 命名空间 |
 | 仓库 | 当前仓库 mobile/ 目录 |
+| 依赖 | App 也极简——HttpURLConnection，不装 OkHttp/Coil/第三方库 |
 | 开发顺序 | iOS v1 → Android v1 |
 
 ### 2.2.0 App v1 (iOS)
