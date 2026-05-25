@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia";
 import { db } from "../db";
-import { messages, likes, bookmarks } from "../db/schema";
+import { messages, likes, bookmarks, users } from "../db/schema";
 import { desc, eq, and, isNull, or, like, sql } from "drizzle-orm";
 
 const MAX_DEPTH = 2;
@@ -26,6 +26,7 @@ export const messageRoute = new Elysia({ prefix: "/api" })
       const [result] = await db.insert(messages).values({
         name: currentUser.username,
         content: body.content,
+        userId: currentUser.id,
         parentId: body.parentId ?? null,
         rootId,
         depth,
@@ -36,7 +37,7 @@ export const messageRoute = new Elysia({ prefix: "/api" })
   )
   .get(
     "/messages",
-    async ({ query }) => {
+    async ({ query, currentUser }) => {
       const offset = query.offset ?? 0;
       const limit = query.limit ?? 20;
       const q = query.q?.trim();
@@ -44,31 +45,46 @@ export const messageRoute = new Elysia({ prefix: "/api" })
         eq(messages.deleted, 0), isNull(messages.parentId),
         q ? or(like(messages.name, `%${q}%`), like(messages.content, `%${q}%`)) : undefined
       );
-      const [list, count] = await Promise.all([
+      const [rows, count] = await Promise.all([
         db.select({
           id: messages.id, name: messages.name, content: messages.content,
           createdAt: messages.createdAt, updatedAt: messages.updatedAt,
           parentId: messages.parentId, rootId: messages.rootId, depth: messages.depth,
+          userId: messages.userId, avatarUrl: users.avatarUrl, signature: users.signature,
           likeCount: sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.message_id = messages.id)`,
-        }).from(messages).where(where).orderBy(desc(messages.createdAt)).limit(limit).offset(offset),
+        }).from(messages)
+          .leftJoin(users, eq(messages.userId, users.id))
+          .where(where).orderBy(desc(messages.createdAt)).limit(limit).offset(offset),
         db.$count(messages, where),
       ]);
-      return { success: true, data: list, total: count, offset, limit };
+      const data = rows.map(r => ({
+        ...r,
+        signature: currentUser?.id === r.userId ? r.signature : null,
+      }));
+      return { success: true, data, total: count, offset, limit };
     },
     { query: t.Object({ offset: t.Optional(t.Numeric()), limit: t.Optional(t.Numeric()), q: t.Optional(t.String()) }) }
   )
   .get(
     "/messages/:id/replies",
-    async ({ params, status }) => {
+    async ({ params, currentUser, status }) => {
       const id = Number(params.id);
       if (isNaN(id)) return status(400, { success: false, error: "INVALID_ID" });
-      const list = await db.select({
+      const rows = await db.select({
         id: messages.id, name: messages.name, content: messages.content,
         createdAt: messages.createdAt, updatedAt: messages.updatedAt,
         parentId: messages.parentId, rootId: messages.rootId, depth: messages.depth,
+        userId: messages.userId, avatarUrl: users.avatarUrl, signature: users.signature,
         likeCount: sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.message_id = messages.id)`,
-      }).from(messages).where(and(eq(messages.deleted, 0), or(eq(messages.rootId, id), eq(messages.id, id)))).orderBy(messages.createdAt);
-      return { success: true, data: list };
+      }).from(messages)
+        .leftJoin(users, eq(messages.userId, users.id))
+        .where(and(eq(messages.deleted, 0), or(eq(messages.rootId, id), eq(messages.id, id))))
+        .orderBy(messages.createdAt);
+      const data = rows.map(r => ({
+        ...r,
+        signature: currentUser?.id === r.userId ? r.signature : null,
+      }));
+      return { success: true, data };
     },
     { params: t.Object({ id: t.String() }) }
   )
@@ -77,9 +93,11 @@ export const messageRoute = new Elysia({ prefix: "/api" })
     async ({ params, body, currentUser, status }) => {
       const id = Number(params.id);
       if (isNaN(id)) return status(400, { success: false, error: "INVALID_ID" });
-      const [msg] = await db.select({ name: messages.name }).from(messages).where(eq(messages.id, id)).limit(1);
+      const [msg] = await db.select({ userId: messages.userId }).from(messages).where(eq(messages.id, id)).limit(1);
       if (!msg) return status(404, { success: false, error: "NOT_FOUND" });
-      if (!currentUser || currentUser.username !== msg.name) return status(403, { success: false, error: "FORBIDDEN" });
+      if (!currentUser || msg.userId == null || msg.userId !== currentUser.id) {
+        return status(403, { success: false, error: "FORBIDDEN" });
+      }
       const update: Record<string, unknown> = { updatedAt: new Date() };
       if (body.content !== undefined) update.content = body.content;
       if (body.deleted !== undefined) update.deleted = body.deleted;

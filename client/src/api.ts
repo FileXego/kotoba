@@ -12,22 +12,27 @@ export interface Message {
   id: number; name: string; content: string;
   createdAt: string; updatedAt?: string; deleted?: number;
   parentId?: number | null; rootId?: number | null; depth?: number; likeCount?: number;
+  userId?: number | null; avatarUrl?: string | null; signature?: string | null;
 }
 
 export interface MessagesResponse { success: boolean; data: Message[]; total: number; offset: number; limit: number; }
 
+export type ThemeName = "light" | "dark" | "sumi" | "sakura";
+
+export interface User { id: number; username: string; email: string; isAdmin?: number; avatarUrl?: string | null; signature?: string | null; theme?: ThemeName; }
+
 // ── Messages ──
 
-export async function fetchMessages(params?: { offset?: number; limit?: number; q?: string }): Promise<MessagesResponse> {
+export async function fetchMessages(params?: { offset?: number; limit?: number; q?: string }) {
   const sp = new URLSearchParams();
   if (params?.offset) sp.set("offset", String(params.offset));
   if (params?.limit) sp.set("limit", String(params.limit));
   if (params?.q) sp.set("q", params.q);
   const qs = sp.toString();
-  return requestJSON(`${BASE}/messages${qs ? "?" + qs : ""}`);
+  return requestJSON<MessagesResponse>(`${BASE}/messages${qs ? "?" + qs : ""}`);
 }
 
-export async function fetchReplies(rootId: number): Promise<{ success: boolean; data: Message[] }> {
+export async function fetchReplies(rootId: number) {
   const res = await requestJSON<{ success: boolean; data: Message[] }>(`${BASE}/messages/${rootId}/replies`);
   return res;
 }
@@ -60,6 +65,13 @@ export async function fetchInteractions() {
   return { liked: res.liked ?? [], bookmarked: res.bookmarked ?? [] };
 }
 
+export async function fetchBookmarks(params?: { offset?: number; limit?: number }) {
+  const sp = new URLSearchParams();
+  if (params?.offset) sp.set("offset", String(params.offset));
+  if (params?.limit) sp.set("limit", String(params.limit));
+  return requestJSON<MessagesResponse>(`${BASE}/bookmarks${sp.toString() ? "?" + sp.toString() : ""}`);
+}
+
 // ── Upload ──
 
 export async function uploadImage(file: File) {
@@ -67,9 +79,12 @@ export async function uploadImage(file: File) {
   return requestJSON<{ success: boolean; url: string }>(`${BASE}/upload`, { method: "POST", body: fd });
 }
 
-// ── Auth ──
+export async function uploadAvatar(file: File) {
+  const fd = new FormData(); fd.append("file", file);
+  return requestJSON<{ success: boolean; user: User }>(`${BASE}/auth/avatar`, { method: "PATCH", body: fd });
+}
 
-export interface User { id: number; username: string; email: string; isAdmin?: number; }
+// ── Auth ──
 
 export async function signUp(username: string, email: string, password: string, captchaToken: string) {
   return requestJSON<{ success: boolean; user?: User; error?: string }>(`${BASE}/auth/sign-up`, {
@@ -80,8 +95,7 @@ export async function signUp(username: string, email: string, password: string, 
 
 export async function signIn(username: string, password: string) {
   return requestJSON<{ success: boolean; user?: User; error?: string }>(`${BASE}/auth/sign-in`, {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password }),
   });
 }
 
@@ -91,6 +105,12 @@ export async function signOut(): Promise<void> {
 
 export async function fetchMe() {
   return requestJSON<{ success: boolean; user: User | null }>(`${BASE}/auth/me`);
+}
+
+export async function updateMe(body: { signature?: string; theme?: ThemeName }) {
+  return requestJSON<{ success: boolean; user: User }>(`${BASE}/auth/me`, {
+    method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
 }
 
 // ── Admin ──

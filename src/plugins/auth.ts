@@ -2,7 +2,11 @@ import { Elysia, t } from "elysia";
 import { db } from "../db";
 import { users } from "../db/schema";
 import { eq } from "drizzle-orm";
+import { mkdirSync } from "node:fs";
 
+const THEMES = new Set(["light", "dark", "sumi", "sakura"]);
+const MIME_EXT: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+const UPLOAD_DIR = import.meta.dir + "/../../uploads";
 const isProd = import.meta.env.NODE_ENV === "production";
 const rawSecret = import.meta.env.COOKIE_SECRET;
 if (!rawSecret) {
@@ -14,7 +18,7 @@ const TURNSTILE_SECRET = import.meta.env.TURNSTILE_SECRET ?? "1x0000000000000000
 
 async function lookupUser(userId: number) {
   const [user] = await db
-    .select({ id: users.id, username: users.username, email: users.email, isAdmin: users.isAdmin })
+    .select({ id: users.id, username: users.username, email: users.email, isAdmin: users.isAdmin, avatarUrl: users.avatarUrl, signature: users.signature, theme: users.theme })
     .from(users).where(eq(users.id, userId)).limit(1);
   return user ?? null;
 }
@@ -38,6 +42,10 @@ export const auth = new Elysia({ prefix: "/api/auth" })
       username: t.String(),
       password: t.String(),
     }),
+    patchMe: t.Object({
+      signature: t.Optional(t.String({ maxLength: 100 })),
+      theme: t.Optional(t.String()),
+    }),
   })
   .post(
     "/sign-up",
@@ -53,7 +61,7 @@ export const auth = new Elysia({ prefix: "/api/auth" })
       const passwordHash = await Bun.password.hash(body.password);
       const [user] = await db.insert(users).values({
         username: body.username, email: body.email, passwordHash,
-      }).onConflictDoNothing().returning({ id: users.id, username: users.username, email: users.email, isAdmin: users.isAdmin });
+      }).onConflictDoNothing().returning({ id: users.id, username: users.username, email: users.email, isAdmin: users.isAdmin, avatarUrl: users.avatarUrl, signature: users.signature, theme: users.theme });
       if (!user) return status(409, { success: false, error: "DUPLICATE" });
       setSession(session, user.id);
       return { success: true, user };
@@ -64,7 +72,7 @@ export const auth = new Elysia({ prefix: "/api/auth" })
     "/sign-in",
     async ({ body, cookie: { session }, status }) => {
       const [user] = await db
-        .select({ id: users.id, username: users.username, email: users.email, isAdmin: users.isAdmin, passwordHash: users.passwordHash })
+        .select({ id: users.id, username: users.username, email: users.email, isAdmin: users.isAdmin, passwordHash: users.passwordHash, avatarUrl: users.avatarUrl, signature: users.signature, theme: users.theme })
         .from(users).where(eq(users.username, body.username)).limit(1);
       if (!user || !(await Bun.password.verify(body.password, user.passwordHash))) {
         return status(401, { success: false, error: "INVALID_CREDENTIALS" });
@@ -81,6 +89,35 @@ export const auth = new Elysia({ prefix: "/api/auth" })
     const uid = Number(session.value);
     if (isNaN(uid)) return { success: true, user: null };
     return { success: true, user: await lookupUser(uid) };
+  })
+  // PATCH /me — partial profile update
+  .patch("/me", async ({ body, currentUser, status }) => {
+    if (!currentUser) return status(401, { success: false, error: "AUTH_REQUIRED" });
+    const update: Record<string, unknown> = {};
+    if (body.signature !== undefined) {
+      if ((body.signature?.length ?? 0) > 100) return status(400, { success: false, error: "INVALID_PROFILE" });
+      update.signature = body.signature;
+    }
+    if (body.theme !== undefined) {
+      if (body.theme && !THEMES.has(body.theme)) return status(400, { success: false, error: "INVALID_THEME" });
+      update.theme = body.theme;
+    }
+    if (Object.keys(update).length === 0) return { success: true, user: currentUser };
+    await db.update(users).set(update).where(eq(users.id, currentUser.id));
+    return { success: true, user: await lookupUser(currentUser.id) };
+  }, { body: "patchMe" })
+  // PATCH /avatar — upload avatar
+  .patch("/avatar", async ({ body: { file }, currentUser, status }) => {
+    if (!currentUser) return status(401, { success: false, error: "AUTH_REQUIRED" });
+    mkdirSync(UPLOAD_DIR, { recursive: true });
+    const ext = MIME_EXT[file.type] ?? "jpg";
+    const filename = `avatar-${currentUser.id}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
+    await Bun.write(UPLOAD_DIR + "/" + filename, file);
+    const avatarUrl = `/uploads/${filename}`;
+    await db.update(users).set({ avatarUrl }).where(eq(users.id, currentUser.id));
+    return { success: true, user: await lookupUser(currentUser.id) };
+  }, {
+    body: t.Object({ file: t.File({ format: "image/png, image/jpeg, image/webp", maxSize: 256 * 1024 }) }),
   })
   .derive({ as: "global" }, async ({ cookie: { session } }) => {
     if (session.value == null || session.value === "") return { currentUser: null };

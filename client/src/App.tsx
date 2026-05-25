@@ -3,6 +3,8 @@ import { Header } from "./components/Header";
 import { SubmitForm } from "./components/SubmitForm";
 import { MessageList } from "./components/MessageList";
 import { AdminPanel } from "./components/AdminPanel";
+import { BookmarksPage } from "./components/BookmarksPage";
+import { useRouter } from "./hooks/useRouter";
 import { t, type Lang } from "./i18n";
 import {
   fetchMessages, submitMessage, updateMessage, fetchReplies,
@@ -38,7 +40,7 @@ export default function App() {
   const [loadingReplies, setLoadingReplies] = useState<Set<number>>(new Set());
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
-  const [showAdmin, setShowAdmin] = useState(false);
+  const { route, navigate } = useRouter();
   // ink animation
   const [inkAnim, setInkAnim] = useState<{ x: number; y: number; theme: "light" | "dark" } | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -172,21 +174,27 @@ export default function App() {
   return (
     <div className="app">
       <Header theme={theme} lang={lang} onToggleTheme={(x, y) => toggleTheme(x, y)} onToggleLang={toggleLang}
-        user={user} onUserChange={setUser} onAdminClick={() => setShowAdmin(true)} />
-      {showAdmin && <AdminPanel lang={lang} onClose={() => setShowAdmin(false)} />}
-      <input className="search-input" type="text" placeholder={t(lang, "search.placeholder")}
-        value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-      <SubmitForm lang={lang}
-        onImageUpload={async (f) => { const r = await (await import("./api")).uploadImage(f); return r.url; }}
-        onSubmit={handleSubmit} loggedIn={!!user} />
-      <MessageList lang={lang}
-        messages={messages} total={total} loading={loading} loadingMore={loadingMore}
-        error={error} replyTrees={replyTrees} loadingReplies={loadingReplies}
-        currentUser={user} likedIds={likedIds} bookmarkedIds={bookmarkedIds}
-        onUpdate={handleUpdate} onLoadReplies={handleLoadReplies}
-        onLoadMore={handleLoadMore} onSubmitReply={handleSubmit}
-        onToggleLike={handleToggleLike} onToggleBookmark={handleToggleBookmark}
-      />
+        user={user} onUserChange={setUser} onAdminClick={() => navigate("/admin")}
+        onBookmarksClick={() => navigate("/bookmarks")} onHomeClick={() => navigate("/")} />
+      {route === "/admin" && <AdminPanel lang={lang} onClose={() => navigate("/")} />}
+      {route === "/bookmarks" && <BookmarksPage lang={lang} currentUser={user} />}
+      {route === "/" && (
+        <>
+          <input className="search-input" type="text" placeholder={t(lang, "search.placeholder")}
+            value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+          <SubmitForm lang={lang}
+            onImageUpload={async (f) => { const r = await (await import("./api")).uploadImage(f); return r.url; }}
+            onSubmit={handleSubmit} loggedIn={!!user} />
+          <MessageList lang={lang}
+            messages={messages} total={total} loading={loading} loadingMore={loadingMore}
+            error={error} replyTrees={replyTrees} loadingReplies={loadingReplies}
+            currentUser={user} likedIds={likedIds} bookmarkedIds={bookmarkedIds}
+            onUpdate={handleUpdate} onLoadReplies={handleLoadReplies}
+            onLoadMore={handleLoadMore} onSubmitReply={handleSubmit}
+            onToggleLike={handleToggleLike} onToggleBookmark={handleToggleBookmark}
+          />
+        </>
+      )}
       {inkAnim && (
         <div className="ink-overlay" data-target={inkAnim.theme} style={{
           '--ink-x': `${inkAnim.x}px`, '--ink-y': `${inkAnim.y}px`,

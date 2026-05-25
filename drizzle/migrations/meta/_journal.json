@@ -43,6 +43,13 @@
       "when": 1778856429875,
       "tag": "0005_crazy_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1779692187865,
+      "tag": "0006_spooky_thunderbolt_ross",
+      "breakpoints": true
     }
   ]
 }

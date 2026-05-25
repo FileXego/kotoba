@@ -65,6 +65,12 @@ export const ja = {
   "error.SUBMIT_FAIL": "投稿に失敗しました",
   "error.CAPTCHA_FAIL": "認証に失敗しました",
   "error.RATE_LIMITED": "リクエストが多すぎます",
+  "error.INVALID_PROFILE": "プロフィールが無効です",
+  "error.INVALID_THEME": "無効なテーマです",
+  "error.VALIDATION": "入力が無効です",
+  "error.INTERNAL_ERROR": "サーバーエラー",
+  "bookmarks.title": "コレクション",
+  "bookmarks.empty": "まだコレクションがありません",
 } as const;
 
 export const zh: Record<Key, string> = {
@@ -131,6 +137,12 @@ export const zh: Record<Key, string> = {
   "error.SUBMIT_FAIL": "提交失败",
   "error.CAPTCHA_FAIL": "验证失败",
   "error.RATE_LIMITED": "请求过于频繁",
+  "error.INVALID_PROFILE": "个人资料无效",
+  "error.INVALID_THEME": "无效主题",
+  "error.VALIDATION": "输入无效",
+  "error.INTERNAL_ERROR": "服务器错误",
+  "bookmarks.title": "收藏",
+  "bookmarks.empty": "还没有收藏",
 };
 
 export function t(lang: Lang, key: Key): string {

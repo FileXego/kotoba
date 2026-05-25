@@ -12,6 +12,7 @@ export const messages = sqliteTable("messages", {
   parentId: integer("parent_id"),
   rootId: integer("root_id"),
   depth: integer("depth").notNull().default(0),
+  userId: integer("user_id").references(() => users.id),
 }, (t) => ({
   listIdx: index("messages_list_idx").on(t.deleted, t.parentId, t.createdAt),
   rootIdx: index("messages_root_idx").on(t.rootId, t.createdAt),
@@ -26,6 +27,9 @@ export const users = sqliteTable("users", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
+  avatarUrl: text("avatar_url"),
+  signature: text("signature"),
+  theme: text("theme").notNull().default("light"),
 });
 
 export const likes = sqliteTable("likes", {
@@ -48,4 +52,5 @@ export const bookmarks = sqliteTable("bookmarks", {
 }, (t) => ({
   unqBookmarks: unique().on(t.userId, t.messageId),
   msgIdx: index("bookmarks_message_idx").on(t.messageId),
+  userCreatedIdx: index("bookmarks_user_created_idx").on(t.userId, t.createdAt),
 }));

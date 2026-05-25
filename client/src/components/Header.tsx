@@ -9,10 +9,10 @@ interface Props {
   theme: "light" | "dark"; lang: Lang;
   onToggleTheme: (x: number, y: number) => void; onToggleLang: () => void;
   user: User | null; onUserChange: (user: User | null) => void;
-  onAdminClick: () => void;
+  onAdminClick: () => void; onBookmarksClick: () => void; onHomeClick: () => void;
 }
 
-export function Header({ theme, lang, onToggleTheme, onToggleLang, user, onUserChange, onAdminClick }: Props) {
+export function Header({ theme, lang, onToggleTheme, onToggleLang, user, onUserChange, onAdminClick, onBookmarksClick, onHomeClick }: Props) {
   const [showAuth, setShowAuth] = useState(false);
   const [mode, setMode] = useState<"in" | "up">("in");
   const [username, setUsername] = useState(""); const [email, setEmail] = useState("");
@@ -61,12 +61,13 @@ export function Header({ theme, lang, onToggleTheme, onToggleLang, user, onUserC
           {lang === "ja" ? "中" : "日"}
         </button>
       </div>
-      <h1 className="header-title">{t(lang, "app.title")}</h1>
+      <h1 className="header-title" onClick={onHomeClick} style={{ cursor: "pointer" }}>{t(lang, "app.title")}</h1>
       <p className="header-sub">{t(lang, "app.subtitle")}</p>
       <div className="auth-area">
         {user ? (
           <div className="auth-user">
             <span className="auth-username">{user.username}</span>
+            <button className="auth-btn" onClick={onBookmarksClick}>{t(lang, "bookmarks.title")}</button>
             {user.isAdmin ? <button className="auth-btn admin-link" onClick={onAdminClick}>{t(lang, "admin.title")}</button> : null}
             <button className="auth-btn" onClick={handleSignOut}>{t(lang, "auth.logout")}</button>
           </div>

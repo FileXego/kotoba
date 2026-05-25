@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { type Message, type User } from "../api";
 import { t, type Lang } from "../i18n";
+import { Avatar } from "./Avatar";
 
 interface ReplyInfo { message: Message; replies: Message[]; ownDepth: number; }
 
@@ -46,14 +47,13 @@ function renderContent(content: string) {
 }
 
 export function MessageCard({
-  lang, message: { id, name, content, createdAt, depth = 0, likeCount = 0 },
+  lang, message: { id, name, content, createdAt, depth = 0, likeCount = 0, avatarUrl, signature, userId },
   replies, loadingReplies, currentUser, likedIds, bookmarkedIds,
   onUpdate, onLoadReplies, onSubmitReply, onToggleLike, onToggleBookmark, ownDepth,
 }: Props) {
   const d = ownDepth ?? depth;
   const liked = likedIds.has(id);
   const bookmarked = bookmarkedIds.has(id);
-  const initial = name.charAt(0);
   const long = content.length > TRUNCATE_AT;
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -94,7 +94,7 @@ export function MessageCard({
     <div>
       <article className="message-card" style={{ marginLeft: d > 0 ? `${d * 2}rem` : undefined }}>
         <div className="card-header">
-          <div className="avatar">{initial}</div>
+          <Avatar name={name} src={avatarUrl} />
           <span className="card-name">{name}</span>
           <time className="card-time">{formatTime(lang, createdAt)}</time>
         </div>
@@ -104,9 +104,14 @@ export function MessageCard({
             {editError && <p className="auth-error">{editError}</p>}
           </div>
         ) : (
-          <div className="card-content">
-            {long && !expanded ? content.slice(0, TRUNCATE_AT) + "…" : renderContent(content)}
-          </div>
+          <>
+            <div className="card-content">
+              {long && !expanded ? content.slice(0, TRUNCATE_AT) + "…" : renderContent(content)}
+            </div>
+            {currentUser && currentUser.id === userId && signature && (
+              <div className="card-signature">—— {signature}</div>
+            )}
+          </>
         )}
         <div className="card-actions">
           {long && !editing && (
