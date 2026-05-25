@@ -104,7 +104,7 @@ export default function App() {
     return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
   }, [q, loadMessages]);
 
-  useEffect(() => { if (!q) loadMessages(0); }, []); // eslint-disable-line
+  useEffect(() => { if (!q) loadMessages(0); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLoadMore = () => {
     if (loadingMore || messages.length >= total) return;
