@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Kotoba Mobile Web Lab</title>
+    <link rel="stylesheet" href="./mobile-web-lab.css" />
+  </head>
+  <body>
+    <main class="lab-shell" data-theme="light" data-platform="auto" data-api="mock">
+      <aside class="lab-panel" aria-label="Trying controls">
+        <p class="lab-kicker">Trying isolated lab</p>
+        <h1>Kotoba mobile web</h1>
+        <p>
+          This sandbox is not imported by the real app. It proves the mobile Web
+          layout, API adapter boundary, and kill switch before coupling with
+          <code>client/src</code>.
+        </p>
+
+        <div class="control-group">
+          <label class="switch-row">
+            <span>Mobile layer</span>
+            <input id="flag-mobile" type="checkbox" checked />
+          </label>
+          <label class="switch-row">
+            <span>Read-only API <small>localhost/http only</small></span>
+            <input id="flag-api" type="checkbox" />
+          </label>
+          <label class="switch-row">
+            <span>Dust effects</span>
+            <input id="flag-dust" type="checkbox" checked />
+          </label>
+          <label class="switch-row">
+            <span>Ink transition</span>
+            <input id="flag-ink" type="checkbox" checked />
+          </label>
+        </div>
+
+        <div class="control-group">
+          <label for="theme-select">Theme</label>
+          <select id="theme-select">
+            <option value="light">Washi</option>
+            <option value="dark">Night</option>
+            <option value="sumi">Sumi</option>
+            <option value="sakura">Sakura</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="platform-select">Platform preview</label>
+          <select id="platform-select">
+            <option value="auto">Auto browser</option>
+            <option value="ios">iOS safe area</option>
+            <option value="android">Android back</option>
+          </select>
+        </div>
+
+        <div class="lab-note">
+          <strong>Hot cut-off:</strong>
+          turn Mobile layer off, or open with <code>?mobile=off</code>. The
+          sandbox falls back to a plain desktop-safe notice.
+        </div>
+
+        <div id="api-status" class="lab-note" aria-live="polite"></div>
+      </aside>
+
+      <section class="phone-frame" aria-label="Mobile preview">
+        <div id="app" class="mobile-app" data-route="home">
+          <section class="disabled-state" hidden>
+            <p class="status-pill">Mobile layer disabled</p>
+            <h2>Existing Web stays untouched</h2>
+            <p>
+              The Trying mobile layer can be removed by a flag without changing
+              the current production app.
+            </p>
+          </section>
+
+          <section class="mobile-screen" data-screen="home">
+            <header class="mobile-head">
+              <div>
+                <p class="eyebrow">Kotoba</p>
+                <h2>Home</h2>
+              </div>
+              <button class="icon-btn" data-action="theme" aria-label="Theme">月</button>
+            </header>
+
+            <label class="search-box">
+              <span>Search</span>
+              <input id="search-input" type="search" placeholder="Search words" />
+            </label>
+
+            <form class="compose-card" data-action="compose">
+              <p class="readonly-banner" data-readonly-banner hidden>Read-only live API is on. Posting is disabled.</p>
+              <label for="compose-input">Write</label>
+              <textarea id="compose-input" rows="2" placeholder="A short thought..."></textarea>
+              <input id="image-input" type="file" accept="image/png,image/jpeg,image/webp" hidden />
+              <p id="upload-preview" class="image-token-preview" hidden></p>
+              <div class="compose-actions">
+                <button type="button" class="ghost-btn" data-action="attach">Image</button>
+                <button type="submit" class="primary-btn">Post</button>
+              </div>
+            </form>
+
+            <div id="feed-list" class="message-list" aria-live="polite"></div>
+          </section>
+
+          <section class="mobile-screen" data-screen="thread" hidden>
+            <header class="mobile-head compact">
+              <button class="text-btn" data-nav="back">Back</button>
+              <h2>Thread</h2>
+              <span></span>
+            </header>
+            <div id="thread-content" class="thread-content"></div>
+            <form class="reply-sheet" data-action="reply">
+              <p class="readonly-banner" data-readonly-banner hidden>Read-only live API is on. Replies are disabled.</p>
+              <label for="reply-input">Reply</label>
+              <textarea id="reply-input" rows="2" placeholder="Reply gently..."></textarea>
+              <button type="submit" class="primary-btn">Send</button>
+            </form>
+          </section>
+
+          <section class="mobile-screen" data-screen="bookmarks" hidden>
+            <header class="mobile-head">
+              <div>
+                <p class="eyebrow">Saved</p>
+                <h2>Bookmarks</h2>
+              </div>
+            </header>
+            <div id="bookmark-list" class="message-list"></div>
+          </section>
+
+          <section class="mobile-screen" data-screen="me" hidden>
+            <header class="mobile-head">
+              <div>
+                <p class="eyebrow">Profile</p>
+                <h2>Me</h2>
+              </div>
+            </header>
+            <article class="profile-card">
+              <div class="avatar">言</div>
+              <div>
+                <h3>demo_user</h3>
+                <p>Ink, paper, and quiet replies.</p>
+              </div>
+            </article>
+            <div class="theme-grid" aria-label="Theme choices">
+              <button data-theme-choice="light">Washi</button>
+              <button data-theme-choice="dark">Night</button>
+              <button data-theme-choice="sumi">Sumi</button>
+              <button data-theme-choice="sakura">Sakura</button>
+            </div>
+          </section>
+
+          <nav class="bottom-nav" aria-label="Mobile navigation">
+            <button class="active" data-nav="home">Home</button>
+            <button data-nav="bookmarks">Saved</button>
+            <button data-nav="write">Write</button>
+            <button data-nav="me">Me</button>
+          </nav>
+        </div>
+      </section>
+    </main>
+    <script src="./mobile-web-lab-core.js"></script>
+    <script src="./mobile-web-lab.js"></script>
+  </body>
+</html>

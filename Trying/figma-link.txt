@@ -1,0 +1,19 @@
+Kotoba UI Trying - Mobile and Motion
+https://www.figma.com/design/vJ6g3kziXCaCEF9g7MCAyO
+
+Generated exploration boards:
+- 01 Mobile Feed - compact posting
+- 02 Message Detail - reply sheet
+- 03 Bookmarks - saved words
+- 04 Profile and Themes
+- 05 Motion storyboard - ink and paper
+- 06 Design tokens and components
+
+Iteration 2 local attempt:
+- I2-01 Refined Mobile Feed
+- I2-02 Night Stars Subtle
+- I2-03 Washi Gold Dust
+- I2-04 API Connection Plan
+
+Figma status:
+The first-round boards are confirmed in the file. The second-round append is pending because the Figma MCP tool reached the Starter plan call limit during verification.

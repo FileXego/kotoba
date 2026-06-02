@@ -1,3 +1,5 @@
+import type { ThemeName } from "./theme/theme";
+
 const BASE = "/api";
 
 async function requestJSON<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
@@ -16,8 +18,6 @@ export interface Message {
 }
 
 export interface MessagesResponse { success: boolean; data: Message[]; total: number; offset: number; limit: number; }
-
-export type ThemeName = "light" | "dark" | "sumi" | "sakura";
 
 export interface User { id: number; username: string; email: string; isAdmin?: number; avatarUrl?: string | null; signature?: string | null; theme?: ThemeName; }
 

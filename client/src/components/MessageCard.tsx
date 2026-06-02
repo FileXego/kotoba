@@ -75,7 +75,7 @@ export function MessageCard({
   };
   const handleDelete = async () => {
     try { await onUpdate(id, { deleted: 1 }); }
-    catch { setEditError(t(lang, "list.loadFail")); }
+    catch { alert(t(lang, "list.loadFail")); }
   };
   const handleToggleReplies = () => { if (!replies && !showReplies) onLoadReplies(id); setShowReplies(!showReplies); };
 

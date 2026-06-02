@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, type FormEvent } from "react";
 import { signUp, signIn, signOut, type User } from "../api";
 import { t, type Lang } from "../i18n";
+import { type ThemeName, nextTheme } from "../theme/theme";
 
 declare global { interface Window { turnstile: { render: (el: HTMLElement, opts: { sitekey: string }) => string; getResponse: (id?: string) => string; reset: (id?: string) => void } } }
 const SITE_KEY = "1x00000000000000000000AA";
 
 interface Props {
-  theme: "light" | "dark"; lang: Lang;
+  theme: ThemeName; lang: Lang;
   onToggleTheme: (x: number, y: number) => void; onToggleLang: () => void;
   user: User | null; onUserChange: (user: User | null) => void;
   onAdminClick: () => void; onBookmarksClick: () => void; onHomeClick: () => void;
@@ -52,9 +53,9 @@ export function Header({ theme, lang, onToggleTheme, onToggleLang, user, onUserC
     <header className="header">
       <div className="header-toggles">
         <button className="theme-toggle" onClick={(e) => onToggleTheme(e.clientX, e.clientY)}
-          aria-label={t(lang, theme === "light" ? "theme.dark" : "theme.light")}
-          title={t(lang, theme === "light" ? "theme.dark" : "theme.light")}>
-          {theme === "light" ? "月" : "日"}
+          aria-label={t(lang, `theme.${nextTheme(theme)}` as any)}
+          title={t(lang, `theme.${nextTheme(theme)}` as any)}>
+          {theme === "light" ? "☀" : theme === "dark" ? "☾" : theme === "sumi" ? "墨" : "桜"}
         </button>
         <button className="lang-toggle" onClick={onToggleLang}
           aria-label={t(lang, lang === "ja" ? "lang.zh" : "lang.ja")}>

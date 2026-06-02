@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kotoba Trying - Mobile UI</title>
+    <link rel="stylesheet" href="./mobile-prototype.css" />
+  </head>
+  <body>
+    <main class="stage">
+      <section class="phone gold-dust" data-screen="home">
+        <header class="mobile-head">
+          <div>
+            <h1>言 葉</h1>
+            <p>quiet words, living threads</p>
+          </div>
+          <button class="theme-chip" type="button" aria-label="theme">墨</button>
+        </header>
+
+        <label class="search">
+          <span>Search</span>
+          <input value="" placeholder="words, people, image notes" />
+        </label>
+
+        <section class="composer">
+          <span class="label">おもい</span>
+          <p>Write a short thought...</p>
+          <div class="composer-actions">
+            <button type="button">img</button>
+            <button type="button" class="primary">留 言</button>
+          </div>
+        </section>
+
+        <article class="message reveal">
+          <div class="meta">
+            <span class="avatar green"></span>
+            <strong>mori</strong>
+            <time>now</time>
+          </div>
+          <p>A reply should feel tucked under the paper, not hidden behind another page.</p>
+          <div class="actions">♡ 12 <span>☆</span> <button>Reply</button></div>
+        </article>
+
+        <article class="message reveal second">
+          <div class="meta">
+            <span class="avatar pink"></span>
+            <strong>sora</strong>
+            <time>12m</time>
+          </div>
+          <p>Theme switching can become the app's signature moment: a soft ink wash.</p>
+          <div class="actions">♡ 8 <span>☆</span> <button>Reply</button></div>
+        </article>
+
+        <nav class="bottom-nav">
+          <a class="active">Home</a>
+          <a>Saved</a>
+          <a>Write</a>
+          <a>Me</a>
+        </nav>
+      </section>
+
+      <section class="phone night-dust" data-screen="thread">
+        <header class="thread-head">
+          <span>‹ Home</span>
+          <strong>Thread</strong>
+        </header>
+        <article class="message root">
+          <div class="meta">
+            <span class="avatar green"></span>
+            <strong>mori</strong>
+            <time>now</time>
+          </div>
+          <p>Root messages open into a calm reading surface. Replies stay visible as a shallow stack.</p>
+        </article>
+        <div class="rail"></div>
+        <article class="message reply">
+          <div class="meta">
+            <span class="avatar red"></span>
+            <strong>aki</strong>
+            <time>5m</time>
+          </div>
+          <p>Depth one reply uses a visible rail and reduced card height.</p>
+        </article>
+        <article class="chip-reply">
+          <strong>ren</strong>
+          <p>Depth two becomes compact discussion, not another full card.</p>
+        </article>
+        <section class="reply-sheet">
+          <div class="handle"></div>
+          <h2>返信を書く</h2>
+          <textarea placeholder="Keep it short and gentle..."></textarea>
+          <button type="button" class="primary">送信</button>
+        </section>
+      </section>
+
+      <section class="phone gold-dust" data-screen="profile">
+        <header class="mobile-head">
+          <div>
+            <h1>Me</h1>
+            <p>profile and atmosphere</p>
+          </div>
+        </header>
+        <section class="profile-card">
+          <span class="big-avatar"></span>
+          <div>
+            <h2>mori</h2>
+            <p>mori@example.com</p>
+          </div>
+          <blockquote>雨のあとにだけ残る言葉。</blockquote>
+        </section>
+        <h2 class="section-title">Themes</h2>
+        <div class="swatches">
+          <button class="swatch washi" aria-label="Washi"></button>
+          <button class="swatch night" aria-label="Night"></button>
+          <button class="swatch sumi" aria-label="Sumi"></button>
+          <button class="swatch sakura" aria-label="Sakura"></button>
+        </div>
+        <section class="motion-note">
+          <strong>Motion</strong>
+          <p>Ink transition respects reduced motion and starts from the tapped swatch.</p>
+        </section>
+        <nav class="bottom-nav">
+          <a>Home</a>
+          <a>Saved</a>
+          <a>Write</a>
+          <a class="active">Me</a>
+        </nav>
+      </section>
+    </main>
+  </body>
+</html>

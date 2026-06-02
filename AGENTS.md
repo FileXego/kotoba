@@ -23,9 +23,9 @@ Bun · ElysiaJS (TypeBox) · Drizzle ORM + SQLite · React 19 + Vite 8
 
 ```
 src/plugins/   auth.ts / admin.ts / rate-limiter.ts   ← Elysia 插件
-src/routes/    message.ts / upload.ts              ← 路由
+src/routes/    message.ts / bookmark.ts / upload.ts   ← 路由
 src/db/        schema.ts / index.ts                ← Drizzle
-client/src/    App.tsx → Header / SubmitForm / MessageList(→MessageCard) / AdminPanel
+client/src/    App.tsx → Header / SubmitForm / MessageList(→MessageCard) / AdminPanel / BookmarksPage
 ```
 插件挂载顺序：**rateLimiter → auth → admin → messageRoute → uploadRoute**（derive 依赖 auth 在前）
 
@@ -39,10 +39,14 @@ client/src/    App.tsx → Header / SubmitForm / MessageList(→MessageCard) / A
 | POST /api/messages/:id/like | 登录，toggle | 422/INVALID_ID |
 | POST /api/messages/:id/bookmark | 登录，toggle | 422/INVALID_ID |
 | GET /api/messages/:id/replies | — | 400/INVALID_ID |
+| GET /api/bookmarks | 登录，分页 | 401/AUTH_REQUIRED |
 | POST /api/auth/sign-up | `{ username, email, password, captchaToken }` 后端自验 | 409/DUPLICATE 429/CAPTCHA_FAIL |
 | POST /api/auth/sign-in | `{ username, password }` | 401/INVALID_CREDENTIALS |
+| PATCH /api/auth/me | 登录，可选 signature(≤100)/theme(4值) | 401/AUTH_REQUIRED 400/INVALID_THEME |
+| PATCH /api/auth/avatar | 登录，256KB png/jpeg/webp | 401/AUTH_REQUIRED |
 | GET /api/admin/* | guard isAdmin，restore/toggle | 403/FORBIDDEN 400/SELF_ADMIN |
 | POST /api/upload | 登录，MIME 映射扩展名 | 401/AUTH_REQUIRED |
+| GET /api/health | 健康检查 | — |
 | 全局限频 | sign-up 3次/分，upload 5次/分 | 429/RATE_LIMITED |
 
 **错误码规范**：所有错误必须 `return status(N, { success: false, error: "CODE" })`，不裸 `return {}`。<br>
@@ -51,8 +55,8 @@ client/src/    App.tsx → Header / SubmitForm / MessageList(→MessageCard) / A
 ## 数据库
 
 ```sql
-messages(id, name, content, created_at, updated_at, deleted, parent_id, root_id, depth)
-users(id, username UNIQUE, email UNIQUE, password_hash, is_admin, created_at)
+messages(id, name, content, created_at, updated_at, deleted, parent_id, root_id, depth, user_id)
+users(id, username UNIQUE, email UNIQUE, password_hash, is_admin, created_at, avatar_url, signature, theme)
 likes(user_id, message_id, created_at) UNIQUE(user_id, message_id)
 bookmarks(user_id, message_id, created_at) UNIQUE(user_id, message_id)
 ```

@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "bun run --watch src/index.ts",
-    "start": "bun run src/index.ts",
+    "start": "bun run src/start.ts",
     "check": "bun run typecheck",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
