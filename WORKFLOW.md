@@ -124,6 +124,14 @@
 4. **硬编码**：UI 文字第一次就进 `i18n.ts`，后端只用错误码
 5. **CSS 覆盖**：多次 edit 同锚点会覆盖前次内容，大批量改动用 write 重写
 6. **验证两端**：改 `src/` 验后端，改 `client/` 验前端，都改都验
+7. **约束传播**：代码跨文件迁移时，grep 源文件的 `eslint-disable` 和类型守卫，全量带到目标文件
+
+**前端验证三步**（缺一不可）：
+
+```powershell
+bun run build --cwd client    # tsc -b + vite build
+bun run lint --cwd client     # eslint（CI 会跑，本地也跑）
+```
 
 ---
 

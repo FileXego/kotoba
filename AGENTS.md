@@ -69,7 +69,8 @@ bookmarks(user_id, message_id, created_at) UNIQUE(user_id, message_id)
 3. **约定漂移** — 写完 grep 同类模式统一为新写法；所有插件 `prefix` 必须含 `/api`（前端 `BASE="/api"`，Vite 代理只转 `/api`）
 4. **硬编码** — UI 文字第一次就进 i18n.ts，不写死
 5. **CSS 覆盖** — 多次 edit 同锚点会覆盖前次内容，大批量改动用 write 重写
-6. **验证两端** — 改 src/ 验后端，改 client/ 验前端，都改都验
+6. **验证两端** — 改 src/ 验后端，改 client/ 验前端，都改都验；改前端必须跑 `bun run lint`
+7. **约束传播** — 代码跨文件迁移（钩子提取/拆组件）时，grep 源文件的 `eslint-disable` 注释和类型守卫，全部带到目标文件
 
 ## L2 触发时机
 
