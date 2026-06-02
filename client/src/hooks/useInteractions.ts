@@ -6,6 +6,7 @@ export function useInteractions(user: User | null) {
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!user) {
       setLikedIds(new Set());
@@ -17,6 +18,7 @@ export function useInteractions(user: User | null) {
       setBookmarkedIds(new Set(r.bookmarked));
     }).catch(() => {});
   }, [user]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return { likedIds, bookmarkedIds, setLikedIds, setBookmarkedIds };
 }

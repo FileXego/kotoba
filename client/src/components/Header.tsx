@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef, type FormEvent } from "react";
 import { signUp, signIn, signOut, type User } from "../api";
-import { t, type Lang } from "../i18n";
+import { t, type Lang, type Key } from "../i18n";
 import { type ThemeName, nextTheme } from "../theme/theme";
+
+const themeKeys: Record<ThemeName, Key> = {
+  light: "theme.light", dark: "theme.dark", sumi: "theme.sumi", sakura: "theme.sakura",
+};
 
 declare global { interface Window { turnstile: { render: (el: HTMLElement, opts: { sitekey: string }) => string; getResponse: (id?: string) => string; reset: (id?: string) => void } } }
 const SITE_KEY = "1x00000000000000000000AA";
@@ -53,8 +57,8 @@ export function Header({ theme, lang, onToggleTheme, onToggleLang, user, onUserC
     <header className="header">
       <div className="header-toggles">
         <button className="theme-toggle" onClick={(e) => onToggleTheme(e.clientX, e.clientY)}
-          aria-label={t(lang, `theme.${nextTheme(theme)}` as any)}
-          title={t(lang, `theme.${nextTheme(theme)}` as any)}>
+          aria-label={t(lang, themeKeys[nextTheme(theme)])}
+          title={t(lang, themeKeys[nextTheme(theme)])}>
           {theme === "light" ? "☀" : theme === "dark" ? "☾" : theme === "sumi" ? "墨" : "桜"}
         </button>
         <button className="lang-toggle" onClick={onToggleLang}

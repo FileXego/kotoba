@@ -38,6 +38,7 @@
 | 30 | 12 处 `set.status` 旧写法与标准不一致 | 🔧 不一致 | ✅ |
 | 31 | i18n + SubmitForm 死代码 | 🟢 死代码 | ✅ |
 | 32 | 双轮 Oracle 审查法——单轮漏报率 ~50% | 🧠 方法论 | ✅ |
+| 33 | 重构摘除 lint 抑制 + 类型安全绕过 → CI 炸 | 🔧 工程 | ✅ |
 
 > 图例：✅已修复 ⚠️已知待修 N/A不适用
 
@@ -399,8 +400,33 @@ import { unique } from "drizzle-orm/sqlite-core";
 
 ---
 
-## 31. 硬删除移除后遗留死代码
+## 33. 重构摘除 lint 抑制 + 类型安全绕过 → CI 炸
 
-**现象**：0.8.3 去硬删除后，i18n 的 `admin.hardDelete`/`admin.confirmDelete` 4 个 key 无人引用；SubmitForm 的 `replyTo`/`onCancelReply` props + reply-notice JSX 从未被传参。
+**现象**：Phase 0 重构（hooks 提取 + ThemeName 统一）后，本地 `tsc -b` 通过但 CI `eslint` 报错：
+- `useInteractions.ts:11` — `react-hooks/set-state-in-effect` 未抑制
+- `Header.tsx:56-57` — `as any` 触发 `@typescript-eslint/no-explicit-any`
 
-**修复**：删除死 key（ja+zh）+ 清理 SubmitForm。
+本地自动验证只跑了 `tsc -b && vite build`，lint 是独立步骤，没跑 → 本地"通过"假象。
+
+**根因**：
+
+| 类型 | 具体原因 | 发生环节 |
+|------|---------|---------|
+| lint 失传 | App.tsx 原有效应被 `/* eslint-disable react-hooks/set-state-in-effect */` 包裹。钩子提取到 `useInteractions.ts` 时，@fixer 没把 eslint-disable 注释带过去 | hooks 提取 |
+| 类型绕过 | `t(lang, \`theme.${nextTheme(theme)}\` as any)` — ThemeName 统一时，动态模板字符串编译期不可判 `Key` 类型，用了 `as any` 绕过。CI eslint 禁止 any | Header 改造 |
+
+**不是架构问题，是增量重构的 lint/类型约束传播纪律漏洞**：
+- `tsc -b` 验证 TypeScript 正确性，不验证 lint
+- 代码跨文件迁移时，eslint-disable 注释、`@ts-ignore`、类型守卫不会自动跟随
+- 动态字符串拼接 i18n key 时，`as any` 是捷径——但 CI 有 `no-explicit-any` 规则
+
+**修复**：
+1. `useInteractions.ts` — 用 `/* eslint-disable react-hooks/set-state-in-effect */` 块注释包裹（`next-line` 无效，因为 setState 在 if 分支内，不是直接在 effect body）
+2. `Header.tsx` — 建 `themeKeys: Record<ThemeName, Key>` 显式映射表，消除 `as any`，编译期类型安全
+
+**预防措施**：
+1. 钩子提取/代码迁移后 **必须** grep 源文件的 eslint-disable 注释，确认都跟过去了
+2. 本地验证增加一步：`bun run lint --cwd client`（不只用 `tsc -b`）
+3. 动态 i18n key 用显式 Record 映射，不靠 `as any` 绕过
+
+
