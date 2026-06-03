@@ -7,6 +7,13 @@ const themeKeys: Record<ThemeName, Key> = {
   light: "theme.light", dark: "theme.dark", sumi: "theme.sumi", sakura: "theme.sakura",
 };
 
+const AUTH_ERRS: Record<string, Key> = {
+  INVALID_CREDENTIALS: "error.INVALID_CREDENTIALS",
+  DUPLICATE: "error.DUPLICATE",
+  CAPTCHA_FAIL: "error.CAPTCHA_FAIL",
+  RATE_LIMITED: "error.RATE_LIMITED",
+};
+
 declare global { interface Window { turnstile: { render: (el: HTMLElement, opts: { sitekey: string }) => string; getResponse: (id?: string) => string; reset: (id?: string) => void } } }
 const SITE_KEY = "1x00000000000000000000AA";
 
@@ -47,8 +54,9 @@ export function Header({ theme, lang, onToggleTheme, onToggleLang, user, onUserC
         onUserChange(result.user); setShowAuth(false); setUsername(""); setEmail(""); setPassword("");
       }
     } catch (err) {
-      const e = err instanceof Error ? err.message : "";
-      setError(e || t(lang, "auth.network"));
+      const msg = err instanceof Error ? err.message : "";
+      const code = msg.split("] ")[1] || "";
+      setError(code && AUTH_ERRS[code] ? t(lang, AUTH_ERRS[code]) : (msg || t(lang, "auth.network")));
     }
     finally { setLoading(false); window.turnstile?.reset(widgetId.current); }
   };

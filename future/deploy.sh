@@ -119,7 +119,7 @@ case "${1:-update}" in
     cd "$APP_SYMLINK" 2>/dev/null || { log "❌ Not deployed yet. Run: $0 init"; exit 1; }
 
     git fetch --tags
-    TAG=$(git -C "$APP_SYMLINK" fetch --tags 2>/dev/null; git -C "$APP_SYMLINK" tag --sort=-v:refname | grep '^v' | head -1)
+    TAG=$(git tag --sort=-v:refname | grep '^v' | head -1)
     CURRENT=$(readlink -f "$APP_SYMLINK" | xargs basename)
 
     if [ "$CURRENT" = "kotoba-$TAG" ]; then
@@ -151,8 +151,8 @@ case "${1:-update}" in
     cd client && bun install && bun run build && cd ..
     bun run db:migrate
 
-    # integrity
-    EXPECTED=$(git rev-parse HEAD)
+    # integrity — compare checked-out commit against tag ref
+    EXPECTED=$(git rev-parse "refs/tags/$TAG")
     ACTUAL=$(git -C "$NEW_DIR" rev-parse HEAD)
     if [ "$EXPECTED" != "$ACTUAL" ]; then
       log "❌ Integrity check failed! Expected $EXPECTED, got $ACTUAL"

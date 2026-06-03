@@ -781,6 +781,28 @@ body::after {
   );
 }
 
+/* sumi target: ink starts silver-mist */
+.ink-overlay[data-target="sumi"] {
+  background: radial-gradient(
+    ellipse at var(--ink-x) var(--ink-y),
+    rgba(220, 230, 220, 0.85) 0%,
+    rgba(170, 190, 170, 0.6) 30%,
+    rgba(130, 150, 130, 0.35) 60%,
+    rgba(100, 110, 100, 0.1) 100%
+  );
+}
+
+/* sakura target: ink starts warm-blush */
+.ink-overlay[data-target="sakura"] {
+  background: radial-gradient(
+    ellipse at var(--ink-x) var(--ink-y),
+    rgba(80, 60, 65, 0.85) 0%,
+    rgba(100, 75, 80, 0.6) 30%,
+    rgba(120, 90, 95, 0.35) 60%,
+    rgba(130, 105, 110, 0.1) 100%
+  );
+}
+
 @keyframes ink-spread {
   0% {
     clip-path: circle(0 at var(--ink-x) var(--ink-y));
