@@ -1,16 +1,26 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getInitialTheme, nextTheme, type ThemeName } from "../theme/theme";
 import { updateMe, type User } from "../api";
 
 export function useTheme(user: User | null) {
   const [theme, setTheme] = useState<ThemeName>(getInitialTheme);
   const [inkAnim, setInkAnim] = useState<{ x: number; y: number; theme: ThemeName } | null>(null);
+  const lastUserId = useRef<number | null>(null);
 
+  // Pull theme from server on first login per user session
+  useEffect(() => {
+    if (user && user.id !== lastUserId.current) {
+      lastUserId.current = user.id;
+      if (user.theme && user.theme !== theme) setTheme(user.theme);
+    }
+  }, [user, theme]);
+
+  // Sync local theme to DOM + server
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
     if (user) updateMe({ theme }).catch(() => {});
-  }, [theme, user]);
+  }, [theme]);
 
   // apply theme after ink animation
   useEffect(() => {

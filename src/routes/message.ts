@@ -59,7 +59,7 @@ export const messageRoute = new Elysia({ prefix: "/api" })
       ]);
       const data = rows.map(r => ({
         ...r,
-        signature: currentUser?.id === r.userId ? r.signature : null,
+        signature: (currentUser && (currentUser.id === r.userId || (r.userId == null && currentUser.username === r.name))) ? r.signature : null,
       }));
       return { success: true, data, total: count, offset, limit };
     },
@@ -82,7 +82,7 @@ export const messageRoute = new Elysia({ prefix: "/api" })
         .orderBy(messages.createdAt);
       const data = rows.map(r => ({
         ...r,
-        signature: currentUser?.id === r.userId ? r.signature : null,
+        signature: (currentUser && (currentUser.id === r.userId || (r.userId == null && currentUser.username === r.name))) ? r.signature : null,
       }));
       return { success: true, data };
     },

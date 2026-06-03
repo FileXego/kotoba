@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchBookmarks, toggleBookmark, fetchInteractions, type Message, type User } from "../api";
+import { fetchBookmarks, toggleBookmark, toggleLike, fetchInteractions, type Message, type User } from "../api";
 import { t, type Lang } from "../i18n";
 import { MessageCard } from "./MessageCard";
 
@@ -56,10 +56,18 @@ export function BookmarksPage({ lang, currentUser }: Props) {
               currentUser={currentUser} likedIds={likedIds} bookmarkedIds={bookmarkedIds}
               onUpdate={async () => {}} onLoadReplies={() => {}}
               onSubmitReply={async () => {}}
-              onToggleLike={() => {}}
+              onToggleLike={async (id) => {
+                const res = await toggleLike(id);
+                setLikedIds(p => { const n = new Set(p); if (res.liked) n.add(id); else n.delete(id); return n; });
+              }}
               onToggleBookmark={async () => {
-                await toggleBookmark(msg.id);
+                const wasBookmarked = bookmarkedIds.has(msg.id);
                 setBookmarkedIds(p => { const n = new Set(p); n.delete(msg.id); return n; });
+                try {
+                  await toggleBookmark(msg.id);
+                } catch {
+                  setBookmarkedIds(p => { const n = new Set(p); if (wasBookmarked) n.add(msg.id); return n; });
+                }
                 load();
               }} />
         ))}

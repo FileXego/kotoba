@@ -22,6 +22,7 @@ export function useMessageFeed(
   const [error, setError] = useState<string | null>(null);
   const [replyTrees, setReplyTrees] = useState<Record<number, Message[]>>({});
   const [loadingReplies, setLoadingReplies] = useState<Set<number>>(new Set());
+  const [replyErrors, setReplyErrors] = useState<Record<number, string>>({});
   const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const q = searchQuery.trim();
@@ -50,7 +51,7 @@ export function useMessageFeed(
       setReplyTrees(prev => ({ ...prev, [rootId]: replies.data }));
     } catch {
       console.error("Failed to load replies for", rootId);
-      setError(t(lang, "list.loadFail"));
+      setReplyErrors(prev => ({ ...prev, [rootId]: t(lang, "list.loadFail") }));
     } finally {
       setLoadingReplies(prev => { const n = new Set(prev); n.delete(rootId); return n; });
     }
@@ -95,6 +96,13 @@ export function useMessageFeed(
       const res = await toggleLike(id);
       setLikedIds(p => { const n = new Set(p); if (res.liked) n.add(id); else n.delete(id); return n; });
       setMessages(prev => prev.map(m => m.id === id ? { ...m, likeCount: res.count } : m));
+      setReplyTrees(prev => {
+        const next = { ...prev };
+        for (const [rootId, replies] of Object.entries(next)) {
+          next[Number(rootId)] = replies.map(r => r.id === id ? { ...r, likeCount: res.count } : r);
+        }
+        return next;
+      });
     } catch {
       setLikedIds(p => { const n = new Set(p); if (wasLiked) n.add(id); else n.delete(id); return n; });
     }
@@ -122,7 +130,7 @@ export function useMessageFeed(
   }, [q, loadMessages]);
 
   return {
-    messages, total, loading, loadingMore, error, replyTrees, loadingReplies,
+    messages, total, loading, loadingMore, error, replyTrees, loadingReplies, replyErrors,
     loadMessages, handleLoadMore, handleLoadReplies, handleSubmit, handleUpdate,
     handleToggleLike, handleToggleBookmark,
   };
