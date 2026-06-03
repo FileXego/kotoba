@@ -21,6 +21,10 @@ export function createApp(options: AppOptions = {}) {
   const app = new Elysia({
     sanitize: (value) => (typeof value === "string" ? Bun.escapeHTML(value) : value),
   })
+    .state("csp", "default-src 'self'; script-src 'self' https://challenges.cloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'")
+    .onAfterHandle(({ set, store: { csp } }) => {
+      set.headers["Content-Security-Policy"] = csp;
+    })
     .onError(({ code, status, error }) => {
       if (code === "VALIDATION") return status(422, { success: false, error: "VALIDATION" });
       if (code === "NOT_FOUND") return status(404, { success: false, error: "NOT_FOUND" });
