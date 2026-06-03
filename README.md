@@ -8,6 +8,9 @@
 - 💬 3-level nested replies
 - 🔍 Keyword search + pagination
 - ❤️ Like & bookmark with persistence
+- 🔖 Bookmarks page (saved messages)
+- 🎨 4 theme presets (Washi / Night / Sumi / Sakura)
+- 🖼️ Avatar upload + personal signature
 - 🌙 Dark mode with ink-spread transition animation
 - 🇯🇵🇨🇳 Japanese / Chinese bilingual UI
 - 👤 User accounts (sign up / sign in)
@@ -31,7 +34,7 @@
 
 ```bash
 # 1. Clone
-git clone https://github.com/YOUR_USER/kotoba.git
+git clone https://github.com/FileXego/kotoba.git
 cd kotoba
 
 # 2. Install (uses Bun)
@@ -67,19 +70,29 @@ See `.env.example` for dev defaults.
 | `GET` | `/api/messages?offset=&limit=&q=` | — |
 | `POST` | `/api/message` | Login |
 | `PATCH` | `/api/message/:id` | Author |
+| `GET` | `/api/messages/:id/replies` | — |
 | `POST` | `/api/messages/:id/like` | Login |
 | `POST` | `/api/messages/:id/bookmark` | Login |
+| `GET` | `/api/bookmarks?offset=&limit=` | Login |
+| `POST` | `/api/upload` | Login |
 | `POST` | `/api/auth/sign-up` | Captcha |
 | `POST` | `/api/auth/sign-in` | — |
+| `GET` | `/api/auth/me` | Cookie |
+| `PATCH` | `/api/auth/me` | Login |
+| `PATCH` | `/api/auth/avatar` | Login |
+| `GET` | `/api/health` | — |
 | `GET` | `/api/admin/*` | Admin |
 
 ## Architecture
 
 ```
 src/
-├── plugins/    auth.ts · admin.ts · captcha.ts    ← Elysia micro-apps
-├── routes/     message.ts · upload.ts             ← Route handlers
-├── db/         schema.ts · index.ts               ← Drizzle + SQLite
+├── plugins/    rate-limiter.ts · auth.ts · admin.ts    ← Elysia plugins
+├── routes/     message.ts · bookmark.ts · upload.ts    ← Route handlers
+├── db/         schema.ts · index.ts                     ← Drizzle + SQLite
+├── app.ts      createApp({ staticMode })                ← Unified app factory
+├── index.ts    dev entry
+├── start.ts    prod entry (static + SPA fallback)
 client/
 └── src/        App → Header · SubmitForm · MessageList → MessageCard
 ```

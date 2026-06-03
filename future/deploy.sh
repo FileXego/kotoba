@@ -53,6 +53,9 @@ case "${1:-update}" in
     fi
     log "✅ Bun $BUN_VER"
 
+    # install bun globally so systemd service can reach it
+    sudo ln -sf "$(which bun)" /usr/local/bin/bun
+
     TAG=$(cd /opt/kotoba 2>/dev/null && latest_tag || echo "v1.0.0")
     APP_DIR="$APP_BASE/kotoba-$TAG"
 
@@ -66,7 +69,7 @@ case "${1:-update}" in
     git checkout "$TAG" 2>/dev/null || true
 
     [ ! -f .env ] && cp .env.example .env
-    if ! grep -q "COOKIE_SECRET=dev-secret" .env; then
+    if grep -q "COOKIE_SECRET=dev-secret" .env; then
       log "⚠️  Edit $APP_DIR/.env with your real COOKIE_SECRET"
       log "   Then re-run: $0 init"
       exit 0

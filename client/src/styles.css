@@ -35,6 +35,34 @@
   --stars-opacity: 0.7;
 }
 
+[data-theme="sumi"] {
+  --bg: #0d1211;
+  --card-bg: #161c1a;
+  --text: #eef2ea;
+  --text-secondary: #9aa9a2;
+  --accent: #b7c3bc;
+  --accent-subtle: #7d8f84;
+  --border: #2e3a35;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 12px rgba(0, 0, 0, 0.4);
+  --moon-opacity: 0.5;
+  --stars-opacity: 0.6;
+}
+
+[data-theme="sakura"] {
+  --bg: #fbf1f2;
+  --card-bg: #fffafb;
+  --text: #342b2f;
+  --text-secondary: #927883;
+  --accent: #b94f66;
+  --accent-subtle: #c4858f;
+  --border: #ead3d8;
+  --shadow-sm: 0 1px 3px rgba(52, 43, 47, 0.04);
+  --shadow-md: 0 2px 8px rgba(52, 43, 47, 0.06);
+  --moon-opacity: 0;
+  --stars-opacity: 0;
+}
+
 /* ===== Reset & Base ===== */
 *,
 *::before,

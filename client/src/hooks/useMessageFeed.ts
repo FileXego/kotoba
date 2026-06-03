@@ -42,8 +42,8 @@ export function useMessageFeed(
     loadMessages(messages.length, q, true);
   };
 
-  const handleLoadReplies = async (rootId: number) => {
-    if (replyTrees[rootId] || loadingReplies.has(rootId)) return;
+  const handleLoadReplies = async (rootId: number, force = false) => {
+    if (!force && (replyTrees[rootId] || loadingReplies.has(rootId))) return;
     setLoadingReplies(prev => new Set(prev).add(rootId));
     try {
       const replies = await fetchReplies(rootId);
@@ -68,7 +68,7 @@ export function useMessageFeed(
       })();
       if (rootId) {
         setReplyTrees(prev => { const n = { ...prev }; delete n[rootId]; return n; });
-        await handleLoadReplies(rootId);
+        await handleLoadReplies(rootId, true);
       }
     } else { await loadMessages(0, q); }
   };

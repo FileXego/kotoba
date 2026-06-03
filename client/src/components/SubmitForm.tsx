@@ -45,7 +45,7 @@ export function SubmitForm({ lang, onSubmit, onImageUpload, loggedIn }: Props) {
       <textarea id="content" value={content} onChange={(e) => setContent(e.target.value)}
         maxLength={500} placeholder={t(lang, "form.placeholder")} required />
       <div className="form-actions">
-        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} />
+        <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageUpload} style={{ display: "none" }} />
         <button type="button" className="upload-btn" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
           {uploading ? "···" : "🖼"}
         </button>

@@ -39,6 +39,12 @@
 | 31 | i18n + SubmitForm 死代码 | 🟢 死代码 | ✅ |
 | 32 | 双轮 Oracle 审查法——单轮漏报率 ~50% | 🧠 方法论 | ✅ |
 | 33 | 重构摘除 lint 抑制 + 类型安全绕过 → CI 炸 | 🔧 工程 | ✅ |
+| 34 | deploy.sh COOKIE_SECRET 判断反了 | 🔴 部署 | ✅ |
+| 35 | systemd User=www-data 无法访问 /root/.bun/bin/bun | 🔴 部署 | ✅ |
+| 36 | bookmark count 查询引用了未 join 的 messages | 🔇 静默 | ✅ |
+| 37 | 回复提交后 reply tree 不刷新（闭包旧值） | 🔇 静默 | ✅ |
+| 38 | 登录/注册错误全吞成"网络错误" | ⚙️ UI | ✅ |
+| 39 | like/bookmark toggle 前不检查 message 存在 | 🔇 静默 | ✅ |
 
 > 图例：✅已修复 ⚠️已知待修 N/A不适用
 
@@ -429,4 +435,58 @@ import { unique } from "drizzle-orm/sqlite-core";
 2. 本地验证增加一步：`bun run lint --cwd client`（不只用 `tsc -b`）
 3. 动态 i18n key 用显式 Record 映射，不靠 `as any` 绕过
 
+---
 
+## 34. deploy.sh COOKIE_SECRET 判断反向
+
+**现象**：`init` 时 `if ! grep -q "COOKIE_SECRET=dev-secret" .env` 逻辑反——不包含 dev-secret 时警告退出，包含时继续部署。改正式 secret 反而部署不下去。
+
+**根因**：反转了 `!` 的语义。意图是"如果是 dev-secret 则提醒改掉"，但 `! grep` 变成了"不是 dev-secret 则警告"。
+
+**修复**：去掉 `!` → `if grep -q "COOKIE_SECRET=dev-secret" .env; then`。
+
+**来源**：ChatGPT 静态审查 + 自行 read 确认。
+
+---
+
+## 35. systemd User=www-data 无法执行 /root/.bun/bin/bun
+
+**现象**：`kotoba.service` `User=www-data` + `ExecStart=/root/.bun/bin/bun`，www-data 无权限读 /root。
+
+**修复**：
+1. `deploy.sh` init 阶段加 `sudo ln -sf $(which bun) /usr/local/bin/bun`
+2. `kotoba.service` ExecStart 改为 `/usr/local/bin/bun`
+
+---
+
+## 36. bookmark count 查询引用未 join 的 messages.deleted
+
+**现象**：`GET /api/bookmarks` 的 count 用 `db.$count(bookmarks, eq(messages.deleted, 0))`，`$count` 只查 bookmarks 表，但 `messages.deleted` 列不在 FROM 子句中 → SQLite 报错。
+
+**修复**：`db.$count` 替换为 `db.select({ count: sql<number>`count(*)` }).from(bookmarks).innerJoin(messages, ...)`。
+
+---
+
+## 37. 回复提交后 reply tree 不刷新
+
+**现象**：`handleSubmit` 里 `setReplyTrees(delete key)` 后立即 `await handleLoadReplies(rootId)`，但 React setState 异步，闭包里 `replyTrees[rootId]` 还是旧值，`handleLoadReplies` 的 `if (replyTrees[rootId]) return` 直接跳过。
+
+**修复**：`handleLoadReplies` 加 `force` 参数，`handleSubmit` 里调 `handleLoadReplies(rootId, true)`。
+
+---
+
+## 38. 登录/注册错误全吞成"网络错误"
+
+**现象**：`Header.tsx` catch 统一 `setError("auth.network")`——INVALID_CREDENTIALS、DUPLICATE、CAPTCHA_FAIL 全显示为网络错误，用户无法知道自己输错了密码还是被限频。
+
+**根因**：两处问题——catch 不读 `err.message`；`else` 分支是死代码（requestJSON 已 throw）。
+
+**修复**：删死代码 else，catch 里 `setError(e || t(lang, "auth.network"))`，保留 requestJSON 抛出的 `[HTTP_NNN] CODE` 原文。
+
+---
+
+## 39. like/bookmark toggle 前不检查 message 存在
+
+**现象**：点赞/收藏接口只检查 NaN，不查 message 是否存在或已软删除。未启用 foreign key PRAGMA 时产生孤儿互动记录。
+
+**修复**：toggle 前加 `db.select({ id }).from(messages).where(deleted=0)` → 不存在返回 404。

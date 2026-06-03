@@ -45,9 +45,11 @@ export function Header({ theme, lang, onToggleTheme, onToggleLang, user, onUserC
         ? await signUp(username, email, password, token) : await signIn(username, password);
       if (result.success && result.user) {
         onUserChange(result.user); setShowAuth(false); setUsername(""); setEmail(""); setPassword("");
-      } else { // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setError(t(lang, ("error." + result.error) as any) || result.error || t(lang, "auth.error")); }
-    } catch { setError(t(lang, "auth.network")); }
+      }
+    } catch (err) {
+      const e = err instanceof Error ? err.message : "";
+      setError(e || t(lang, "auth.network"));
+    }
     finally { setLoading(false); window.turnstile?.reset(widgetId.current); }
   };
 

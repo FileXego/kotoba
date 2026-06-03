@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import { db } from "../db";
 import { bookmarks, messages, users } from "../db/schema";
-import { desc, eq, and } from "drizzle-orm";
+import { desc, eq, and, sql } from "drizzle-orm";
 
 export const bookmarkRoute = new Elysia({ prefix: "/api" })
   .get(
@@ -10,7 +10,7 @@ export const bookmarkRoute = new Elysia({ prefix: "/api" })
       if (!currentUser) return status(401, { success: false, error: "AUTH_REQUIRED" });
       const offset = query.offset ?? 0;
       const limit = query.limit ?? 20;
-      const [rows, count] = await Promise.all([
+      const [rows, countRow] = await Promise.all([
         db.select({
           id: messages.id, name: messages.name, content: messages.content,
           createdAt: messages.createdAt, updatedAt: messages.updatedAt,
@@ -21,8 +21,11 @@ export const bookmarkRoute = new Elysia({ prefix: "/api" })
           .where(and(eq(bookmarks.userId, currentUser.id), eq(messages.deleted, 0)))
           .orderBy(desc(bookmarks.createdAt))
           .limit(limit).offset(offset),
-        db.$count(bookmarks, and(eq(bookmarks.userId, currentUser.id), eq(messages.deleted, 0))),
+        db.select({ count: sql<number>`count(*)` }).from(bookmarks)
+          .innerJoin(messages, eq(bookmarks.messageId, messages.id))
+          .where(and(eq(bookmarks.userId, currentUser.id), eq(messages.deleted, 0))),
       ]);
+      const count = countRow[0]?.count ?? 0;
       const data = rows.map(r => ({
         ...r,
         signature: currentUser.id === r.userId ? r.signature : null,

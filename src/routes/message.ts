@@ -112,6 +112,9 @@ export const messageRoute = new Elysia({ prefix: "/api" })
       if (!currentUser) return status(401, { success: false, error: "AUTH_REQUIRED" });
       const messageId = Number(params.id);
       if (isNaN(messageId)) return status(422, { success: false, error: "INVALID_ID" });
+      const [msg] = await db.select({ id: messages.id }).from(messages)
+        .where(and(eq(messages.id, messageId), eq(messages.deleted, 0))).limit(1);
+      if (!msg) return status(404, { success: false, error: "NOT_FOUND" });
       const [existing] = await db.select().from(likes).where(and(eq(likes.userId, currentUser.id), eq(likes.messageId, messageId))).limit(1);
       if (existing) {
         await db.delete(likes).where(and(eq(likes.userId, currentUser.id), eq(likes.messageId, messageId)));
@@ -129,6 +132,9 @@ export const messageRoute = new Elysia({ prefix: "/api" })
       if (!currentUser) return status(401, { success: false, error: "AUTH_REQUIRED" });
       const messageId = Number(params.id);
       if (isNaN(messageId)) return status(422, { success: false, error: "INVALID_ID" });
+      const [msg] = await db.select({ id: messages.id }).from(messages)
+        .where(and(eq(messages.id, messageId), eq(messages.deleted, 0))).limit(1);
+      if (!msg) return status(404, { success: false, error: "NOT_FOUND" });
       const [existing] = await db.select().from(bookmarks).where(and(eq(bookmarks.userId, currentUser.id), eq(bookmarks.messageId, messageId))).limit(1);
       if (existing) {
         await db.delete(bookmarks).where(and(eq(bookmarks.userId, currentUser.id), eq(bookmarks.messageId, messageId)));
