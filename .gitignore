@@ -30,6 +30,9 @@ sqlite.db-wal
 # uploads
 uploads/
 
+# test databases (temp files created by bun test)
+testbug/.test-*.db
+
 # caches
 .eslintcache
 .cache
