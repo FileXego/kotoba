@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchBookmarks, type Message, type User } from "../api";
+import { fetchBookmarks, toggleBookmark, fetchInteractions, type Message, type User } from "../api";
 import { t, type Lang } from "../i18n";
 import { MessageCard } from "./MessageCard";
 
@@ -14,6 +14,18 @@ export function BookmarksPage({ lang, currentUser }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => {
+    if (currentUser) {
+      fetchInteractions().then(r => {
+        setLikedIds(new Set(r.liked));
+        setBookmarkedIds(new Set(r.bookmarked));
+      }).catch(() => {});
+    }
+  }, [currentUser]);
 
   const load = async (offset = 0) => {
     if (offset === 0) { setLoading(true); setError(null); }
@@ -39,12 +51,17 @@ export function BookmarksPage({ lang, currentUser }: Props) {
       <div className="list-header">{t(lang, "bookmarks.title")}</div>
       <div className="message-list">
         {messages.map((msg) => (
-          <MessageCard key={msg.id} lang={lang} message={msg}
-            replies={null} loadingReplies={false}
-            currentUser={currentUser} likedIds={new Set()} bookmarkedIds={new Set()}
-            onUpdate={async () => {}} onLoadReplies={() => {}}
-            onSubmitReply={async () => {}}
-            onToggleLike={() => {}} onToggleBookmark={() => { load(); }} />
+            <MessageCard key={msg.id} lang={lang} message={msg}
+              replies={null} loadingReplies={false}
+              currentUser={currentUser} likedIds={likedIds} bookmarkedIds={bookmarkedIds}
+              onUpdate={async () => {}} onLoadReplies={() => {}}
+              onSubmitReply={async () => {}}
+              onToggleLike={() => {}}
+              onToggleBookmark={async () => {
+                await toggleBookmark(msg.id);
+                setBookmarkedIds(p => { const n = new Set(p); n.delete(msg.id); return n; });
+                load();
+              }} />
         ))}
       </div>
       {messages.length < total && (

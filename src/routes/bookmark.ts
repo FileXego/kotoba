@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia";
 import { db } from "../db";
-import { bookmarks, messages, users } from "../db/schema";
+import { bookmarks, messages, users, likes } from "../db/schema";
 import { desc, eq, and, sql } from "drizzle-orm";
 
 export const bookmarkRoute = new Elysia({ prefix: "/api" })
@@ -15,6 +15,7 @@ export const bookmarkRoute = new Elysia({ prefix: "/api" })
           id: messages.id, name: messages.name, content: messages.content,
           createdAt: messages.createdAt, updatedAt: messages.updatedAt,
           userId: messages.userId, avatarUrl: users.avatarUrl, signature: users.signature,
+          likeCount: sql<number>`(SELECT COUNT(*) FROM likes WHERE likes.message_id = messages.id)`,
         }).from(bookmarks)
           .innerJoin(messages, eq(bookmarks.messageId, messages.id))
           .leftJoin(users, eq(messages.userId, users.id))

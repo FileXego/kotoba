@@ -99,7 +99,7 @@ export const auth = new Elysia({ prefix: "/api/auth" })
       update.signature = body.signature;
     }
     if (body.theme !== undefined) {
-      if (body.theme && !THEMES.has(body.theme)) return status(400, { success: false, error: "INVALID_THEME" });
+      if (body.theme !== undefined && !THEMES.has(body.theme)) return status(400, { success: false, error: "INVALID_THEME" });
       update.theme = body.theme;
     }
     if (Object.keys(update).length === 0) return { success: true, user: currentUser };

@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
-import { type ThemeName, getInitialTheme, nextTheme } from "../theme/theme";
+import { getInitialTheme, nextTheme, type ThemeName } from "../theme/theme";
+import { updateMe, type User } from "../api";
 
-export function useTheme() {
+export function useTheme(user: User | null) {
   const [theme, setTheme] = useState<ThemeName>(getInitialTheme);
   const [inkAnim, setInkAnim] = useState<{ x: number; y: number; theme: ThemeName } | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
-  }, [theme]);
+    if (user) updateMe({ theme }).catch(() => {});
+  }, [theme, user]);
 
   // apply theme after ink animation
   useEffect(() => {

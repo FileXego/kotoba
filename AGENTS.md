@@ -27,7 +27,7 @@ src/routes/    message.ts / bookmark.ts / upload.ts   ← 路由
 src/db/        schema.ts / index.ts                ← Drizzle
 client/src/    App.tsx → Header / SubmitForm / MessageList(→MessageCard) / AdminPanel / BookmarksPage
 ```
-插件挂载顺序：**rateLimiter → auth → admin → messageRoute → uploadRoute**（derive 依赖 auth 在前）
+插件挂载顺序：**rateLimiter → auth → admin → messageRoute → bookmarkRoute → uploadRoute**（derive 依赖 auth 在前）
 
 ## API 速查
 

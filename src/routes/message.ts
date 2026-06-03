@@ -93,9 +93,15 @@ export const messageRoute = new Elysia({ prefix: "/api" })
     async ({ params, body, currentUser, status }) => {
       const id = Number(params.id);
       if (isNaN(id)) return status(400, { success: false, error: "INVALID_ID" });
-      const [msg] = await db.select({ userId: messages.userId }).from(messages).where(eq(messages.id, id)).limit(1);
+      const [msg] = await db.select({ userId: messages.userId, name: messages.name }).from(messages).where(eq(messages.id, id)).limit(1);
       if (!msg) return status(404, { success: false, error: "NOT_FOUND" });
-      if (!currentUser || msg.userId == null || msg.userId !== currentUser.id) {
+      const isAuthor = !!currentUser && (
+        (msg.userId != null && msg.userId === currentUser.id)
+        || (msg.userId == null && msg.name === currentUser.username)
+      );
+      // Admins can soft-delete any message (set deleted=1), but cannot edit content of others' messages
+      const isAdminDelete = !!currentUser?.isAdmin && body.deleted === 1 && body.content === undefined;
+      if (!isAuthor && !isAdminDelete) {
         return status(403, { success: false, error: "FORBIDDEN" });
       }
       const update: Record<string, unknown> = { updatedAt: new Date() };

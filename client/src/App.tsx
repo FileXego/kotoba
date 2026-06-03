@@ -18,8 +18,8 @@ export default function App() {
   });
   const [searchQuery, setSearchQuery] = useState("");
   const { route, navigate } = useRouter();
-  const { theme, toggleTheme, inkAnim } = useTheme();
   const { user, setUser } = useSession();
+  const { theme, toggleTheme, inkAnim } = useTheme(user);
   const { likedIds, bookmarkedIds, setLikedIds, setBookmarkedIds } = useInteractions(user);
   const {
     messages, total, loading, loadingMore, error, replyTrees, loadingReplies,

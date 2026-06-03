@@ -10,12 +10,12 @@ export function AdminPanel({ lang, onClose }: { lang: Lang; onClose: () => void 
   const [error, setError] = useState("");
 
   const loadMessages = async () => {
-    setLoading(true);
+    setLoading(true); setError("");
     try { const res = await adminFetchMessages(); setMessages(res.data); }
     catch { setError(t(lang, "admin.loadFail")); } finally { setLoading(false); }
   };
   const loadUsers = async () => {
-    setLoading(true);
+    setLoading(true); setError("");
     try { const res = await adminFetchUsers(); setUsers(res.data); }
     catch { setError(t(lang, "admin.loadFail")); } finally { setLoading(false); }
   };

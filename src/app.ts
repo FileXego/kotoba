@@ -33,7 +33,7 @@ export function createApp(options: AppOptions = {}) {
     .use(messageRoute)
     .use(bookmarkRoute)
     .use(uploadRoute)
-    .get("/api/health", () => ({ success: true, version: "1.0.0" }))
+    .get("/api/health", () => ({ success: true, version: "2.1.0" }))
     .get("/uploads/*", async ({ request, status }) => {
       const filename = fileNameFromPath(request, "/uploads/");
       if (!filename) return status(403, { success: false, error: "FORBIDDEN" });

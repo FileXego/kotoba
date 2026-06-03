@@ -64,7 +64,7 @@ export function MessageCard({
   const [replyContent, setReplyContent] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
 
-  const isMine = currentUser?.username === name;
+  const isMine = currentUser?.id === userId || currentUser?.username === name;
   const canReply = d < MAX_DEPTH;
   const replyCount = replies ? replies.length - 1 : null;
 

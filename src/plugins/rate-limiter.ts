@@ -24,6 +24,9 @@ export const rateLimiter = new Elysia()
     if (url.pathname === "/api/auth/sign-up") {
       if (!checkIP(ip, 3)) return status(429, { success: false, error: "RATE_LIMITED" });
     }
+    if (url.pathname === "/api/auth/sign-in") {
+      if (!checkIP(ip, 10)) return status(429, { success: false, error: "RATE_LIMITED" });
+    }
     if (url.pathname === "/api/upload") {
       if (!checkIP(ip, 5)) return status(429, { success: false, error: "RATE_LIMITED" });
     }
