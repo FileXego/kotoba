@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { setupApp, getApp, cleanup, extractCookie } from "../helpers";
+import { setupApp, extractCookie } from "../helpers";
 import { Database } from "bun:sqlite";
 
 type Json = Record<string, unknown>;
 
 describe("Admin", () => {
+  let app: ReturnType<typeof import("../src/app").createApp>;
+  let cleanup: () => void;
   let adminCookie: string | null = null;
   let regularCookie: string | null = null;
   let adminId: number;
@@ -13,8 +15,9 @@ describe("Admin", () => {
   let msg2Id: number;
 
   beforeAll(async () => {
-    await setupApp();
-    const app = getApp();
+    const result = await setupApp();
+    app = result.app;
+    cleanup = result.cleanup;
 
     // ── 1. Sign up admin user ──────────────────────────────────────
     const adminSignupRes = await app.handle(
@@ -95,7 +98,7 @@ describe("Admin", () => {
   // ────────────────────────────────────────────────────────────────
 
   it("returns 403 for GET /admin/messages without auth", async () => {
-    const app = getApp();
+
     const res = await app.handle(new Request("http://localhost/api/admin/messages"));
     expect(res.status).toBe(403);
     const data = (await res.json()) as Json;
@@ -104,7 +107,7 @@ describe("Admin", () => {
   });
 
   it("returns 403 for GET /admin/messages as regular user (not admin)", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request("http://localhost/api/admin/messages", {
         headers: { Cookie: regularCookie! },
@@ -117,7 +120,7 @@ describe("Admin", () => {
   });
 
   it("returns 200 with data array for GET /admin/messages as admin", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request("http://localhost/api/admin/messages", {
         headers: { Cookie: adminCookie! },
@@ -132,7 +135,7 @@ describe("Admin", () => {
   });
 
   it("GET /admin/messages includes soft-deleted messages", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request("http://localhost/api/admin/messages", {
         headers: { Cookie: adminCookie! },
@@ -151,7 +154,7 @@ describe("Admin", () => {
   // ────────────────────────────────────────────────────────────────
 
   it("restores a soft-deleted message via PATCH /admin/messages/:id/restore", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request(`http://localhost/api/admin/messages/${msg2Id}/restore`, {
         method: "PATCH",
@@ -164,7 +167,7 @@ describe("Admin", () => {
   });
 
   it("returns 404 for PATCH /admin/messages/:id/restore with non-existent id", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request("http://localhost/api/admin/messages/999999/restore", {
         method: "PATCH",
@@ -182,7 +185,7 @@ describe("Admin", () => {
   // ────────────────────────────────────────────────────────────────
 
   it("returns 200 with users array for GET /admin/users as admin", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request("http://localhost/api/admin/users", {
         headers: { Cookie: adminCookie! },
@@ -209,7 +212,7 @@ describe("Admin", () => {
   // ────────────────────────────────────────────────────────────────
 
   it("promotes a regular user to admin via PATCH /admin/users/:id/admin", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request(`http://localhost/api/admin/users/${regularUserId}/admin`, {
         method: "PATCH",
@@ -233,7 +236,7 @@ describe("Admin", () => {
   });
 
   it("demotes an admin back to regular user via PATCH /admin/users/:id/admin", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request(`http://localhost/api/admin/users/${regularUserId}/admin`, {
         method: "PATCH",
@@ -257,7 +260,7 @@ describe("Admin", () => {
   });
 
   it("returns 400 SELF_ADMIN when admin tries to demote themselves", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request(`http://localhost/api/admin/users/${adminId}/admin`, {
         method: "PATCH",

@@ -56,13 +56,15 @@ export const auth = new Elysia({ prefix: "/api/auth" })
   .post(
     "/sign-up",
     async ({ body, cookie: { session }, status }) => {
-      try {
-        const fd = new FormData();
-        fd.append("secret", TURNSTILE_SECRET);
-        fd.append("response", body.captchaToken);
-        const vr = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: fd }).then(r => r.json());
-        if (!vr.success) return status(429, { success: false, error: "CAPTCHA_FAIL" });
-      } catch { return status(429, { success: false, error: "CAPTCHA_FAIL" }); }
+      if (!process.env.SKIP_CAPTCHA) {
+        try {
+          const fd = new FormData();
+          fd.append("secret", TURNSTILE_SECRET);
+          fd.append("response", body.captchaToken);
+          const vr = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: fd }).then(r => r.json());
+          if (!vr.success) return status(429, { success: false, error: "CAPTCHA_FAIL" });
+        } catch { return status(429, { success: false, error: "CAPTCHA_FAIL" }); }
+      }
 
       const passwordHash = await Bun.password.hash(body.password);
       const [user] = await db.insert(users).values({

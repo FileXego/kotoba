@@ -1,15 +1,19 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { setupApp, getApp, cleanup, extractCookie } from "../helpers";
+import { setupApp, extractCookie } from "../helpers";
 
 type Json = Record<string, unknown>;
 
 describe("Bookmarks", () => {
+  let app: ReturnType<typeof import("../src/app").createApp>;
+  let cleanup: () => void;
   let cookie: string | null = null;
   let userId: number;
   const messageIds: number[] = [];
 
   beforeAll(async () => {
-    await setupApp();
+    const result = await setupApp();
+    app = result.app;
+    cleanup = result.cleanup;
   });
 
   afterAll(() => {
@@ -19,7 +23,7 @@ describe("Bookmarks", () => {
   // ── Test 1: 401 without auth ──────────────────────────────────────
 
   it("returns 401 for GET /bookmarks without auth", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/bookmarks");
     const res = await app.handle(req);
     const data = await res.json() as Json;
@@ -31,7 +35,7 @@ describe("Bookmarks", () => {
   // ── Sign up ───────────────────────────────────────────────────────
 
   it("signs up a new user for bookmark tests", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/auth/sign-up", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -58,7 +62,7 @@ describe("Bookmarks", () => {
   // ── Test 2: GET /bookmarks with auth, no bookmarks ────────────────
 
   it("returns empty list when no bookmarks exist (total=0)", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/bookmarks", {
       headers: { Cookie: cookie! },
     });
@@ -73,7 +77,7 @@ describe("Bookmarks", () => {
   // ── Set signature for field verification ──────────────────────────
 
   it("sets a signature via PATCH /auth/me for field coverage", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/auth/me", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Cookie: cookie! },
@@ -89,7 +93,7 @@ describe("Bookmarks", () => {
   // ── Create 3 messages ─────────────────────────────────────────────
 
   it("creates 3 messages for bookmark testing", async () => {
-    const app = getApp();
+
     for (let i = 1; i <= 3; i++) {
       const req = new Request("http://localhost/api/message", {
         method: "POST",
@@ -109,7 +113,7 @@ describe("Bookmarks", () => {
   // ── Bookmark 1st message only ────────────────────────────────────
 
   it("bookmarks the 1st message", async () => {
-    const app = getApp();
+
     const req = new Request(`http://localhost/api/messages/${messageIds[0]}/bookmark`, {
       method: "POST",
       headers: { Cookie: cookie! },
@@ -125,7 +129,7 @@ describe("Bookmarks", () => {
   // ── Test 5: fields (userId, avatarUrl, signature) present ─────────
 
   it("returns 1 bookmark after bookmarking one message (total=1) with correct fields", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/bookmarks", {
       headers: { Cookie: cookie! },
     });
@@ -156,7 +160,7 @@ describe("Bookmarks", () => {
   // ── Bookmark 2nd & 3rd messages ──────────────────────────────────
 
   it("bookmarks the remaining 2 messages", async () => {
-    const app = getApp();
+
     for (let i = 1; i <= 2; i++) {
       const req = new Request(`http://localhost/api/messages/${messageIds[i]}/bookmark`, {
         method: "POST",
@@ -173,7 +177,7 @@ describe("Bookmarks", () => {
   // ── Test 4: pagination offset=0, limit=1 ──────────────────────────
 
   it("returns paginated bookmarks with offset=0, limit=1", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/bookmarks?offset=0&limit=1", {
       headers: { Cookie: cookie! },
     });
@@ -193,7 +197,7 @@ describe("Bookmarks", () => {
   // ── Test 6: ordered by bookmark time (most recent first) ──────────
 
   it("returns bookmarks ordered by bookmark time (most recent first)", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/bookmarks", {
       headers: { Cookie: cookie! },
     });
@@ -213,7 +217,7 @@ describe("Bookmarks", () => {
   // ── Test 7: soft-delete removes from bookmark list ────────────────
 
   it("removes bookmarked message after soft-delete", async () => {
-    const app = getApp();
+
 
     // Soft-delete message 2
     const delReq = new Request(`http://localhost/api/message/${messageIds[1]}`, {

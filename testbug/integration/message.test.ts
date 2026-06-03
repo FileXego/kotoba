@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { setupApp, getApp, cleanup, extractCookie } from "../helpers";
+import { setupApp, extractCookie } from "../helpers";
 
 type Json = Record<string, unknown>;
 
 describe("Messages", () => {
+  let app: ReturnType<typeof import("../src/app").createApp>;
+  let cleanup: () => void;
   let cookie1: string | null = null;
   let cookie2: string | null = null;
   let rootMsgId = 0;
@@ -13,8 +15,9 @@ describe("Messages", () => {
   let keywordMsgId = 0;
 
   beforeAll(async () => {
-    await setupApp();
-    const app = getApp();
+    const result = await setupApp();
+    app = result.app;
+    cleanup = result.cleanup;
 
     // Sign up user1
     const r1 = await app.handle(
@@ -57,7 +60,7 @@ describe("Messages", () => {
 
   // Test 9 — may have data from other test files (shared DB), just verify response shape
   it("GET /api/messages → 200, valid response shape", async () => {
-    const app = getApp();
+
     const res = await app.handle(new Request("http://localhost/api/messages"));
     const data = (await res.json()) as Json;
     expect(res.status).toBe(200);
@@ -70,7 +73,7 @@ describe("Messages", () => {
 
   // Test 1
   it("POST /api/message without auth → 401 AUTH_REQUIRED", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request("http://localhost/api/message", {
         method: "POST",
@@ -86,7 +89,7 @@ describe("Messages", () => {
 
   // Test 2
   it("POST /api/message with auth → 200, returns { success: true, id: number }", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request("http://localhost/api/message", {
         method: "POST",
@@ -104,7 +107,7 @@ describe("Messages", () => {
 
   // Test 3
   it("POST /api/message with empty content → 422 VALIDATION", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request("http://localhost/api/message", {
         method: "POST",
@@ -120,7 +123,7 @@ describe("Messages", () => {
 
   // Test 4
   it("POST /api/message with content > 500 chars → 422 VALIDATION", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request("http://localhost/api/message", {
         method: "POST",
@@ -136,7 +139,7 @@ describe("Messages", () => {
 
   // Test 5
   it("POST /api/message reply to non-existent parent → 400 PARENT_NOT_FOUND", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request("http://localhost/api/message", {
         method: "POST",
@@ -152,7 +155,7 @@ describe("Messages", () => {
 
   // Test 6
   it("POST /api/message reply to existing message → 200, check depth=1", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request("http://localhost/api/message", {
         method: "POST",
@@ -177,7 +180,7 @@ describe("Messages", () => {
 
   // Test 7
   it("POST /api/message reply at depth=2 (reply to a reply) → 200", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request("http://localhost/api/message", {
         method: "POST",
@@ -202,7 +205,7 @@ describe("Messages", () => {
 
   // Test 8
   it("POST /api/message reply at depth=3 (reply to depth=2) → 409 MAX_DEPTH", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request("http://localhost/api/message", {
         method: "POST",
@@ -220,7 +223,7 @@ describe("Messages", () => {
 
   // Test 10
   it("GET /api/messages after posting → 200, data contains posted message", async () => {
-    const app = getApp();
+
     const res = await app.handle(new Request("http://localhost/api/messages"));
     const data = (await res.json()) as Json;
     expect(res.status).toBe(200);
@@ -234,7 +237,7 @@ describe("Messages", () => {
 
   // Test 11
   it("GET /api/messages with pagination → offset=0&limit=1 returns 1 message, total correct", async () => {
-    const app = getApp();
+
     const res = await app.handle(new Request("http://localhost/api/messages?offset=0&limit=1"));
     const data = (await res.json()) as Json;
     expect(res.status).toBe(200);
@@ -248,7 +251,7 @@ describe("Messages", () => {
 
   // Test 12
   it("GET /api/messages with search → q=keyword finds message with that content", async () => {
-    const app = getApp();
+
 
     // Create a message with a distinctive keyword
     const createRes = await app.handle(
@@ -274,7 +277,7 @@ describe("Messages", () => {
 
   // Test 13
   it("GET /api/messages with search — no match → 200, empty data", async () => {
-    const app = getApp();
+
     const res = await app.handle(new Request("http://localhost/api/messages?q=zzz_nonexistent_string_yyy"));
     const data = (await res.json()) as Json;
     expect(res.status).toBe(200);
@@ -287,7 +290,7 @@ describe("Messages", () => {
 
   // Test 14 — 99999 is a valid number (not NaN), so it won't trigger INVALID_ID
   it("GET /api/messages/99999/replies → 200, empty data", async () => {
-    const app = getApp();
+
     const res = await app.handle(new Request("http://localhost/api/messages/99999/replies"));
     const data = (await res.json()) as Json;
     expect(res.status).toBe(200);
@@ -298,7 +301,7 @@ describe("Messages", () => {
   // Test 15 — replies endpoint returns the message itself (root_id = id OR id = id),
   // so a "no replies" message returns itself in the data array
   it("GET /api/messages/:id/replies (no replies) → 200, data contains the message itself", async () => {
-    const app = getApp();
+
 
     // Create a message and don't add any replies
     const createRes = await app.handle(
@@ -322,7 +325,7 @@ describe("Messages", () => {
 
   // Test 16
   it("GET /api/messages/:id/replies (with replies) → 200, data contains replies in correct order", async () => {
-    const app = getApp();
+
     const res = await app.handle(new Request(`http://localhost/api/messages/${rootMsgId}/replies`));
     const data = (await res.json()) as Json;
     expect(res.status).toBe(200);
@@ -348,7 +351,7 @@ describe("Messages", () => {
   // Test 17 — PATCH has no explicit 401 check; it returns 403 FORBIDDEN
   // when no valid author (including unauthenticated users)
   it("PATCH /api/message/:id without auth → 403 FORBIDDEN", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request(`http://localhost/api/message/${rootMsgId}`, {
         method: "PATCH",
@@ -364,7 +367,7 @@ describe("Messages", () => {
 
   // Test 18
   it("PATCH /api/message/:id edit own message → 200, content updated", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request(`http://localhost/api/message/${rootMsgId}`, {
         method: "PATCH",
@@ -379,7 +382,7 @@ describe("Messages", () => {
 
   // Test 19
   it("PATCH /api/message/:id edit other user's message → 403 FORBIDDEN", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request(`http://localhost/api/message/${rootMsgId}`, {
         method: "PATCH",
@@ -395,7 +398,7 @@ describe("Messages", () => {
 
   // Test 20
   it("PATCH /api/message/:id non-existent message → 404 NOT_FOUND", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request("http://localhost/api/message/99999", {
         method: "PATCH",
@@ -411,7 +414,7 @@ describe("Messages", () => {
 
   // Test 21
   it("PATCH /api/message/:id with empty content → 422 VALIDATION", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request(`http://localhost/api/message/${rootMsgId}`, {
         method: "PATCH",
@@ -427,7 +430,7 @@ describe("Messages", () => {
 
   // Test 22
   it("PATCH /api/message/:id soft-delete own message → 200, message vanishes from GET", async () => {
-    const app = getApp();
+
 
     // Create a fresh message to soft-delete
     const createRes = await app.handle(
@@ -464,7 +467,7 @@ describe("Messages", () => {
 
   // Test 23
   it("POST /api/messages/:id/like without auth → 401 AUTH_REQUIRED", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request(`http://localhost/api/messages/${rootMsgId}/like`, { method: "POST" }),
     );
@@ -476,7 +479,7 @@ describe("Messages", () => {
 
   // Test 24
   it("POST /api/messages/:id/like → 200, liked: true, count: 1", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request(`http://localhost/api/messages/${rootMsgId}/like`, {
         method: "POST",
@@ -492,7 +495,7 @@ describe("Messages", () => {
 
   // Test 25
   it("POST /api/messages/:id/like again (toggle off) → 200, liked: false, count: 0", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request(`http://localhost/api/messages/${rootMsgId}/like`, {
         method: "POST",
@@ -508,7 +511,7 @@ describe("Messages", () => {
 
   // Test 26
   it("POST /api/messages/99999/like (non-existent) → 404 NOT_FOUND", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request("http://localhost/api/messages/99999/like", {
         method: "POST",
@@ -523,7 +526,7 @@ describe("Messages", () => {
 
   // Test 27
   it("POST /api/messages/:id/like on deleted message → 404 NOT_FOUND", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request(`http://localhost/api/messages/${deletedMsgId}/like`, {
         method: "POST",
@@ -540,7 +543,7 @@ describe("Messages", () => {
 
   // Test 28
   it("POST /api/messages/:id/bookmark without auth → 401 AUTH_REQUIRED", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request(`http://localhost/api/messages/${rootMsgId}/bookmark`, { method: "POST" }),
     );
@@ -552,7 +555,7 @@ describe("Messages", () => {
 
   // Test 29
   it("POST /api/messages/:id/bookmark → 200, bookmarked: true", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request(`http://localhost/api/messages/${rootMsgId}/bookmark`, {
         method: "POST",
@@ -567,7 +570,7 @@ describe("Messages", () => {
 
   // Test 30
   it("POST /api/messages/:id/bookmark again (toggle off) → 200, bookmarked: false", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request(`http://localhost/api/messages/${rootMsgId}/bookmark`, {
         method: "POST",
@@ -582,7 +585,7 @@ describe("Messages", () => {
 
   // Test 31
   it("POST /api/messages/99999/bookmark (non-existent) → 404 NOT_FOUND", async () => {
-    const app = getApp();
+
     const res = await app.handle(
       new Request("http://localhost/api/messages/99999/bookmark", {
         method: "POST",
@@ -599,7 +602,7 @@ describe("Messages", () => {
 
   // Test 32
   it("GET /api/me/likes without auth → 200, liked: [], bookmarked: []", async () => {
-    const app = getApp();
+
     const res = await app.handle(new Request("http://localhost/api/me/likes"));
     const data = (await res.json()) as Json;
     expect(res.status).toBe(200);
@@ -610,7 +613,7 @@ describe("Messages", () => {
 
   // Test 33
   it("GET /api/me/likes after liking + bookmarking → 200, liked: [id], bookmarked: [id]", async () => {
-    const app = getApp();
+
 
     // Like and bookmark rootMsgId (previous tests toggled them off)
     await app.handle(

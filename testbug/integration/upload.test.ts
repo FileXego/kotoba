@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { setupApp, getApp, cleanup, extractCookie } from "../helpers";
+import { setupApp, extractCookie } from "../helpers";
 import { resolve } from "node:path";
 
 type Json = Record<string, unknown>;
@@ -13,11 +13,14 @@ function testPngBlob(): Blob {
 }
 
 describe("Upload", () => {
+  let app: ReturnType<typeof import("../src/app").createApp>;
+  let cleanup: () => void;
   let cookie: string | null = null;
 
   beforeAll(async () => {
-    await setupApp();
-    const app = getApp();
+    const result = await setupApp();
+    app = result.app;
+    cleanup = result.cleanup;
 
     // Sign up a user for authenticated tests
     const signUpRes = await app.handle(
@@ -54,7 +57,7 @@ describe("Upload", () => {
   // ── No auth ──────────────────────────────────────────────────────
 
   it("POST /upload without auth returns 401", async () => {
-    const app = getApp();
+
     const fd = new FormData();
     fd.append("file", testPngBlob(), "test.png");
 
@@ -73,7 +76,7 @@ describe("Upload", () => {
   // ── Valid image upload + file on disk ──────────────────────────
 
   it("POST /upload with valid PNG image returns 200, url, and writes file to disk", async () => {
-    const app = getApp();
+
     const fd = new FormData();
     fd.append("file", testPngBlob(), "test.png");
 
@@ -100,7 +103,7 @@ describe("Upload", () => {
   // ── Non-image file rejected ─────────────────────────────────────
 
   it("POST /upload with non-image file fails validation", async () => {
-    const app = getApp();
+
     const txtBlob = new Blob(["hello world"], { type: "text/plain" });
     const fd = new FormData();
     fd.append("file", txtBlob, "test.txt");

@@ -19,7 +19,7 @@ export function AdminPanel({ lang, onClose }: { lang: Lang; onClose: () => void 
     try { const res = await adminFetchUsers(); setUsers(res.data); }
     catch { setError(t(lang, "admin.loadFail")); } finally { setLoading(false); }
   };
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
   useEffect(() => { if (tab === "messages") loadMessages(); else loadUsers(); }, [tab]);
 
   const restore = async (id: number) => {

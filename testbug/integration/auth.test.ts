@@ -1,13 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { setupApp, getApp, cleanup, extractCookie } from "../helpers";
+import { setupApp, extractCookie } from "../helpers";
 
 type Json = Record<string, unknown>;
 
 describe("Auth API", () => {
+  let app: ReturnType<typeof import("../src/app").createApp>;
+  let cleanup: () => void;
   let cookie: string | null = null;
 
   beforeAll(async () => {
-    await setupApp();
+    const result = await setupApp();
+    app = result.app;
+    cleanup = result.cleanup;
   });
 
   afterAll(() => {
@@ -17,7 +21,6 @@ describe("Auth API", () => {
   // ── Sign-up ──────────────────────────────────────────────────────
 
   it("signs up a new user", async () => {
-    const app = getApp();
     const req = new Request("http://localhost/api/auth/sign-up", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -36,7 +39,7 @@ describe("Auth API", () => {
   });
 
   it("rejects duplicate sign-up (same username+email)", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/auth/sign-up", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -55,7 +58,7 @@ describe("Auth API", () => {
   });
 
   it("signs up with a valid captcha token", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/auth/sign-up", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -75,7 +78,7 @@ describe("Auth API", () => {
   // ── Sign-in ──────────────────────────────────────────────────────
 
   it("signs in with correct credentials", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/auth/sign-in", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -96,7 +99,7 @@ describe("Auth API", () => {
   });
 
   it("rejects sign-in with wrong password", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/auth/sign-in", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -112,7 +115,7 @@ describe("Auth API", () => {
   // ── GET /me (unauthenticated) ────────────────────────────────────
 
   it("returns null user for GET /me without cookie", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/auth/me");
     const res = await app.handle(req);
     const data = await res.json() as Json;
@@ -124,7 +127,7 @@ describe("Auth API", () => {
   // ── GET /me (authenticated) ──────────────────────────────────────
 
   it("returns user for GET /me with valid session cookie", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/auth/me", {
       headers: { Cookie: cookie! },
     });
@@ -139,7 +142,7 @@ describe("Auth API", () => {
   // ── PATCH /me ────────────────────────────────────────────────────
 
   it("updates signature via PATCH /me (≤100 chars)", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/auth/me", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Cookie: cookie! },
@@ -153,7 +156,7 @@ describe("Auth API", () => {
   });
 
   it("rejects PATCH /me with signature > 100 chars", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/auth/me", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Cookie: cookie! },
@@ -167,7 +170,7 @@ describe("Auth API", () => {
   });
 
   it("rejects PATCH /me with invalid theme", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/auth/me", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Cookie: cookie! },
@@ -181,7 +184,7 @@ describe("Auth API", () => {
   });
 
   it("updates to a valid theme via PATCH /me", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/auth/me", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Cookie: cookie! },
@@ -197,7 +200,7 @@ describe("Auth API", () => {
   // ── Sign-out ─────────────────────────────────────────────────────
 
   it("signs out and clears session cookie", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/auth/sign-out", {
       method: "POST",
       headers: { Cookie: cookie! },
@@ -209,7 +212,7 @@ describe("Auth API", () => {
   });
 
   it("returns null user for GET /me after sign-out", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/auth/me");
     const res = await app.handle(req);
     const data = await res.json() as Json;
@@ -221,7 +224,7 @@ describe("Auth API", () => {
   // ── Health check ─────────────────────────────────────────────────
 
   it("serves GET /api/health with version 2.1.0", async () => {
-    const app = getApp();
+
     const req = new Request("http://localhost/api/health");
     const res = await app.handle(req);
     const data = await res.json() as Json;

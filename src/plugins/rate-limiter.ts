@@ -18,7 +18,7 @@ function checkIP(ip: string, maxPerMinute: number): boolean {
 export const rateLimiter = new Elysia()
   .onRequest(({ request, set, status }) => {
     // skip rate limiting in test mode (process.env.TEST_DB is set by test helpers)
-    if (process.env.TEST_DB) return;
+    if (process.env.SKIP_RATE_LIMIT) return;
     const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
     const url = new URL(request.url);
 

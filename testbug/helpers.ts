@@ -1,23 +1,24 @@
-import { beforeAll, afterAll } from "bun:test";
 import { Database } from "bun:sqlite";
 import { unlinkSync } from "node:fs";
 import { resolve } from "node:path";
 
 // ===== env setup: MUST be set BEFORE any app imports =====
-const TEST_DB = `testbug/.test-${Date.now()}.db`;
-process.env.TEST_DB = TEST_DB;
 process.env.COOKIE_SECRET = "test-secret";
 process.env.TURNSTILE_SECRET = "1x0000000000000000000000000000000AA";
+process.env.SKIP_CAPTCHA = "1";
+process.env.SKIP_RATE_LIMIT = "1";
 // =========================================================
 
-let app: ReturnType<typeof import("../src/app").createApp>;
-
 /**
- * Create a fresh test database with all tables (mirrors drizzle migrations),
- * then import and build the Elysia app. Call once per describe block.
+ * Create a unique test database with all tables, then import and build
+ * the Elysia app. Each call produces an isolated DB file.
+ * Returns `{ app, cleanup }` for per-suite lifecycle.
  */
 export async function setupApp() {
-  const sqlite = new Database(TEST_DB);
+  const dbPath = `testbug/.test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.db`;
+  process.env.TEST_DB = dbPath;
+
+  const sqlite = new Database(dbPath);
   sqlite.exec("PRAGMA foreign_keys = ON");
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS users (
@@ -69,23 +70,15 @@ export async function setupApp() {
   sqlite.close();
 
   const { createApp } = await import("../src/app");
-  app = createApp({ staticMode: false });
-  return app;
-}
-
-/** Return the singleton app instance (set after setupApp()). */
-export function getApp() {
-  if (!app) throw new Error("setupApp() must be called before getApp()");
-  return app;
-}
-
-/** Remove the temporary test DB file. Call in afterAll. */
-export function cleanup() {
-  try {
-    unlinkSync(resolve(TEST_DB));
-  } catch {
-    // file already gone or never created — ignore
-  }
+  const app = createApp({ staticMode: false });
+  const cleanup = () => {
+    try {
+      unlinkSync(resolve(dbPath));
+    } catch {
+      // file already gone or never created — ignore
+    }
+  };
+  return { app, cleanup };
 }
 
 /** Extract the session cookie value from a Set-Cookie header. */

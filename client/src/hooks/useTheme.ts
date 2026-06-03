@@ -22,6 +22,7 @@ export function useTheme(user: User | null) {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
     if (user) updateMe({ theme }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme]);
 
   // apply theme after ink animation

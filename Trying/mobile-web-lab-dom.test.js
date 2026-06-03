@@ -210,10 +210,13 @@ async function runLab(url, fetchImpl) {
   return { document, pushedState, pushedUrl };
 }
 
+const _origFetch = globalThis.fetch;
+
 afterEach(() => {
   delete globalThis.document;
   delete globalThis.window;
-  delete globalThis.fetch;
+  // Restore original fetch — don't delete Bun's native fetch
+  globalThis.fetch = _origFetch;
 });
 
 describe("mobile web lab DOM behavior", () => {
