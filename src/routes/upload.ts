@@ -11,8 +11,9 @@ export const uploadRoute = new Elysia({ prefix: "/api" }).post(
   "/upload",
   async ({ body: { file }, currentUser, status }) => {
     if (!currentUser) return status(401, { success: false, error: "AUTH_REQUIRED" });
+    const ext = MIME_EXT[file.type];
+    if (!ext) return status(400, { success: false, error: "INVALID_FILE_TYPE" });
     mkdirSync(UPLOAD_DIR, { recursive: true });
-    const ext = MIME_EXT[file.type] ?? "bin";
     const filename = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
     const filepath = UPLOAD_DIR + "/" + filename;
     await Bun.write(filepath, file);

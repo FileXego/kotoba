@@ -19,7 +19,7 @@ function fileNameFromPath(request: Request, marker: string) {
 
 export function createApp(options: AppOptions = {}) {
   const app = new Elysia({
-    sanitize: (value) => Bun.escapeHTML(value),
+    sanitize: (value) => (typeof value === "string" ? Bun.escapeHTML(value) : value),
   })
     .onError(({ code, status, error }) => {
       if (code === "VALIDATION") return status(422, { success: false, error: "VALIDATION" });
