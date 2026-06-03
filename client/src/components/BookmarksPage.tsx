@@ -17,7 +17,6 @@ export function BookmarksPage({ lang, currentUser }: Props) {
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (currentUser) {
       fetchInteractions().then(r => {

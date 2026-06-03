@@ -8,12 +8,14 @@ export function useTheme(user: User | null) {
   const lastUserId = useRef<number | null>(null);
 
   // Pull theme from server on first login per user session
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (user && user.id !== lastUserId.current) {
       lastUserId.current = user.id;
       if (user.theme && user.theme !== theme) setTheme(user.theme);
     }
   }, [user, theme]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Sync local theme to DOM + server
   useEffect(() => {
