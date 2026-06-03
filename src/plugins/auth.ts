@@ -43,9 +43,15 @@ export const auth = new Elysia({ prefix: "/api/auth" })
       password: t.String(),
     }),
     patchMe: t.Object({
-      signature: t.Optional(t.String({ maxLength: 100 })),
+      signature: t.Optional(t.String()),
       theme: t.Optional(t.String()),
     }),
+  })
+  .derive({ as: "global" }, async ({ cookie: { session } }) => {
+    if (session.value == null || session.value === "") return { currentUser: null };
+    const uid = Number(session.value);
+    if (isNaN(uid)) return { currentUser: null };
+    return { currentUser: await lookupUser(uid) };
   })
   .post(
     "/sign-up",
@@ -119,9 +125,4 @@ export const auth = new Elysia({ prefix: "/api/auth" })
   }, {
     body: t.Object({ file: t.File({ format: "image/png, image/jpeg, image/webp", maxSize: 256 * 1024 }) }),
   })
-  .derive({ as: "global" }, async ({ cookie: { session } }) => {
-    if (session.value == null || session.value === "") return { currentUser: null };
-    const uid = Number(session.value);
-    if (isNaN(uid)) return { currentUser: null };
-    return { currentUser: await lookupUser(uid) };
-  });
+  ;
