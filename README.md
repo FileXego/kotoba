@@ -4,18 +4,18 @@
 
 ## Features
 
-- 📝 Post messages with image attachments
-- 💬 3-level nested replies
-- 🔍 Keyword search + pagination
-- ❤️ Like & bookmark with persistence
-- 🔖 Bookmarks page (saved messages)
-- 🎨 4 theme presets (Washi / Night / Sumi / Sakura)
-- 🖼️ Avatar upload + personal signature
-- 🌙 Dark mode with ink-spread transition animation
-- 🇯🇵🇨🇳 Japanese / Chinese bilingual UI
-- 👤 User accounts (sign up / sign in)
-- 🛡️ Turnstile CAPTCHA on registration
-- 🛠️ Admin panel for moderation
+- Post messages with image attachments
+- 3-level nested replies
+- Keyword search + pagination
+- Like & bookmark with persistence
+- Bookmarks page (saved messages)
+- 4 theme presets (Washi / Night / Sumi / Sakura)
+- Avatar upload + personal signature
+- Dark mode with ink-spread transition animation
+- Japanese / Chinese bilingual UI
+- User accounts (sign up / sign in)
+- Turnstile CAPTCHA on registration
+- Admin panel for moderation
 - 0 extra npm dependencies — Bun built-ins only
 
 ## Tech Stack
