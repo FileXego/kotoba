@@ -1,0 +1,8 @@
+{
+  "name": "kotoba-method",
+  "version": "1.0.0",
+  "description": "Project health methodology from Kotoba: dual oracle review, scar-driven tests, inward convergence, periodic cleanup. Use when starting a project, establishing engineering discipline, conducting code reviews, setting up CI safety nets, or architecting for long-term maintainability.",
+  "author": { "name": "Kotoba" },
+  "license": "MIT",
+  "keywords": ["methodology", "code-review", "testing", "maintainability", "security", "oracle-review"]
+}
