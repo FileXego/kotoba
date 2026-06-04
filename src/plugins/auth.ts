@@ -56,7 +56,11 @@ export const auth = new Elysia({ prefix: "/api/auth" })
   .post(
     "/sign-up",
     async ({ body, cookie: { session }, status }) => {
-      if (!process.env.SKIP_CAPTCHA) {
+      if (isProd && process.env.SKIP_CAPTCHA === "1") {
+      console.error("SKIP_CAPTCHA is not allowed in production");
+      process.exit(1);
+    }
+    if (process.env.SKIP_CAPTCHA !== "1") {
         try {
           const fd = new FormData();
           fd.append("secret", TURNSTILE_SECRET);

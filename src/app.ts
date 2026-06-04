@@ -21,7 +21,7 @@ export function createApp(options: AppOptions = {}) {
   const app = new Elysia({
     sanitize: (value) => (typeof value === "string" ? Bun.escapeHTML(value) : value),
   })
-    .state("csp", "default-src 'self'; script-src 'self' https://challenges.cloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'")
+    .state("csp", "default-src 'self'; script-src 'self' https://challenges.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-src https://challenges.cloudflare.com; connect-src 'self'")
     .onAfterHandle(({ set, store: { csp } }) => {
       set.headers["Content-Security-Policy"] = csp;
     })

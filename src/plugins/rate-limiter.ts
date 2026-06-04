@@ -18,7 +18,14 @@ function checkIP(ip: string, maxPerMinute: number): boolean {
 export const rateLimiter = new Elysia()
   .onRequest(({ request, set, status }) => {
     // skip rate limiting in test mode (process.env.TEST_DB is set by test helpers)
-    if (process.env.SKIP_RATE_LIMIT) return;
+    // skip rate limiting in test mode only (never in production)
+    if (process.env.SKIP_RATE_LIMIT === "1") {
+      if (import.meta.env.NODE_ENV === "production") {
+        console.error("SKIP_RATE_LIMIT is not allowed in production");
+        process.exit(1);
+      }
+      return;
+    }
     const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
     const url = new URL(request.url);
 
