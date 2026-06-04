@@ -16,6 +16,24 @@ const COOKIE_SECRET = rawSecret ?? "dev-secret-change-me";
 const SESSION_AGE = 60 * 60 * 24 * 7;
 const TURNSTILE_SECRET = import.meta.env.TURNSTILE_SECRET ?? "1x0000000000000000000000000000000AA";
 
+// --- captcha verifier (boot-time fail-fast in production) ---
+if (isProd && process.env.SKIP_CAPTCHA === "1") {
+  console.error("SKIP_CAPTCHA is not allowed in production");
+  process.exit(1);
+}
+const skipCaptcha = process.env.SKIP_CAPTCHA === "1";
+
+async function verifyCaptcha(token: string) {
+  if (skipCaptcha) return true;
+  try {
+    const fd = new FormData();
+    fd.append("secret", TURNSTILE_SECRET);
+    fd.append("response", token);
+    const vr = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: fd }).then(r => r.json());
+    return vr.success === true;
+  } catch { return false; }
+}
+
 async function lookupUser(userId: number) {
   const [user] = await db
     .select({ id: users.id, username: users.username, email: users.email, isAdmin: users.isAdmin, avatarUrl: users.avatarUrl, signature: users.signature, theme: users.theme })
@@ -56,20 +74,9 @@ export const auth = new Elysia({ prefix: "/api/auth" })
   .post(
     "/sign-up",
     async ({ body, cookie: { session }, status }) => {
-      if (isProd && process.env.SKIP_CAPTCHA === "1") {
-      console.error("SKIP_CAPTCHA is not allowed in production");
-      process.exit(1);
-    }
-    if (process.env.SKIP_CAPTCHA !== "1") {
-        try {
-          const fd = new FormData();
-          fd.append("secret", TURNSTILE_SECRET);
-          fd.append("response", body.captchaToken);
-          const vr = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: fd }).then(r => r.json());
-          if (!vr.success) return status(429, { success: false, error: "CAPTCHA_FAIL" });
-        } catch { return status(429, { success: false, error: "CAPTCHA_FAIL" }); }
+      if (!(await verifyCaptcha(body.captchaToken))) {
+        return status(429, { success: false, error: "CAPTCHA_FAIL" });
       }
-
       const passwordHash = await Bun.password.hash(body.password);
       const [user] = await db.insert(users).values({
         username: body.username, email: body.email, passwordHash,

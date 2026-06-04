@@ -94,6 +94,9 @@ export function cleanup() {
   }
 }
 
+// Delete the test DB file when the process exits
+process.on("exit", () => { try { unlinkSync(resolve(TEST_DB)); } catch {} });
+
 /** Extract the session cookie value from a Set-Cookie header. */
 export function extractCookie(res: Response): string | null {
   const setCookie = res.headers.get("Set-Cookie");
