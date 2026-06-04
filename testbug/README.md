@@ -26,10 +26,10 @@ bun test testbug/integration/auth.test.ts
 
 ## Test DB isolation
 
-- Each `setupApp()` call creates a temp SQLite DB at `testbug/.test-<timestamp>.db`
-- `TEST_DB` env var is set **before** any app imports so `src/db/index.ts` picks it up
-- The DB file is deleted in `cleanup()`
-- Tests sharing a `describe` block share the same DB; use separate `describe` blocks for logically separate test suites
+- A single shared SQLite DB is created before any tests run (`testbug/.test-<timestamp>.db`)
+- `clearTables()` wipes all data between suites — each `setupApp()` call starts clean
+- The DB file is deleted via `process.on("exit")` hook when the test process ends
+- `SKIP_CAPTCHA=1` and `SKIP_RATE_LIMIT=1` eliminate external dependencies and rate limits during testing
 
 ## Layer structure
 
@@ -44,6 +44,6 @@ testbug/
 
 ## Known limitations
 
-- **Rate limiter**: the in-memory rate limiter in `src/plugins/rate-limiter.ts` is shared across test suites that run within the same minute. Keep sign-up tests within 3 per suite, or use distinct `x-forwarded-for` headers.
-- **Turnstile CAPTCHA**: tests that sign up call Cloudflare's Turnstile API. Offline runs will get `CAPTCHA_FAIL` (429). Set `TURNSTILE_SECRET` to the Cloudflare testing key (`1x0000000000000000000000000000000AA`) — this is the default.
-- **Cookie secret**: set to `"test-secret"` in helpers. The auth plugin uses `import.meta.env.COOKIE_SECRET` (read at module load time).
+- **No external calls**: `SKIP_CAPTCHA=1` eliminates Cloudflare Turnstile network calls. Tests run fully offline.
+- **No rate limits**: `SKIP_RATE_LIMIT=1` disables the in-memory rate limiter during tests.
+- **Shared DB**: all test suites share one SQLite file. `clearTables()` ensures no cross-suite data leak.

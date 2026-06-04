@@ -14,7 +14,14 @@ if (!rawSecret) {
 }
 const COOKIE_SECRET = rawSecret ?? "dev-secret-change-me";
 const SESSION_AGE = 60 * 60 * 24 * 7;
-const TURNSTILE_SECRET = import.meta.env.TURNSTILE_SECRET ?? "1x0000000000000000000000000000000AA";
+const TURNSTILE_SECRET = (() => {
+  const s = import.meta.env.TURNSTILE_SECRET ?? "1x0000000000000000000000000000000AA";
+  if (isProd && s === "1x0000000000000000000000000000000AA") {
+    console.error("TURNSTILE_SECRET must be set to a real Cloudflare secret key in production");
+    process.exit(1);
+  }
+  return s;
+})();
 
 // --- captcha verifier (boot-time fail-fast in production) ---
 if (isProd && process.env.SKIP_CAPTCHA === "1") {

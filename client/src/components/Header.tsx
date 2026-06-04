@@ -15,7 +15,7 @@ const AUTH_ERRS: Record<string, Key> = {
 };
 
 declare global { interface Window { turnstile: { render: (el: HTMLElement, opts: { sitekey: string }) => string; getResponse: (id?: string) => string; reset: (id?: string) => void } } }
-const SITE_KEY = "1x00000000000000000000AA";
+const SITE_KEY = (globalThis as any).__KOTOBA_TURNSTILE_SITEKEY__ || "1x00000000000000000000AA";
 
 interface Props {
   theme: ThemeName; lang: Lang;
