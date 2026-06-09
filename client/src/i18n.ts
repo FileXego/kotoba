@@ -73,6 +73,17 @@ export const ja = {
   "error.INTERNAL_ERROR": "サーバーエラー",
   "bookmarks.title": "コレクション",
   "bookmarks.empty": "まだコレクションがありません",
+  "nav.mobile": "ナビゲーション",
+  "nav.home": "もどる",
+  "nav.saved": "コレクション",
+  "nav.write": "かく",
+  "nav.me": "じぶん",
+  "me.title": "じぶん",
+  "me.avatar": "アイコン",
+  "me.signature": "サイン",
+  "me.theme": "テーマ",
+  "me.signOut": "ログアウト",
+  "me.editProfile": "プロフィール編集",
 } as const;
 
 export const zh: Record<Key, string> = {
@@ -147,6 +158,17 @@ export const zh: Record<Key, string> = {
   "error.INTERNAL_ERROR": "服务器错误",
   "bookmarks.title": "收藏",
   "bookmarks.empty": "还没有收藏",
+  "nav.mobile": "导航",
+  "nav.home": "首页",
+  "nav.saved": "收藏",
+  "nav.write": "书写",
+  "nav.me": "我的",
+  "me.title": "我的",
+  "me.avatar": "头像",
+  "me.signature": "签名",
+  "me.theme": "主题",
+  "me.signOut": "登出",
+  "me.editProfile": "编辑资料",
 };
 
 export function t(lang: Lang, key: Key): string {

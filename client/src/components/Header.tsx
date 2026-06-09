@@ -15,7 +15,8 @@ const AUTH_ERRS: Record<string, Key> = {
 };
 
 declare global { interface Window { turnstile: { render: (el: HTMLElement, opts: { sitekey: string }) => string; getResponse: (id?: string) => string; reset: (id?: string) => void } } }
-const SITE_KEY: string = (globalThis as { __KOTOBA_TURNSTILE_SITEKEY__?: string }).__KOTOBA_TURNSTILE_SITEKEY__ || "1x00000000000000000000AA";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITEKEY || (globalThis as any).__KOTOBA_TURNSTILE_SITEKEY__ || "1x00000000000000000000AA";
 
 interface Props {
   theme: ThemeName; lang: Lang;
