@@ -15,9 +15,16 @@ function checkIP(ip: string, maxPerMinute: number): boolean {
   return true;
 }
 
+const BOT_UAS = ["curl", "wget", "python-requests", "python-urllib", "Go-http-client", "Java/", "libwww", "scrapy", "axios/", "node-fetch", "okhttp"];
+
+function isBotUA(ua: string | null): boolean {
+  if (!ua) return true;
+  const lower = ua.toLowerCase();
+  return BOT_UAS.some(bot => lower.includes(bot.toLowerCase()));
+}
+
 export const rateLimiter = new Elysia()
   .onRequest(({ request, set, status }) => {
-    // skip rate limiting in test mode (process.env.TEST_DB is set by test helpers)
     // skip rate limiting in test mode only (never in production)
     if (process.env.SKIP_RATE_LIMIT === "1") {
       if (import.meta.env.NODE_ENV === "production") {
@@ -28,8 +35,16 @@ export const rateLimiter = new Elysia()
     }
     const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
     const url = new URL(request.url);
+    const ua = request.headers.get("user-agent");
 
-    // only limit high-risk endpoints
+    // Bot UA detection — block known scraper agents on read endpoints
+    if (isBotUA(ua)) {
+      if (url.pathname === "/api/messages" || url.pathname === "/api/bookmarks") {
+        return status(403, { success: false, error: "FORBIDDEN" });
+      }
+    }
+
+    // Rate-limited endpoints
     if (url.pathname === "/api/auth/sign-up") {
       if (!checkIP(ip, 3)) return status(429, { success: false, error: "RATE_LIMITED" });
     }
@@ -38,5 +53,8 @@ export const rateLimiter = new Elysia()
     }
     if (url.pathname === "/api/upload") {
       if (!checkIP(ip, 5)) return status(429, { success: false, error: "RATE_LIMITED" });
+    }
+    if (url.pathname === "/api/messages") {
+      if (!checkIP(ip, 60)) return status(429, { success: false, error: "RATE_LIMITED" });
     }
   });
