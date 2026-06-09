@@ -186,6 +186,21 @@
 | 依赖 | App 也极简——HttpURLConnection，不装 OkHttp/Coil/第三方库 |
 | 开发顺序 | iOS v1 → Android v1 |
 
+### 当前进度（2026-06-09）
+
+详细台账见 `future/NATIVE_APP_ROADMAP.md`。
+
+| 阶段 | 进度 | 状态 |
+|------|------|------|
+| 文档和约束盘点 | `[##########] 100%` | 已读取 LONGTODO / Trying / SUGGESTION / future 上线文档 |
+| 原生 App 架构设计 | `[###-------] 30%` | 已形成长期路线；未创建原生工程 |
+| 后端 mobile token | `[----------] 0%` | 待写认证 ADR；Web cookie 保持不变 |
+| iOS SwiftUI App | `[----------] 0%` | 待 `mobile/ios` 工程 |
+| Android Compose App | `[----------] 0%` | iOS v1 后再启动 |
+| 商店上架材料 | `[#---------] 10%` | 已核对商店门槛；UGC/隐私/截图未准备 |
+
+当前结论：不要空建 `mobile/` 工程。先写移动端认证 ADR，再做 `/api/mobile/*` 和 iOS SwiftUI v1。
+
 ### 2.2.0 App v1 (iOS)
 
 | # | 决策 |
