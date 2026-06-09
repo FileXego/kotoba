@@ -32,6 +32,7 @@ export const ja = {
   "form.edit": "編集",
   "form.delete": "削除",
   "form.send": "送信",
+  "form.thread": "詳細",
   "form.expand": "展開する",
   "form.collapse": "たたむ",
   "form.replyCount": "件の返信",
@@ -84,6 +85,7 @@ export const ja = {
   "me.theme": "テーマ",
   "me.signOut": "ログアウト",
   "me.editProfile": "プロフィール編集",
+  "me.avatarTooLarge": "アイコン画像は256KB以下にしてください",
 } as const;
 
 export const zh: Record<Key, string> = {
@@ -117,6 +119,7 @@ export const zh: Record<Key, string> = {
   "form.edit": "编辑",
   "form.delete": "删除",
   "form.send": "发送",
+  "form.thread": "详情",
   "form.expand": "展开",
   "form.collapse": "收起",
   "form.replyCount": "条回复",
@@ -169,6 +172,7 @@ export const zh: Record<Key, string> = {
   "me.theme": "主题",
   "me.signOut": "登出",
   "me.editProfile": "编辑资料",
+  "me.avatarTooLarge": "头像图片不能超过256KB",
 };
 
 export function t(lang: Lang, key: Key): string {

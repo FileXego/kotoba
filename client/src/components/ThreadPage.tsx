@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { fetchReplies, type Message, type User } from "../api";
 import { t, type Lang } from "../i18n";
 import { MessageCard } from "./MessageCard";
@@ -10,6 +10,7 @@ interface Props {
   likedIds: Set<number>;
   bookmarkedIds: Set<number>;
   onSubmitReply: (content: string, parentId?: number) => Promise<void>;
+  onUpdate: (id: number, data: { content?: string; deleted?: number }) => Promise<void>;
   onToggleLike: (id: number) => void;
   onToggleBookmark: (id: number) => void;
   onBack: () => void;
@@ -17,27 +18,46 @@ interface Props {
 
 export function ThreadPage({
   lang, messageId, currentUser, likedIds, bookmarkedIds,
-  onSubmitReply, onToggleLike, onToggleBookmark, onBack,
+  onSubmitReply, onUpdate, onToggleLike, onToggleBookmark, onBack,
 }: Props) {
   const [replies, setReplies] = useState<Message[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const loadThread = useCallback(async (isCancelled: () => boolean = () => false) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await fetchReplies(messageId);
+      if (!isCancelled()) setReplies(r.data);
+    } catch {
+      if (!isCancelled()) setError(t(lang, "list.loadFail"));
+    } finally {
+      if (!isCancelled()) setLoading(false);
+    }
+  }, [messageId, lang]);
+
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
-    fetchReplies(messageId).then((r) => {
-      if (!cancelled) setReplies(r.data);
-    }).catch(() => {
-      if (!cancelled) setError(t(lang, "list.loadFail"));
-    }).finally(() => {
-      if (!cancelled) setLoading(false);
-    });
+    loadThread(() => cancelled);
     return () => { cancelled = true; };
-  }, [messageId, lang]);
+  }, [loadThread]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  const handleSubmitReply = async (content: string, parentId?: number) => {
+    await onSubmitReply(content, parentId);
+    await loadThread();
+  };
+
+  const handleUpdate = async (id: number, data: { content?: string; deleted?: number }) => {
+    await onUpdate(id, data);
+    if (id === messageId && data.deleted === 1) {
+      onBack();
+      return;
+    }
+    await loadThread();
+  };
 
   if (loading) return <div className="loading">{t(lang, "list.loading")}</div>;
   if (error) return <div className="error-msg">{error}</div>;
@@ -48,16 +68,17 @@ export function ThreadPage({
 
   return (
     <div className="thread-page">
-      <button className="back-btn" onClick={onBack}>
-        {t(lang, "form.cancel")}
+      <button className="thread-back" onClick={onBack}>
+        {t(lang, "nav.home")}
       </button>
       <MessageCard
         lang={lang} message={rootMsg} replies={replies}
         loadingReplies={false} currentUser={currentUser}
         likedIds={likedIds} bookmarkedIds={bookmarkedIds}
-        onUpdate={async () => {}} onLoadReplies={() => {}}
-        onSubmitReply={onSubmitReply}
+        onUpdate={handleUpdate} onLoadReplies={() => {}}
+        onSubmitReply={handleSubmitReply}
         onToggleLike={onToggleLike} onToggleBookmark={onToggleBookmark}
+        expandRepliesByDefault
       />
     </div>
   );

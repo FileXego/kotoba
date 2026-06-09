@@ -41,14 +41,14 @@
 |---|---:|---|---|
 | P0 文档和约束盘点 | `[##########] 100%` | 已完成本轮读取和冲突整理 | 后续只维护增量 |
 | P1 Web 生产前置 | `[########--] 85%` | Turnstile sitekey 已源码化、上线方案已写、bot guard 已加、CSP 已部署 | 部署脚本数据持久化（sqlite.db 复制）、真机复核 |
-| P2 Mobile Web/PWA | `[########--] 85%` | Phase A 已合入正式 React：路由、导航、Thread/Me、safe-area、reduced-motion、气氛层、bot guard、Turnstile env | 真机 375/390/430 宽度复核、PWA icon 决策 |
+| P2 Mobile Web/PWA | `[#########-] 90%` | Mobile Web 交付候选：路由、导航、Thread/Me、详情入口、完整回复树、safe-area、reduced-motion、气氛层、bot guard、Turnstile env | 真机 375/390/430 宽度复核、PWA icon 决策 |
 | P3 原生 App 架构设计 | `[#####-----] 45%` | 框架矩阵、iOS/Android 结构、App v1 范围已完成文档化 | 写移动端认证 ADR |
 | P4 后端 mobile token | `[----------] 0%` | 现有 Web cookie 可用；App token 未实现 | 决定 `@elysia/jwt` 依赖例外或 Bun/WebCrypto signed token |
 | P5 iOS SwiftUI App | `[----------] 0%` | 无 Xcode 工程 | 等 P4 后建 `mobile/ios` |
 | P6 Android Compose App | `[----------] 0%` | 无 Gradle 工程 | iOS v1 后再建 `mobile/android` |
 | P7 商店上架材料 | `[#---------] 10%` | 商店约束已核对 | 准备隐私政策、UGC 管理、截图、账号 |
 
-当前做到的位置：**P2 Mobile Web Phase A 完成（含气氛层、bot guard、reduced-motion），P3 框架矩阵完成；没有创建原生工程，后端 mobile token 仍未开始。**
+当前做到的位置：**P2 Mobile Web 已进入交付候选（含详情入口、完整回复树、Me 页主题/头像、气氛层、bot guard、reduced-motion），P3 框架矩阵完成；没有创建原生工程，后端 mobile token 仍未开始。**
 
 ## Mobile Web Phase A 完成记录
 
@@ -67,6 +67,16 @@
 | i18n | `client/src/i18n.ts` | `nav.*` / `me.*` 日中双语 key |
 | Router | `client/src/hooks/useRouter.ts` | `/message/:id` + `/me` 路由已通 |
 | App wiring | `client/src/App.tsx` | mobile shell、bottom nav、Thread/Me 页面挂载 |
+
+### 2026-06-09 交付候选补齐
+
+| 项目 | 结果 |
+|---|---|
+| 详情入口 | `MessageList -> MessageCard -> /message/:id` 已打通，仅在 mobile flag 开启时出现 |
+| 回复树 | `ThreadPage` 默认展开整棵回复树，直接子回复计数修正；回复/编辑/删除后刷新本页 |
+| Me 页 | 主题色块选择指定主题；Me 页 JSX class 与 CSS 对齐 |
+| 头像 | 前端限制改为 256KB，与 `PATCH /api/auth/avatar` 后端一致 |
+| 底部导航 | CSS 默认隐藏，`max-width: 640px` 才显示 fixed bottom nav |
 
 ### 开关状态
 
@@ -97,6 +107,15 @@ bun run build
 ```
 
 `bun run build` 仍有已知 Vite dynamic import warning，不影响产物，已记录在 `PROBLEM.md`。
+
+2026-06-09 本轮修复后复验：
+
+```powershell
+cd client
+bun run lint
+bun run build
+# pass；Vite dynamic/static import warning 仍为既有非阻断警告
+```
 
 ### 仍需人工复核
 

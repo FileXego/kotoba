@@ -39,8 +39,8 @@ export function MePage({ lang, user, theme, onUserChange, onThemeChange }: Props
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      alert(t(lang, "form.imageToolarge"));
+    if (file.size > 256 * 1024) {
+      alert(t(lang, "me.avatarTooLarge"));
       return;
     }
     setUploading(true);
@@ -129,9 +129,9 @@ export function MePage({ lang, user, theme, onUserChange, onThemeChange }: Props
               onClick={() => onThemeChange(name)}
               data-theme={name}
               aria-label={t(lang, labelKey)}
+              title={t(lang, labelKey)}
             >
-              {t(lang, labelKey)}
-              {theme === name && <span className="me-theme-check">✓</span>}
+              {theme === name && <span className="me-theme-check" aria-hidden="true">✓</span>}
             </button>
           ))}
         </div>

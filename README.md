@@ -12,7 +12,7 @@
 - 4 theme presets (Washi / Night / Sumi / Sakura) with per-theme atmosphere layers
 - Avatar upload + personal signature
 - Ink-wash theme transition animation
-- Mobile web support — responsive layout, bottom navigation, thread detail, profile page
+- Mobile web support — responsive layout, bottom navigation, thread detail entry, full reply tree, profile page
 - Japanese / Chinese bilingual UI
 - User accounts (sign up / sign in)
 - Turnstile CAPTCHA on registration

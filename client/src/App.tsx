@@ -33,7 +33,7 @@ export default function App() {
     }
   };
   const { user, setUser } = useSession();
-  const { theme, toggleTheme, inkAnim } = useTheme(user);
+  const { theme, toggleTheme, chooseTheme, inkAnim } = useTheme(user);
   const { likedIds, bookmarkedIds, setLikedIds, setBookmarkedIds } = useInteractions(user);
   const {
     messages, total, loading, loadingMore, error, replyTrees, loadingReplies,
@@ -57,12 +57,12 @@ export default function App() {
       {route === "/message" && messageId != null && (
         <ThreadPage lang={lang} messageId={messageId} currentUser={user}
           likedIds={likedIds} bookmarkedIds={bookmarkedIds}
-          onSubmitReply={handleSubmit} onToggleLike={handleToggleLike}
+          onSubmitReply={handleSubmit} onUpdate={handleUpdate} onToggleLike={handleToggleLike}
           onToggleBookmark={handleToggleBookmark} onBack={() => navigate("/")} />
       )}
       {route === "/me" && (
         <MePage lang={lang} user={user} theme={theme}
-          onUserChange={setUser} onThemeChange={() => toggleTheme()} />
+          onUserChange={setUser} onThemeChange={chooseTheme} />
       )}
       {route === "/" && (
         <>
@@ -80,6 +80,7 @@ export default function App() {
             onUpdate={handleUpdate} onLoadReplies={handleLoadReplies}
             onLoadMore={handleLoadMore} onSubmitReply={handleSubmit}
             onToggleLike={handleToggleLike} onToggleBookmark={handleToggleBookmark}
+            onOpenThread={MOBILE_ROUTES_ENABLED ? (id) => navigate("/message", id) : undefined}
           />
         </>
       )}

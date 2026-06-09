@@ -42,8 +42,8 @@ export function useTheme(user: User | null) {
   }, [inkAnim]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const toggleTheme = (x?: number, y?: number) => {
-    const next = nextTheme(theme);
+  const applyTheme = (next: ThemeName, x?: number, y?: number) => {
+    if (next === theme) return;
     if (x !== undefined && y !== undefined) {
       setInkAnim({ x, y, theme: next });
     } else {
@@ -51,5 +51,8 @@ export function useTheme(user: User | null) {
     }
   };
 
-  return { theme, toggleTheme, inkAnim };
+  const toggleTheme = (x?: number, y?: number) => applyTheme(nextTheme(theme), x, y);
+  const chooseTheme = (next: ThemeName) => applyTheme(next);
+
+  return { theme, toggleTheme, chooseTheme, inkAnim };
 }

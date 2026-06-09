@@ -13,6 +13,8 @@ interface Props {
   onLoadReplies: (rootId: number) => void;
   onSubmitReply: (content: string, parentId?: number) => Promise<void>;
   onToggleLike: (id: number) => void; onToggleBookmark: (id: number) => void;
+  onOpenThread?: (id: number) => void;
+  expandRepliesByDefault?: boolean;
   ownDepth?: number;
 }
 
@@ -50,6 +52,7 @@ export function MessageCard({
   lang, message: { id, name, content, createdAt, depth = 0, likeCount = 0, avatarUrl, signature, userId },
   replies, loadingReplies, currentUser, likedIds, bookmarkedIds,
   onUpdate, onLoadReplies, onSubmitReply, onToggleLike, onToggleBookmark, ownDepth,
+  onOpenThread, expandRepliesByDefault,
 }: Props) {
   const d = ownDepth ?? depth;
   const liked = likedIds.has(id);
@@ -59,14 +62,17 @@ export function MessageCard({
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(content);
   const [editError, setEditError] = useState("");
-  const [showReplies, setShowReplies] = useState(false);
+  const [showReplies, setShowReplies] = useState(Boolean(expandRepliesByDefault));
   const [replying, setReplying] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
 
   const isMine = currentUser?.id === userId || currentUser?.username === name;
   const canReply = d < MAX_DEPTH;
-  const replyCount = replies ? replies.length - 1 : null;
+  const childReplies: ReplyInfo[] = replies
+    ? replies.filter((m) => m.parentId === id).map(m => ({ message: m, replies, ownDepth: d + 1 }))
+    : [];
+  const replyCount = replies ? childReplies.length : null;
 
   const handleSave = async () => {
     if (!editText.trim()) return;
@@ -85,10 +91,6 @@ export function MessageCard({
     try { await onSubmitReply(replyContent.trim(), id); setReplyContent(""); setReplying(false); }
     finally { setSendingReply(false); }
   };
-
-  const childReplies: ReplyInfo[] = replies
-    ? replies.filter((m) => m.parentId === id).map(m => ({ message: m, replies, ownDepth: d + 1 }))
-    : [];
 
   return (
     <div>
@@ -129,6 +131,11 @@ export function MessageCard({
               {bookmarked ? "★" : "☆"}
             </button>
           )}
+          {onOpenThread && d === 0 && !editing && (
+            <button className="action-btn thread-link-btn" onClick={() => onOpenThread(id)}>
+              {t(lang, "form.thread")}
+            </button>
+          )}
           {isMine && !editing && (<>
             <button className="action-btn owner-btn" onClick={() => { setEditText(content); setEditing(true); setEditError(""); }}>
               {t(lang, "form.edit")}</button>
@@ -164,7 +171,8 @@ export function MessageCard({
             loadingReplies={false} currentUser={currentUser}
             likedIds={likedIds} bookmarkedIds={bookmarkedIds}
             onUpdate={onUpdate} onLoadReplies={onLoadReplies} onSubmitReply={onSubmitReply}
-            ownDepth={ownDepth} onToggleLike={onToggleLike} onToggleBookmark={onToggleBookmark} />
+            ownDepth={ownDepth} onToggleLike={onToggleLike} onToggleBookmark={onToggleBookmark}
+            onOpenThread={onOpenThread} expandRepliesByDefault={expandRepliesByDefault} />
         ))}
       </div>)}
     </div>

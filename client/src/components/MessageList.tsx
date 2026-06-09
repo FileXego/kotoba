@@ -11,13 +11,14 @@ interface Props {
   onLoadReplies: (rootId: number) => void; onLoadMore: () => void;
   onSubmitReply: (content: string, parentId?: number) => Promise<void>;
   onToggleLike: (id: number) => void; onToggleBookmark: (id: number) => void;
+  onOpenThread?: (id: number) => void;
 }
 
 export function MessageList({
   lang, messages, total, loading, loadingMore, error,
   replyTrees, loadingReplies, currentUser, likedIds, bookmarkedIds,
   onUpdate, onLoadReplies, onLoadMore, onSubmitReply,
-  onToggleLike, onToggleBookmark,
+  onToggleLike, onToggleBookmark, onOpenThread,
 }: Props) {
   if (loading) return <div className="loading">{t(lang, "list.loading")}</div>;
   if (error) return <div className="error-msg">{error}</div>;
@@ -33,7 +34,8 @@ export function MessageList({
             replies={replyTrees[msg.id] ?? null} loadingReplies={loadingReplies.has(msg.id)}
             currentUser={currentUser} likedIds={likedIds} bookmarkedIds={bookmarkedIds}
             onUpdate={onUpdate} onLoadReplies={onLoadReplies} onSubmitReply={onSubmitReply}
-            onToggleLike={onToggleLike} onToggleBookmark={onToggleBookmark} />
+            onToggleLike={onToggleLike} onToggleBookmark={onToggleBookmark}
+            onOpenThread={onOpenThread} />
         ))}
       </div>
       {messages.length < total && (

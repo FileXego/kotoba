@@ -64,7 +64,7 @@ Layer 3: Native App
 
 目标：手机浏览器访问主站时已经像 App。
 
-当前状态：**Phase A 已完成并合入正式 React 代码**。默认由 `VITE_MOBILE_ROUTES_ENABLED=false` 关闭；设为 `true` 后启用移动路由、底部导航、Thread 页面和 Me 页面。
+当前状态：**Phase A 已完成，Mobile Web 进入交付候选**。默认由 `VITE_MOBILE_ROUTES_ENABLED=false` 关闭；设为 `true` 后启用移动路由、底部导航、Thread 页面和 Me 页面。本轮已补齐详情入口、完整回复树默认展开、Me 页主题/头像交互、底部导航小屏显示边界。
 
 框架体系：
 
@@ -109,9 +109,11 @@ client/src/
 验收：
 
 - 手机端首页、收藏、详情、我的可用。✅
+- 首页到 `/message/:id` 详情入口可用，详情页默认展开完整回复树。✅
+- Me 页头像 256KB 限制与后端一致，主题色块可直接选择目标主题。✅
 - 登录、发帖、回复、点赞、收藏、上传仍走现有 `/api`。✅
 - `bun test` 通过。✅ 85 pass
-- `bun run lint` 和 `bun run build` 在 `client/` 通过。✅
+- `bun run lint` 和 `bun run build` 在 `client/` 通过。✅ 2026-06-09 复验
 
 ### Phase B: PWA
 
@@ -143,7 +145,7 @@ client/
 | 允许极少量 icon 例外 | 能安装，但要写进 AGENTS/ADR |
 | 部署时生成 icon，不提交仓库 | 可规避仓库图片禁令，但部署复杂 |
 
-推荐：Mobile Web 稳定前不做 PWA。
+推荐：Mobile Web 真机验收前不做 PWA。PWA 会触发 manifest/icons/service worker 决策，其中 icons 与当前“禁止图片文件”规则冲突，必须单独 ADR。
 
 ### Phase C: WebView 壳
 
