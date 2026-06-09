@@ -41,14 +41,71 @@
 |---|---:|---|---|
 | P0 文档和约束盘点 | `[##########] 100%` | 已完成本轮读取和冲突整理 | 后续只维护增量 |
 | P1 Web 生产前置 | `[#######---] 70%` | 生产入口 smoke 通过，上线方案已写 | 处理 Turnstile sitekey 源码化、部署脚本数据持久化 |
-| P2 Mobile Web/PWA | `[####------] 40%` | Trying 原型、主题、safe-area、只读 live API 已有 | 同步到正式 React 组件前仍需审核 |
+| P2 Mobile Web/PWA | `[#######---] 70%` | Phase A 已合入正式 React：移动路由、底部导航、Thread/Me 页面、safe-area、Turnstile env | 真机/DevTools 复核，决定是否进入 PWA |
 | P3 原生 App 架构设计 | `[#####-----] 45%` | 框架矩阵、iOS/Android 结构、App v1 范围已完成文档化 | 写移动端认证 ADR |
 | P4 后端 mobile token | `[----------] 0%` | 现有 Web cookie 可用；App token 未实现 | 决定 `@elysia/jwt` 依赖例外或 Bun/WebCrypto signed token |
 | P5 iOS SwiftUI App | `[----------] 0%` | 无 Xcode 工程 | 等 P4 后建 `mobile/ios` |
 | P6 Android Compose App | `[----------] 0%` | 无 Gradle 工程 | iOS v1 后再建 `mobile/android` |
 | P7 商店上架材料 | `[#---------] 10%` | 商店约束已核对 | 准备隐私政策、UGC 管理、截图、账号 |
 
-本轮做到的位置：**P0 完成，P3 框架矩阵完成；没有创建原生工程，也没有改业务代码。**
+当前做到的位置：**P2 Mobile Web Phase A 完成，P3 框架矩阵完成；没有创建原生工程，后端 mobile token 仍未开始。**
+
+## Mobile Web Phase A 完成记录
+
+状态：已推送到 `main`，当前正式代码默认保持桌面行为；打开 feature flag 后启用手机端四页面。
+
+### 交付清单
+
+| 组件 | 文件 | 说明 |
+|---|---|---|
+| Turnstile 源码化 | `client/src/components/Header.tsx` | `VITE_TURNSTILE_SITEKEY` -> `__KOTOBA_TURNSTILE_SITEKEY__` global -> 测试 key 三级回退 |
+| MobileShell | `client/src/components/MobileShell.tsx` | 响应式容器，`<=640px` 时激活移动布局 |
+| MobileBottomNav | `client/src/components/MobileBottomNav.tsx` | 四 tab：首页 / 收藏 / 书写聚焦 / 我的，fixed 底部 + safe-area |
+| ThreadPage | `client/src/components/ThreadPage.tsx` | `/message/:id` 单消息 + 完整回复树 |
+| MePage | `client/src/components/MePage.tsx` | 头像上传、签名编辑、四主题色块、登出 |
+| Mobile CSS | `client/src/styles.css` | 底部导航、安全区、640px 断点、主题色块 |
+| i18n | `client/src/i18n.ts` | `nav.*` / `me.*` 日中双语 key |
+| Router | `client/src/hooks/useRouter.ts` | `/message/:id` + `/me` 路由已通 |
+| App wiring | `client/src/App.tsx` | mobile shell、bottom nav、Thread/Me 页面挂载 |
+
+### 开关状态
+
+```text
+VITE_MOBILE_ROUTES_ENABLED=false
+```
+
+默认关闭。行为等同当前桌面版。
+
+```text
+VITE_MOBILE_ROUTES_ENABLED=true
+```
+
+启用手机端四页面和底部导航。
+
+### 本地验证
+
+2026-06-09 本地复核：
+
+```powershell
+bun test
+# 85 pass, 0 fail
+
+cd client
+bun run lint
+bun run build
+# 0 errors
+```
+
+`bun run build` 仍有已知 Vite dynamic import warning，不影响产物，已记录在 `PROBLEM.md`。
+
+### 仍需人工复核
+
+- 375 x 812。
+- 390 x 844。
+- 430 x 932。
+- iOS safe-area 底部不遮挡最后一张卡片。
+- Android back 行为：非 Home 页面回 Home。
+- `prefers-reduced-motion` 下动效降级。
 
 ## 已确认决策
 

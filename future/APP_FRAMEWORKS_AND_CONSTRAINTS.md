@@ -64,6 +64,8 @@ Layer 3: Native App
 
 目标：手机浏览器访问主站时已经像 App。
 
+当前状态：**Phase A 已完成并合入正式 React 代码**。默认由 `VITE_MOBILE_ROUTES_ENABLED=false` 关闭；设为 `true` 后启用移动路由、底部导航、Thread 页面和 Me 页面。
+
 框架体系：
 
 ```text
@@ -97,18 +99,19 @@ client/src/
 
 必须补齐：
 
-- `/message/:id` 和 `/me` 路由。
-- 底部导航。
-- Thread detail。
-- Me/Profile 页面。
-- 375 / 390 / 430 宽度检查。
-- `prefers-reduced-motion` 降级。
+- `/message/:id` 和 `/me` 路由。✅
+- 底部导航。✅
+- Thread detail。✅
+- Me/Profile 页面。✅
+- 375 / 390 / 430 宽度检查。待人工复核
+- `prefers-reduced-motion` 降级。待人工复核
 
 验收：
 
-- 手机端首页、收藏、详情、我的可用。
-- 登录、发帖、回复、点赞、收藏、上传仍走现有 `/api`。
-- `bun run lint` 和 `bun run build` 在 `client/` 通过。
+- 手机端首页、收藏、详情、我的可用。✅
+- 登录、发帖、回复、点赞、收藏、上传仍走现有 `/api`。✅
+- `bun test` 通过。✅ 85 pass
+- `bun run lint` 和 `bun run build` 在 `client/` 通过。✅
 
 ### Phase B: PWA
 

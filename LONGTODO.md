@@ -193,6 +193,7 @@
 | 阶段 | 进度 | 状态 |
 |------|------|------|
 | 文档和约束盘点 | `[##########] 100%` | 已读取 LONGTODO / Trying / SUGGESTION / future 上线文档 |
+| Mobile Web/PWA | `[#######---] 70%` | Phase A 已完成：移动路由、底部导航、Thread/Me 页面、safe-area |
 | 原生 App 架构设计 | `[#####-----] 45%` | 已完成框架矩阵和长期路线；未创建原生工程 |
 | 后端 mobile token | `[----------] 0%` | 待写认证 ADR；Web cookie 保持不变 |
 | iOS SwiftUI App | `[----------] 0%` | 待 `mobile/ios` 工程 |
