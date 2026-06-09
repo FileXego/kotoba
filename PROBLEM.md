@@ -45,6 +45,7 @@
 | 37 | 回复提交后 reply tree 不刷新（闭包旧值） | 🔇 静默 | ✅ |
 | 38 | 登录/注册错误全吞成"网络错误" | ⚙️ UI | ✅ |
 | 39 | like/bookmark toggle 前不检查 message 存在 | 🔇 静默 | ✅ |
+| 40 | 文档进度落后于代码实际进度 | 📋 同步 | ✅ |
 
 > 图例：✅已修复 ⚠️已知待修 N/A不适用
 
@@ -490,3 +491,18 @@ import { unique } from "drizzle-orm/sqlite-core";
 **现象**：点赞/收藏接口只检查 NaN，不查 message 是否存在或已软删除。未启用 foreign key PRAGMA 时产生孤儿互动记录。
 
 **修复**：toggle 前加 `db.select({ id }).from(messages).where(deleted=0)` → 不存在返回 404。
+
+---
+
+## 40. 文档进度落后于代码实际进度
+
+**现象**：Mobile Web Phase A 完成后，WORKFLOW.md 仍写"1.0 达成，全部 ✅"，LONGTODO 进度停在 70%，没有同步到 85%。NATIVE_APP_ROADMAP 建议下一步"Turnstile sitekey 源码化"但实际已完成。
+
+**根因**：没有"代码改完必须同步文档进度"的硬规则。以前项目小，AGENTS+WORKFLOW 定下来后很少改。现在节奏快了，每次 feature 完后文档进度还在上一版本。
+
+**修复**：
+1. AGENTS.md 预防清单加第 8 条：**文档同步**
+2. WORKFLOW.md 开发检查清单加第 8 条：**文档同步**
+3. 批量更新 LONGTODO（70%→85%）、NATIVE_APP_ROADMAP（P1/P2 进度条）、WORKFLOW（1.0→2.1.0 描述）
+
+**预防**：每完成一个 feature 后，grep 所有 .md 文件中的进度标记，全部同步。
