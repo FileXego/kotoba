@@ -818,6 +818,15 @@ body::after {
   }
 }
 
+/* ===== Reduced Motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  .ink-overlay { animation: none !important; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
 /* ===== Form Actions (upload + submit row) ===== */
 .form-actions {
   display: flex;
@@ -916,9 +925,34 @@ body::after {
 
 /* ===== Mobile Shell ===== */
 @media (max-width: 640px) {
-  .mobile-shell {
-    padding-bottom: 5rem;
-  }
+  /* Shell padding for bottom nav */
+  .mobile-shell { padding-bottom: 5rem; }
+  
+  /* Compact header */
+  .header { margin-bottom: 1.5rem; }
+  .header-title { font-size: 1.8rem; }
+  .header-sub { font-size: 0.7rem; }
+  .header-line { margin: 1rem auto 0; }
+  
+  /* Compact cards */
+  .message-card { padding: 1rem 1rem; }
+  .card-actions { gap: 0.5rem; flex-wrap: wrap; }
+  .action-btn { font-size: 0.9rem; padding: 0.5rem 0.25rem; min-width: 44px; min-height: 44px; }
+  
+  /* Thumb-friendly search */
+  .search-input { padding: 0.75rem 0; font-size: 1rem; }
+  
+  /* Thumb-friendly form */
+  .submit-form { padding: 1rem 1rem; }
+  .submit-btn { padding: 0.85rem; min-height: 44px; }
+  .upload-btn { width: 44px; height: 44px; }
+  
+  /* Admin panel compact */
+  .admin-panel { padding: 1rem; }
+  .admin-header h2 { font-size: 1rem; }
+  
+  /* Bottom nav spacing compensation */
+  .load-more-btn { margin-bottom: 1rem; }
 }
 
 /* ===== Mobile Bottom Nav ===== */

@@ -25,7 +25,12 @@ export default function App() {
   const { route, navigate, messageId } = useRouter();
   const composerRef = useRef<HTMLDivElement>(null);
   const focusComposer = () => {
-    if (MOBILE_ROUTES_ENABLED) { navigate("/"); setTimeout(() => composerRef.current?.scrollIntoView({ behavior: "smooth" }), 50); }
+    if (MOBILE_ROUTES_ENABLED) {
+      navigate("/");
+      requestAnimationFrame(() => {
+        setTimeout(() => composerRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      });
+    }
   };
   const { user, setUser } = useSession();
   const { theme, toggleTheme, inkAnim } = useTheme(user);

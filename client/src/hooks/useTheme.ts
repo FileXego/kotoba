@@ -26,14 +26,21 @@ export function useTheme(user: User | null) {
   }, [theme]);
 
   // apply theme after ink animation
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!inkAnim) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setTheme(inkAnim.theme);
+      setInkAnim(null);
+      return;
+    }
     const t = setTimeout(() => {
       setTheme(inkAnim.theme);
       requestAnimationFrame(() => setInkAnim(null));
     }, 600);
     return () => clearTimeout(t);
   }, [inkAnim]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const toggleTheme = (x?: number, y?: number) => {
     const next = nextTheme(theme);
