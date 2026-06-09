@@ -913,3 +913,230 @@ body::after {
   .message-card { padding: 1.25rem 1rem; }
   .card-header { flex-wrap: wrap; }
 }
+
+/* ===== Mobile Shell ===== */
+@media (max-width: 640px) {
+  .mobile-shell {
+    padding-bottom: 5rem;
+  }
+}
+
+/* ===== Mobile Bottom Nav ===== */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--card-bg);
+  border-top: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.25rem;
+}
+
+.mobile-nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  padding: 0.4rem 0.25rem;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.mobile-nav-btn.active {
+  color: var(--accent);
+}
+
+/* ===== Thread Page ===== */
+.thread-page {
+  padding: 0 0 4rem;
+}
+
+.thread-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
+}
+
+.thread-back:hover {
+  color: var(--accent);
+}
+
+/* ===== Me Page ===== */
+.me-page {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.me-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.me-avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.me-avatar-section .avatar {
+  width: 4rem;
+  height: 4rem;
+  font-size: 1.5rem;
+}
+
+.me-avatar-btn {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 2px 4px 2px 4px;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  transition: color 0.3s, border-color 0.3s;
+}
+
+.me-avatar-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.me-field {
+  margin-bottom: 1.5rem;
+}
+
+.me-field label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.1em;
+  margin-bottom: 0.4rem;
+}
+
+.me-field textarea {
+  width: 100%;
+  min-height: 3rem;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 2px 6px 2px 6px;
+  padding: 0.5rem;
+  outline: none;
+  resize: vertical;
+}
+
+.me-field textarea:focus {
+  border-color: var(--accent);
+}
+
+.me-save-btn {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 2px 4px 2px 4px;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 0.4rem;
+}
+
+.me-save-btn:hover {
+  background: var(--accent);
+  color: var(--card-bg);
+}
+
+.me-save-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Theme swatches */
+.me-theme-swatches {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.me-theme-swatch {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+  position: relative;
+}
+
+.me-theme-swatch:hover {
+  transform: scale(1.1);
+}
+
+.me-theme-swatch.active {
+  border-color: var(--accent);
+  transform: scale(1.1);
+}
+
+.me-theme-swatch.light { background: #fbf4e7; }
+.me-theme-swatch.dark { background: #101112; }
+.me-theme-swatch.sumi { background: #0d1211; }
+.me-theme-swatch.sakura { background: #fbf1f2; }
+
+.me-signout {
+  display: block;
+  width: 100%;
+  margin-top: 2rem;
+  padding: 0.6rem;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 2px 4px 2px 4px;
+  cursor: pointer;
+  transition: color 0.3s, border-color 0.3s;
+}
+
+.me-signout:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.me-login-prompt {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+}
