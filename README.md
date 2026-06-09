@@ -9,13 +9,17 @@
 - Keyword search + pagination
 - Like & bookmark with persistence
 - Bookmarks page (saved messages)
-- 4 theme presets (Washi / Night / Sumi / Sakura)
+- 4 theme presets (Washi / Night / Sumi / Sakura) with per-theme atmosphere layers
 - Avatar upload + personal signature
-- Dark mode with ink-spread transition animation
+- Ink-wash theme transition animation
+- Mobile web support — responsive layout, bottom navigation, thread detail, profile page
 - Japanese / Chinese bilingual UI
 - User accounts (sign up / sign in)
 - Turnstile CAPTCHA on registration
 - Admin panel for moderation
+- Content-Security-Policy header on all responses
+- Bot / scraper guard — User-Agent filter + JS cookie gate + read rate limit
+- 71 integration tests (bun:test, 0 extra deps)
 - 0 extra npm dependencies — Bun built-ins only
 
 ## Tech Stack
@@ -102,8 +106,8 @@ Elysia plugins are composed via `.use()`. Order matters: `auth` must be mounted 
 ## Design
 
 - **Washi paper texture**: SVG `feTurbulence` noise filter — no images
-- **Starry night dark mode**: pure CSS `radial-gradient` stars
-- **Ink-wash theme transition**: `clip-path` ellipse spread + `mix-blend-mode: difference`
+- **Atmosphere layers**: per-theme CSS-only `radial-gradient` effects — gold dust (light/sakura), night stars + moon (dark), silver star field (sumi) — deterministic scatter, no runtime random, gated by `prefers-reduced-motion`
+- **Ink-wash theme transition**: `clip-path` ellipse spread + `mix-blend-mode: difference`, four ink palettes (light/dark/sumi/sakura)
 - **Asymmetric border-radius**: `2px 8px 2px 8px` evokes brush-stroke edges
 - **Fonts**: `Noto Serif JP` (display) + `Noto Sans SC` (body)
 
