@@ -33,6 +33,7 @@
 - `Trying/api-connection-plan.md`：Web 保持 cookie，未来 App token 不混入 Web 状态。
 - `SUGGESTION.md`：iOS/Android 目录结构、APIClient、AuthStore、OfflineQueue、图片上传、App v1 验收标准。
 - `future/ONLINE_PLAN.md`：Web 上线方案和 App 当前不可上架判断。
+- `future/APP_FRAMEWORKS_AND_CONSTRAINTS.md`：Mobile Web / PWA / WebView / Capacitor / SwiftUI / Compose / React Native / Flutter 的框架矩阵和约束。
 
 ## 进度条
 
@@ -41,13 +42,13 @@
 | P0 文档和约束盘点 | `[##########] 100%` | 已完成本轮读取和冲突整理 | 后续只维护增量 |
 | P1 Web 生产前置 | `[#######---] 70%` | 生产入口 smoke 通过，上线方案已写 | 处理 Turnstile sitekey 源码化、部署脚本数据持久化 |
 | P2 Mobile Web/PWA | `[####------] 40%` | Trying 原型、主题、safe-area、只读 live API 已有 | 同步到正式 React 组件前仍需审核 |
-| P3 原生 App 架构设计 | `[###-------] 30%` | iOS/Android 结构和 App v1 范围已写入本文 | 写移动端认证 ADR |
+| P3 原生 App 架构设计 | `[#####-----] 45%` | 框架矩阵、iOS/Android 结构、App v1 范围已完成文档化 | 写移动端认证 ADR |
 | P4 后端 mobile token | `[----------] 0%` | 现有 Web cookie 可用；App token 未实现 | 决定 `@elysia/jwt` 依赖例外或 Bun/WebCrypto signed token |
 | P5 iOS SwiftUI App | `[----------] 0%` | 无 Xcode 工程 | 等 P4 后建 `mobile/ios` |
 | P6 Android Compose App | `[----------] 0%` | 无 Gradle 工程 | iOS v1 后再建 `mobile/android` |
 | P7 商店上架材料 | `[#---------] 10%` | 商店约束已核对 | 准备隐私政策、UGC 管理、截图、账号 |
 
-本轮做到的位置：**P0 完成，P3 初稿完成；没有创建原生工程，也没有改业务代码。**
+本轮做到的位置：**P0 完成，P3 框架矩阵完成；没有创建原生工程，也没有改业务代码。**
 
 ## 已确认决策
 
