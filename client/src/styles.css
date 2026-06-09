@@ -95,31 +95,36 @@ body::before {
   pointer-events: none;
 }
 
-/* ===== Starry Night (dark mode only) ===== */
-body::after {
+/* ===== Atmosphere — per-theme background effects ===== */
+/* Gold dust: light / sakura — static scattered light on washi */
+[data-theme="light"] body::after,
+[data-theme="sakura"] body::after {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -2;
   pointer-events: none;
-  opacity: var(--stars-opacity);
-  transition: opacity 0.6s;
-  /* moon glow */
+  opacity: 0.42;
   background:
-    radial-gradient(
-      circle at 82vw 12vh,
-      rgba(255, 248, 230, 0.08) 0%,
-      rgba(255, 248, 230, 0.04) 30%,
-      transparent 60%
-    ),
-    /* moon disc */
-    radial-gradient(
-      circle at 80vw 10vh,
-      rgba(255, 245, 225, 0.12) 0%,
-      rgba(255, 240, 215, 0.06) 40%,
-      transparent 50%
-    ),
-    /* scattered stars */
+    radial-gradient(circle at 18% 12%, rgba(214, 167, 79, 0.38) 0 1px, transparent 2px),
+    radial-gradient(circle at 72% 18%, rgba(214, 167, 79, 0.24) 0 1px, transparent 2px),
+    radial-gradient(circle at 86% 36%, rgba(214, 167, 79, 0.18) 0 1px, transparent 2px),
+    radial-gradient(circle at 32% 64%, rgba(214, 167, 79, 0.14) 0 1px, transparent 2px),
+    radial-gradient(circle at 58% 78%, rgba(214, 167, 79, 0.2) 0 1px, transparent 2px);
+}
+
+/* Night dust: dark — warm stars + moon glow with breathing */
+[data-theme="dark"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  opacity: 0.7;
+  animation: dust-breathe 10s ease-in-out infinite alternate;
+  background:
+    radial-gradient(circle at 82vw 12vh, rgba(255, 248, 230, 0.08) 0%, rgba(255, 248, 230, 0.04) 30%, transparent 60%),
+    radial-gradient(circle at 80vw 10vh, rgba(255, 245, 225, 0.12) 0%, rgba(255, 240, 215, 0.06) 40%, transparent 50%),
     radial-gradient(1px 1px at 15vw 8vh, rgba(255, 255, 240, 0.6), transparent),
     radial-gradient(1px 1px at 65vw 3vh, rgba(255, 255, 240, 0.5), transparent),
     radial-gradient(1.5px 1.5px at 45vw 18vh, rgba(255, 248, 235, 0.55), transparent),
@@ -130,6 +135,51 @@ body::after {
     radial-gradient(1.5px 1.5px at 10vw 60vh, rgba(255, 255, 240, 0.45), transparent),
     radial-gradient(1px 1px at 38vw 72vh, rgba(255, 248, 235, 0.35), transparent),
     radial-gradient(1px 1px at 85vw 80vh, rgba(255, 255, 240, 0.4), transparent);
+}
+
+@keyframes dust-breathe {
+  0% { opacity: 0.55; }
+  50% { opacity: 0.75; }
+  100% { opacity: 0.62; }
+}
+
+/* Sumi star field: ink-black sky with silver scatter + dark lanes + glow */
+[data-theme="sumi"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  opacity: 0.6;
+  animation: sumi-drift 14s ease-in-out infinite alternate;
+  background:
+    /* Silver scatter — dense upper-left cluster */
+    radial-gradient(circle at 14% 12%, rgba(255, 255, 244, 0.92) 0 1.2px, transparent 2.6px),
+    radial-gradient(circle at 18% 15%, rgba(232, 244, 236, 0.58) 0 0.9px, transparent 2.2px),
+    radial-gradient(circle at 22% 8%, rgba(255, 255, 244, 0.7) 0 1px, transparent 2.4px),
+    radial-gradient(circle at 8% 18%, rgba(232, 244, 236, 0.45) 0 1px, transparent 2px),
+    /* Upper-right cluster */
+    radial-gradient(circle at 78% 10%, rgba(255, 255, 244, 0.65) 0 1px, transparent 2.3px),
+    radial-gradient(circle at 85% 16%, rgba(232, 244, 236, 0.5) 0 0.8px, transparent 2px),
+    radial-gradient(circle at 72% 22%, rgba(255, 255, 244, 0.55) 0 1px, transparent 2.5px),
+    /* Sparse mid-field */
+    radial-gradient(circle at 35% 32%, rgba(232, 244, 236, 0.35) 0 0.8px, transparent 2px),
+    radial-gradient(circle at 48% 28%, rgba(255, 255, 244, 0.4) 0 1px, transparent 2.4px),
+    radial-gradient(circle at 62% 40%, rgba(232, 244, 236, 0.3) 0 0.7px, transparent 2px),
+    radial-gradient(circle at 28% 52%, rgba(255, 255, 244, 0.35) 0 0.9px, transparent 2px),
+    radial-gradient(circle at 55% 58%, rgba(232, 244, 236, 0.28) 0 0.7px, transparent 1.8px),
+    /* Dark lanes — ellipse shadows between clusters */
+    radial-gradient(ellipse at 18% 14%, rgba(218, 232, 222, 0.20), transparent 18%),
+    radial-gradient(ellipse at 52% 52%, rgba(0, 0, 0, 0.32), transparent 30%),
+    radial-gradient(ellipse at 80% 28%, rgba(218, 232, 222, 0.14), transparent 22%),
+    /* Silver glow behind content */
+    radial-gradient(ellipse at 50% 40%, rgba(218, 232, 222, 0.08), transparent 50%);
+}
+
+@keyframes sumi-drift {
+  0% { opacity: 0.5; }
+  40% { opacity: 0.65; }
+  100% { opacity: 0.55; }
 }
 
 /* ===== Layout ===== */
