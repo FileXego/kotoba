@@ -46,6 +46,30 @@ function hasCookie(request: Request, name: string, value: string) {
     .some((part) => part.trim() === `${name}=${value}`) ?? false;
 }
 
+// ── Burst rate limit ──
+const requestTimes = new Map<string, number[]>();
+const BURST_MAX = 100;
+const BURST_WINDOW = 10000; // 10 seconds
+
+function isBursting(ip: string): boolean {
+  const now = Date.now();
+  const times = requestTimes.get(ip) ?? [];
+  const recent = times.filter(t => now - t < BURST_WINDOW);
+  recent.push(now);
+  requestTimes.set(ip, recent);
+  return recent.length > BURST_MAX;
+}
+
+// Clean up burst tracking every 60 seconds
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, times] of requestTimes) {
+    const filtered = times.filter(t => now - t < BURST_WINDOW);
+    if (filtered.length === 0) requestTimes.delete(ip);
+    else requestTimes.set(ip, filtered);
+  }
+}, 60000);
+
 export const rateLimiter = new Elysia()
   .onRequest(({ request, set, status }) => {
     // skip rate limiting in test mode only (never in production)
@@ -60,6 +84,9 @@ export const rateLimiter = new Elysia()
     const url = new URL(request.url);
     const ua = request.headers.get("user-agent");
     const readPath = url.pathname === "/api/messages" || url.pathname === "/api/bookmarks";
+
+    // Burst check — per-IP request flood protection
+    if (isBursting(ip)) return status(429, { success: false, error: "TOO_MANY_REQUESTS" });
 
     if (isProd && readPath && !hasCookie(request, "_kb", "1")) {
       return status(403, { success: false, error: "FORBIDDEN" });

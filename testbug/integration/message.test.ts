@@ -4,7 +4,7 @@ import { setupApp, extractCookie } from "../helpers";
 type Json = Record<string, unknown>;
 
 describe("Messages", () => {
-  let app: ReturnType<typeof import("../src/app").createApp>;
+  let app: Awaited<ReturnType<typeof import("../src/app").createApp>>;
   let cleanup: () => void;
   let cookie1: string | null = null;
   let cookie2: string | null = null;

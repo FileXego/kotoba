@@ -69,7 +69,7 @@ let _app: Awaited<ReturnType<typeof import("../src/app").createApp>> | null = nu
 export async function setupApp() {
   if (!_app) {
     const { createApp } = await import("../src/app");
-    _app = createApp({ staticMode: false });
+    _app = await createApp({ staticMode: false });
   }
   clearTables();
   return { app: _app, cleanup: clearTables };

@@ -1,0 +1,3 @@
+# Kotoba banned word list — one word per line.
+# Lines starting with # are comments. Empty lines ignored.
+# Add your own content moderation list here.

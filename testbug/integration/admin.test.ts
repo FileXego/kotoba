@@ -5,7 +5,7 @@ import { Database } from "bun:sqlite";
 type Json = Record<string, unknown>;
 
 describe("Admin", () => {
-  let app: ReturnType<typeof import("../src/app").createApp>;
+  let app: Awaited<ReturnType<typeof import("../src/app").createApp>>;
   let cleanup: () => void;
   let adminCookie: string | null = null;
   let regularCookie: string | null = null;

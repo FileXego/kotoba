@@ -13,7 +13,7 @@ function testPngBlob(): Blob {
 }
 
 describe("Upload", () => {
-  let app: ReturnType<typeof import("../src/app").createApp>;
+  let app: Awaited<ReturnType<typeof import("../src/app").createApp>>;
   let cleanup: () => void;
   let cookie: string | null = null;
 

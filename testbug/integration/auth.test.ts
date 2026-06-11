@@ -4,7 +4,7 @@ import { setupApp, extractCookie } from "../helpers";
 type Json = Record<string, unknown>;
 
 describe("Auth API", () => {
-  let app: ReturnType<typeof import("../src/app").createApp>;
+  let app: Awaited<ReturnType<typeof import("../src/app").createApp>>;
   let cleanup: () => void;
   let cookie: string | null = null;
 

@@ -6,6 +6,7 @@ import { uploadRoute } from "./routes/upload";
 import { auth } from "./plugins/auth";
 import { admin } from "./plugins/admin";
 import { assetDir, clientIndexPath, serveLocalFile, uploadDir } from "./lib/files";
+import { loadBannedWords } from "./lib/banned";
 
 export interface AppOptions {
   staticMode?: boolean;
@@ -14,7 +15,8 @@ export interface AppOptions {
 const UPLOAD_EXTS = new Set(["png", "jpg", "jpeg", "webp"]);
 const ASSET_EXTS = new Set(["css", "js", "map", "png", "jpg", "jpeg", "webp", "svg", "ico", "woff", "woff2"]);
 
-export function createApp(options: AppOptions = {}) {
+export async function createApp(options: AppOptions = {}) {
+  await loadBannedWords();
   const app = new Elysia({
     sanitize: (value) => (typeof value === "string" ? Bun.escapeHTML(value) : value),
   })

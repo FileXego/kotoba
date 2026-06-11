@@ -4,6 +4,7 @@ import { messages, likes, bookmarks, users } from "../db/schema";
 import { desc, eq, and, isNull, or, like, sql } from "drizzle-orm";
 import { normalizePagination, SEARCH_MAX_LENGTH } from "../lib/pagination";
 import { parsePositiveId } from "../lib/ids";
+import { getBannedFilter } from "../lib/banned";
 
 const MAX_DEPTH = 2;
 
@@ -12,6 +13,9 @@ export const messageRoute = new Elysia({ prefix: "/api" })
     "/message",
     async ({ body, currentUser, status }) => {
       if (!currentUser) return status(401, { success: false, error: "AUTH_REQUIRED" });
+      if (getBannedFilter().containsAny(body.content)) {
+        return status(409, { success: false, error: "CONTAINS_BANNED_WORD" });
+      }
       let depth = 0;
       let rootId: number | null = null;
       if (body.parentId !== undefined) {
@@ -106,7 +110,12 @@ export const messageRoute = new Elysia({ prefix: "/api" })
         return status(403, { success: false, error: "FORBIDDEN" });
       }
       const update: Record<string, unknown> = { updatedAt: new Date() };
-      if (body.content !== undefined) update.content = body.content;
+      if (body.content !== undefined) {
+        if (getBannedFilter().containsAny(body.content)) {
+          return status(409, { success: false, error: "CONTAINS_BANNED_WORD" });
+        }
+        update.content = body.content;
+      }
       if (body.deleted !== undefined) update.deleted = body.deleted;
       await db.update(messages).set(update).where(eq(messages.id, id));
       return { success: true };
