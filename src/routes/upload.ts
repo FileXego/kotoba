@@ -1,21 +1,18 @@
 import { Elysia, t } from "elysia";
-import { mkdirSync } from "node:fs";
-
-const UPLOAD_DIR = import.meta.dir + "/../../uploads";
-
-const MIME_EXT: Record<string, string> = {
-  "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp",
-};
+import { ensureUploadDir, uploadDir } from "../lib/files";
+import { hasExpectedImageSignature, imageExtForMime } from "../lib/images";
 
 export const uploadRoute = new Elysia({ prefix: "/api" }).post(
   "/upload",
   async ({ body: { file }, currentUser, status }) => {
     if (!currentUser) return status(401, { success: false, error: "AUTH_REQUIRED" });
-    const ext = MIME_EXT[file.type];
-    if (!ext) return status(400, { success: false, error: "INVALID_FILE_TYPE" });
-    mkdirSync(UPLOAD_DIR, { recursive: true });
+    const ext = imageExtForMime(file.type);
+    if (!ext || !(await hasExpectedImageSignature(file))) {
+      return status(400, { success: false, error: "INVALID_FILE_TYPE" });
+    }
+    ensureUploadDir();
     const filename = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
-    const filepath = UPLOAD_DIR + "/" + filename;
+    const filepath = uploadDir + "/" + filename;
     await Bun.write(filepath, file);
     return { success: true, url: `/uploads/${filename}` };
   },

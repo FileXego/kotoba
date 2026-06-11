@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/start.ts",
-    "check": "bun run typecheck",
+    "check": "bun test",
     "typecheck": "tsc --noEmit",
+    "lint:client": "bun run --cwd client lint",
+    "build:client": "bun run --cwd client build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun run migrate.ts",
     "db:studio": "drizzle-kit studio"

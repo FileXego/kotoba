@@ -18,6 +18,7 @@ jobs:
         with: { bun-version: latest }
       - run: bun install
       - run: bun run db:generate && bun run db:migrate
+      - run: bun test
       - run: bun run src/index.ts &
       - run: sleep 3 && curl -f http://localhost:3000/
 
@@ -27,6 +28,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with: { bun-version: latest }
-      - run: cd client && bun install
-      - run: cd client && bun run lint
-      - run: cd client && bun run build
+      - run: bun install
+      - run: bun install --cwd client
+      - run: bun run --cwd client lint
+      - run: bun run --cwd client build

@@ -2,6 +2,8 @@ import { Elysia, t } from "elysia";
 import { db } from "../db";
 import { messages, likes, bookmarks, users } from "../db/schema";
 import { desc, eq, and, isNull, or, like, sql } from "drizzle-orm";
+import { normalizePagination, SEARCH_MAX_LENGTH } from "../lib/pagination";
+import { parsePositiveId } from "../lib/ids";
 
 const MAX_DEPTH = 2;
 
@@ -38,8 +40,7 @@ export const messageRoute = new Elysia({ prefix: "/api" })
   .get(
     "/messages",
     async ({ query, currentUser }) => {
-      const offset = query.offset ?? 0;
-      const limit = query.limit ?? 20;
+      const { offset, limit } = normalizePagination(query.offset, query.limit, { defaultLimit: 20, maxLimit: 50 });
       const q = query.q?.trim();
       const where = and(
         eq(messages.deleted, 0), isNull(messages.parentId),
@@ -63,13 +64,13 @@ export const messageRoute = new Elysia({ prefix: "/api" })
       }));
       return { success: true, data, total: count, offset, limit };
     },
-    { query: t.Object({ offset: t.Optional(t.Numeric()), limit: t.Optional(t.Numeric()), q: t.Optional(t.String()) }) }
+    { query: t.Object({ offset: t.Optional(t.Numeric()), limit: t.Optional(t.Numeric()), q: t.Optional(t.String({ maxLength: SEARCH_MAX_LENGTH })) }) }
   )
   .get(
     "/messages/:id/replies",
     async ({ params, currentUser, status }) => {
-      const id = Number(params.id);
-      if (isNaN(id)) return status(400, { success: false, error: "INVALID_ID" });
+      const id = parsePositiveId(params.id);
+      if (!id) return status(400, { success: false, error: "INVALID_ID" });
       const rows = await db.select({
         id: messages.id, name: messages.name, content: messages.content,
         createdAt: messages.createdAt, updatedAt: messages.updatedAt,
@@ -91,8 +92,8 @@ export const messageRoute = new Elysia({ prefix: "/api" })
   .patch(
     "/message/:id",
     async ({ params, body, currentUser, status }) => {
-      const id = Number(params.id);
-      if (isNaN(id)) return status(400, { success: false, error: "INVALID_ID" });
+      const id = parsePositiveId(params.id);
+      if (!id) return status(400, { success: false, error: "INVALID_ID" });
       const [msg] = await db.select({ userId: messages.userId, name: messages.name }).from(messages).where(eq(messages.id, id)).limit(1);
       if (!msg) return status(404, { success: false, error: "NOT_FOUND" });
       const isAuthor = !!currentUser && (
@@ -116,8 +117,8 @@ export const messageRoute = new Elysia({ prefix: "/api" })
     "/messages/:id/like",
     async ({ params, currentUser, status }) => {
       if (!currentUser) return status(401, { success: false, error: "AUTH_REQUIRED" });
-      const messageId = Number(params.id);
-      if (isNaN(messageId)) return status(422, { success: false, error: "INVALID_ID" });
+      const messageId = parsePositiveId(params.id);
+      if (!messageId) return status(422, { success: false, error: "INVALID_ID" });
       const [msg] = await db.select({ id: messages.id }).from(messages)
         .where(and(eq(messages.id, messageId), eq(messages.deleted, 0))).limit(1);
       if (!msg) return status(404, { success: false, error: "NOT_FOUND" });
@@ -136,8 +137,8 @@ export const messageRoute = new Elysia({ prefix: "/api" })
     "/messages/:id/bookmark",
     async ({ params, currentUser, status }) => {
       if (!currentUser) return status(401, { success: false, error: "AUTH_REQUIRED" });
-      const messageId = Number(params.id);
-      if (isNaN(messageId)) return status(422, { success: false, error: "INVALID_ID" });
+      const messageId = parsePositiveId(params.id);
+      if (!messageId) return status(422, { success: false, error: "INVALID_ID" });
       const [msg] = await db.select({ id: messages.id }).from(messages)
         .where(and(eq(messages.id, messageId), eq(messages.deleted, 0))).limit(1);
       if (!msg) return status(404, { success: false, error: "NOT_FOUND" });

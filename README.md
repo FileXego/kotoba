@@ -19,7 +19,7 @@
 - Admin panel for moderation
 - Content-Security-Policy header on all responses
 - Bot / scraper guard — User-Agent filter + JS cookie gate + read rate limit
-- 71 integration tests (bun:test, 0 extra deps)
+- 91 tests (bun:test, 0 extra deps)
 - 0 extra npm dependencies — Bun built-ins only
 
 ## Tech Stack
@@ -38,12 +38,12 @@
 
 ```bash
 # 1. Clone
-git clone https://github.com/FileXego/kotoba.git
+git clone <your-repository-url> kotoba
 cd kotoba
 
 # 2. Install (uses Bun)
 bun install
-cd client && bun install && cd ..
+bun install --cwd client
 
 # 3. Configure environment
 cp .env.example .env
@@ -55,7 +55,7 @@ bun run db:migrate
 
 # 5. Start (two terminals)
 bun run dev                  # Backend → http://localhost:3000
-bun run dev --cwd client     # Frontend → http://localhost:5173
+bun run --cwd client dev     # Frontend → http://localhost:5173
 ```
 
 ## Environment Variables
@@ -64,6 +64,9 @@ bun run dev --cwd client     # Frontend → http://localhost:5173
 |----------|----------|-------------|
 | `COOKIE_SECRET` | Yes in production | Random string for session cookie signing |
 | `TURNSTILE_SECRET` | For CAPTCHA | Cloudflare Turnstile secret key |
+| `VITE_TURNSTILE_SITEKEY` | For CAPTCHA UI | Cloudflare Turnstile site key, read by Vite from root `.env` |
+| `DB_PATH` | Production recommended | SQLite database path |
+| `UPLOAD_DIR` | Production recommended | Persistent upload directory |
 
 See `.env.example` for dev defaults.
 
@@ -94,6 +97,7 @@ src/
 ├── plugins/    rate-limiter.ts · auth.ts · admin.ts    ← Elysia plugins
 ├── routes/     message.ts · bookmark.ts · upload.ts    ← Route handlers
 ├── db/         schema.ts · index.ts                     ← Drizzle + SQLite
+├── lib/        files.ts · images.ts · pagination.ts     ← Shared guards
 ├── app.ts      createApp({ staticMode })                ← Unified app factory
 ├── index.ts    dev entry
 ├── start.ts    prod entry (static + SPA fallback)
@@ -102,6 +106,8 @@ client/
 ```
 
 Elysia plugins are composed via `.use()`. Order matters: `auth` must be mounted before `messageRoute` so `currentUser` derives correctly.
+
+Production deployment keeps releases and data separate: code lives under `/opt/kotoba/releases`, while `.env`, `sqlite.db`, uploads, and backups live under `/opt/kotoba/shared`.
 
 ## Design
 

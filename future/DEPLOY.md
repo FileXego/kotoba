@@ -1,67 +1,148 @@
 # DEPLOY.md — 言 葉 公网部署指南
 
-> 腾讯云 · Ubuntu 22.04 · systemd · nginx · certbot · Bun
-
-## 采购
-
-| 产品 | 配置 | 价格 |
-|------|------|------|
-| 轻量应用服务器 | 2核2G / 40GB SSD / 3Mbps / Ubuntu 22.04 | ¥28/月起 |
-| 域名 | `.com` 或 `.cn` | ¥30-60/年 |
-| SSL | 腾讯云免费证书 / certbot | ¥0 |
-
-1. 打开 `https://cloud.tencent.com`
-2. 轻量应用服务器 → 选 Ubuntu 22.04 → 购买
-3. 域名注册 → 解析 A 记录到 VPS 公网 IP
-
-## 部署
-
-```bash
-# SSH 登录 VPS
-ssh root@你的IP
-
-# 安装 Bun + nginx
-curl -fsSL https://bun.sh/install | bash
-source ~/.bashrc
-sudo apt update && sudo apt install -y nginx git
-
-# 克隆并部署
-git clone https://github.com/FileXego/kotoba.git /opt/kotoba
-cd /opt/kotoba
-chmod +x future/deploy.sh
-./future/deploy.sh init
-```
-
-首次运行后编辑 `.env`，设 `COOKIE_SECRET`（随机字符串），再跑一次 `init`。
-
-## HTTPS
-
-```bash
-sudo nano /etc/nginx/sites-available/kotoba   # YOUR_DOMAIN → 实际域名
-sudo systemctl reload nginx
-sudo certbot --nginx -d YOUR_DOMAIN
-```
-
-## 更新 · 回滚 · 管理
-
-```bash
-./future/deploy.sh update      # 自动检测最新 tag 并部署
-./future/deploy.sh rollback    # 切回上一版本
-./future/deploy.sh list        # 查看所有版本
-sudo systemctl status kotoba   # 服务状态
-sudo journalctl -u kotoba -f   # 实时日志
-```
+> Ubuntu 22.04+ · Bun · systemd · nginx · certbot · SQLite shared data
 
 ## 目录结构
 
+生产部署把代码版本和用户数据分开：
+
+```text
+/opt/kotoba/
+├── current -> releases/kotoba-...      # 当前代码版本 symlink
+├── releases/                           # 每次发布的新代码目录
+└── shared/
+    ├── .env                            # 生产环境变量
+    ├── sqlite.db                       # 生产数据库
+    ├── uploads/                        # 用户上传
+    └── backups/                        # 自动备份
 ```
-/opt/
-├── kotoba          → kotoba-v1.0.1/   (symlink)
-├── kotoba-v1.0.0/                      (保留)
-└── kotoba-v1.0.1/                      (当前)
-    ├── src/start.ts       ← 生产入口
-    ├── client/dist/       ← 前端构建
-    ├── sqlite.db          ← 数据库
-    ├── uploads/           ← 上传图片
-    └── backups/           ← 每日备份
+
+`sqlite.db` 和 `uploads/` 不跟着 release 切换，更新/回滚只切换 `current`。
+
+## 服务器初始化
+
+```bash
+ssh root@YOUR_SERVER_IP
+
+apt update
+apt install -y git nginx curl unzip sqlite3 certbot python3-certbot-nginx
+
+curl -fsSL https://bun.sh/install | bash
+source ~/.bashrc
+ln -sf "$(which bun)" /usr/local/bin/bun
+```
+
+## 首次部署
+
+先克隆你的仓库到任意临时目录，用它提供 `.env.example` 和 `future/deploy.sh`：
+
+```bash
+git clone <your-repository-url> kotoba-src
+cd kotoba-src
+chmod +x future/deploy.sh
+
+export KOTOBA_REPO_URL="<your-repository-url>"
+./future/deploy.sh init
+```
+
+第一次执行会创建 `/opt/kotoba/shared/.env` 并退出。编辑它：
+
+```bash
+nano /opt/kotoba/shared/.env
+```
+
+至少要改：
+
+```env
+COOKIE_SECRET=<openssl rand -hex 32>
+TURNSTILE_SECRET=<Cloudflare Turnstile secret key>
+VITE_TURNSTILE_SITEKEY=<Cloudflare Turnstile site key>
+DB_PATH=/opt/kotoba/shared/sqlite.db
+UPLOAD_DIR=/opt/kotoba/shared/uploads
+```
+
+不要设置 `SKIP_CAPTCHA=1` 或 `SKIP_RATE_LIMIT=1`。然后重新运行：
+
+```bash
+export KOTOBA_REPO_URL="<your-repository-url>"
+./future/deploy.sh init
+```
+
+## nginx 和 HTTPS
+
+脚本会安装 `/etc/nginx/sites-available/kotoba`。把 `YOUR_DOMAIN` 改成实际域名：
+
+```bash
+nano /etc/nginx/sites-available/kotoba
+nginx -t
+systemctl reload nginx
+certbot --nginx -d example.com -d www.example.com
+```
+
+检查：
+
+```bash
+curl -f http://127.0.0.1:3000/api/health
+curl -f https://example.com/api/health
+```
+
+## 管理员初始化
+
+注册第一个用户后手工提升：
+
+```bash
+sqlite3 /opt/kotoba/shared/sqlite.db \
+  "UPDATE users SET is_admin = 1 WHERE username = '<your-username>';"
+
+systemctl restart kotoba
+```
+
+## 更新和回滚
+
+更新默认部署最新 `v*` tag；没有 tag 时用 `main`。也可以显式指定：
+
+```bash
+export KOTOBA_REPO_URL="<your-repository-url>"
+export KOTOBA_REF="v2.1.1"
+/opt/kotoba/current/future/deploy.sh update
+```
+
+回滚：
+
+```bash
+/opt/kotoba/current/future/deploy.sh rollback
+```
+
+列出 release：
+
+```bash
+/opt/kotoba/current/future/deploy.sh list
+```
+
+## 备份
+
+部署脚本会加入每日 cron：
+
+```text
+0 3 * * * /opt/kotoba/current/future/backup.sh
+```
+
+备份内容：
+
+- `sqlite.db` 使用 sqlite3 `.backup`
+- `uploads/` 打包为 tar.gz
+- 默认保留 14 天
+
+定期把 `/opt/kotoba/shared/backups/` 同步到另一台机器或对象存储，不要只放在同一块磁盘上。
+
+## 常用命令
+
+```bash
+systemctl status kotoba
+journalctl -u kotoba -f
+systemctl restart kotoba
+nginx -t
+systemctl reload nginx
+du -sh /opt/kotoba/shared/uploads
+du -sh /opt/kotoba/shared/backups
 ```

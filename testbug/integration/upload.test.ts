@@ -120,4 +120,30 @@ describe("Upload", () => {
     expect(data.success).toBe(false);
     expect(data.error).toBe("INVALID_FILE_TYPE");
   });
+
+  it("POST /upload rejects a file whose MIME type does not match its bytes", async () => {
+    const fakePng = new Blob(["not a real png"], { type: "image/png" });
+    const fd = new FormData();
+    fd.append("file", fakePng, "fake.png");
+
+    const res = await app.handle(
+      new Request("http://localhost/api/upload", {
+        method: "POST",
+        headers: { Cookie: cookie! },
+        body: fd,
+      })
+    );
+    expect(res.status).toBe(400);
+    const data = (await res.json()) as Json;
+    expect(data.success).toBe(false);
+    expect(data.error).toBe("INVALID_FILE_TYPE");
+  });
+
+  it("GET /uploads blocks encoded path traversal", async () => {
+    const res = await app.handle(new Request("http://localhost/uploads/..%2F.env"));
+    expect(res.status).toBe(403);
+    const data = (await res.json()) as Json;
+    expect(data.success).toBe(false);
+    expect(data.error).toBe("FORBIDDEN");
+  });
 });

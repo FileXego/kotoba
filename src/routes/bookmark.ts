@@ -2,14 +2,14 @@ import { Elysia, t } from "elysia";
 import { db } from "../db";
 import { bookmarks, messages, users, likes } from "../db/schema";
 import { desc, eq, and, sql } from "drizzle-orm";
+import { normalizePagination } from "../lib/pagination";
 
 export const bookmarkRoute = new Elysia({ prefix: "/api" })
   .get(
     "/bookmarks",
     async ({ query, currentUser, status }) => {
       if (!currentUser) return status(401, { success: false, error: "AUTH_REQUIRED" });
-      const offset = query.offset ?? 0;
-      const limit = query.limit ?? 20;
+      const { offset, limit } = normalizePagination(query.offset, query.limit, { defaultLimit: 20, maxLimit: 50 });
       const [rows, countRow] = await Promise.all([
         db.select({
           id: messages.id, name: messages.name, content: messages.content,

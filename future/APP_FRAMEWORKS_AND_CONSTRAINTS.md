@@ -112,7 +112,7 @@ client/src/
 - 首页到 `/message/:id` 详情入口可用，详情页默认展开完整回复树。✅
 - Me 页头像 256KB 限制与后端一致，主题色块可直接选择目标主题。✅
 - 登录、发帖、回复、点赞、收藏、上传仍走现有 `/api`。✅
-- `bun test` 通过。✅ 85 pass
+- `bun test` 通过。✅ 91 pass
 - `bun run lint` 和 `bun run build` 在 `client/` 通过。✅ 2026-06-09 复验
 
 ### Phase B: PWA

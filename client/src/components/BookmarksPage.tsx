@@ -56,8 +56,15 @@ export function BookmarksPage({ lang, currentUser }: Props) {
               onUpdate={async () => {}} onLoadReplies={() => {}}
               onSubmitReply={async () => {}}
               onToggleLike={async (id) => {
-                const res = await toggleLike(id);
-                setLikedIds(p => { const n = new Set(p); if (res.liked) n.add(id); else n.delete(id); return n; });
+                const wasLiked = likedIds.has(id);
+                setLikedIds(p => { const n = new Set(p); if (wasLiked) n.delete(id); else n.add(id); return n; });
+                try {
+                  const res = await toggleLike(id);
+                  setLikedIds(p => { const n = new Set(p); if (res.liked) n.add(id); else n.delete(id); return n; });
+                  setMessages(prev => prev.map(m => m.id === id ? { ...m, likeCount: res.count } : m));
+                } catch {
+                  setLikedIds(p => { const n = new Set(p); if (wasLiked) n.add(id); else n.delete(id); return n; });
+                }
               }}
               onToggleBookmark={async () => {
                 const wasBookmarked = bookmarkedIds.has(msg.id);

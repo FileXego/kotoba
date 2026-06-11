@@ -18,10 +18,10 @@ bun test testbug/integration/auth.test.ts
 1. Create `testbug/<layer>/<name>.test.ts`
 2. Import helpers from `../helpers`:
    ```ts
-   import { setupApp, getApp, cleanup } from "../helpers";
+   import { setupApp, extractCookie } from "../helpers";
    ```
 3. Use `beforeAll` → `setupApp()`, `afterAll` → `cleanup()`
-4. Use `getApp()` to get the Elysia instance, then `app.handle(req)` to fire requests
+4. Use the returned `app` instance, then `app.handle(req)` to fire requests
 5. Assert on `res.status` and `res.json()` data
 
 ## Test DB isolation
@@ -35,7 +35,7 @@ bun test testbug/integration/auth.test.ts
 
 ```
 testbug/
-  helpers.ts                # setupApp, getApp, cleanup, extractCookie
+  helpers.ts                # setupApp, cleanup, extractCookie
   README.md
   integration/              # full-stack integration tests (auth, messages, etc.)
   regression/               # regression tests for past bugs (TODO)

@@ -65,6 +65,7 @@ export function MessageCard({
   const [showReplies, setShowReplies] = useState(Boolean(expandRepliesByDefault));
   const [replying, setReplying] = useState(false);
   const [replyContent, setReplyContent] = useState("");
+  const [replyError, setReplyError] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
 
   const isMine = currentUser?.id === userId || currentUser?.username === name;
@@ -77,7 +78,7 @@ export function MessageCard({
   const handleSave = async () => {
     if (!editText.trim()) return;
     try { await onUpdate(id, { content: editText.trim() }); setEditing(false); setEditError(""); }
-    catch { setEditError(t(lang, "list.loadFail")); setEditing(false); }
+    catch { setEditError(t(lang, "list.loadFail")); }
   };
   const handleDelete = async () => {
     try { await onUpdate(id, { deleted: 1 }); }
@@ -88,7 +89,9 @@ export function MessageCard({
   const handleReplySubmit = async () => {
     if (!replyContent.trim()) return;
     setSendingReply(true);
+    setReplyError("");
     try { await onSubmitReply(replyContent.trim(), id); setReplyContent(""); setReplying(false); }
+    catch { setReplyError(t(lang, "error.SUBMIT_FAIL")); }
     finally { setSendingReply(false); }
   };
 
@@ -163,6 +166,7 @@ export function MessageCard({
               {sendingReply ? "..." : t(lang, "form.send")}</button>
             <button className="action-btn owner-btn" onClick={() => setReplying(false)}>{t(lang, "form.cancel")}</button>
           </div>
+          {replyError && <p className="auth-error">{replyError}</p>}
         </div>)}
       </article>
       {showReplies && childReplies.length > 0 && (<div className="reply-tree">

@@ -125,15 +125,16 @@
 3. **约定漂移**：写完 grep 同类模式统一为新写法。所有 plugin `prefix` 含 `/api`
 4. **硬编码**：UI 文字第一次就进 `i18n.ts`，后端只用错误码
 5. **CSS 覆盖**：多次 edit 同锚点会覆盖前次内容，大批量改动用 write 重写
-6. **验证两端**：改 `src/` 验后端，改 `client/` 验前端，都改都验
+6. **验证两端**：改 `src/` 验后端，改 `client/` 验前端，都改都验；前端命令写 `bun run --cwd client lint/build`
 7. **约束传播**：代码跨文件迁移时，grep 源文件的 `eslint-disable` 和类型守卫，全量带到目标文件
 8. **文档同步**：改代码后按 `DOCMAP.md` 的触发类型找到对应清单，逐项更新。改 Feature → 查 A；改规则 → 查 B；修 bug → 查 C；完成里程碑 → 查 D
+9. **生产数据解耦**：部署脚本、systemd、迁移命令必须保持 `DB_PATH`/`UPLOAD_DIR` 指向 shared 数据目录，不把用户数据放进 release 目录
 
 **前端验证三步**（缺一不可）：
 
 ```powershell
-bun run build --cwd client    # tsc -b + vite build
-bun run lint --cwd client     # eslint（CI 会跑，本地也跑）
+bun run --cwd client build    # tsc -b + vite build
+bun run --cwd client lint     # eslint（CI 会跑，本地也跑）
 ```
 
 ---

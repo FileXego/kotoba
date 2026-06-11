@@ -12,11 +12,21 @@ const AUTH_ERRS: Record<string, Key> = {
   DUPLICATE: "error.DUPLICATE",
   CAPTCHA_FAIL: "error.CAPTCHA_FAIL",
   RATE_LIMITED: "error.RATE_LIMITED",
+  VALIDATION: "error.VALIDATION",
 };
 
-declare global { interface Window { turnstile: { render: (el: HTMLElement, opts: { sitekey: string }) => string; getResponse: (id?: string) => string; reset: (id?: string) => void } } }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITEKEY || (globalThis as any).__KOTOBA_TURNSTILE_SITEKEY__ || "1x00000000000000000000AA";
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (el: HTMLElement, opts: { sitekey: string }) => string;
+      getResponse: (id?: string) => string;
+      reset: (id?: string) => void;
+    };
+    __KOTOBA_TURNSTILE_SITEKEY__?: string;
+  }
+}
+
+const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITEKEY || window.__KOTOBA_TURNSTILE_SITEKEY__ || "1x00000000000000000000AA";
 
 interface Props {
   theme: ThemeName; lang: Lang;

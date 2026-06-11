@@ -2,11 +2,10 @@ import { Elysia, t } from "elysia";
 import { db } from "../db";
 import { users } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { mkdirSync } from "node:fs";
+import { ensureUploadDir, uploadDir } from "../lib/files";
+import { hasExpectedImageSignature, imageExtForMime } from "../lib/images";
 
 const THEMES = new Set(["light", "dark", "sumi", "sakura"]);
-const MIME_EXT: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
-const UPLOAD_DIR = import.meta.dir + "/../../uploads";
 const isProd = import.meta.env.NODE_ENV === "production";
 const rawSecret = import.meta.env.COOKIE_SECRET;
 if (!rawSecret) {
@@ -36,7 +35,8 @@ async function verifyCaptcha(token: string) {
     const fd = new FormData();
     fd.append("secret", TURNSTILE_SECRET);
     fd.append("response", token);
-    const vr = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: fd }).then(r => r.json());
+    const vr = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: fd })
+      .then(r => r.json() as Promise<{ success?: boolean }>);
     return vr.success === true;
   } catch { return false; }
 }
@@ -135,10 +135,13 @@ export const auth = new Elysia({ prefix: "/api/auth" })
   // PATCH /avatar — upload avatar
   .patch("/avatar", async ({ body: { file }, currentUser, status }) => {
     if (!currentUser) return status(401, { success: false, error: "AUTH_REQUIRED" });
-    mkdirSync(UPLOAD_DIR, { recursive: true });
-    const ext = MIME_EXT[file.type] ?? "jpg";
+    const ext = imageExtForMime(file.type);
+    if (!ext || !(await hasExpectedImageSignature(file))) {
+      return status(400, { success: false, error: "INVALID_FILE_TYPE" });
+    }
+    ensureUploadDir();
     const filename = `avatar-${currentUser.id}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
-    await Bun.write(UPLOAD_DIR + "/" + filename, file);
+    await Bun.write(uploadDir + "/" + filename, file);
     const avatarUrl = `/uploads/${filename}`;
     await db.update(users).set({ avatarUrl }).where(eq(users.id, currentUser.id));
     return { success: true, user: await lookupUser(currentUser.id) };

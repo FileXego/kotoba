@@ -173,6 +173,18 @@
 | 12 | bun:test 基础覆盖 | app.handle() 测 auth/NAN/权限。先抽 createApp()，测试 import 它 |
 | 13 | SUGGESTION.md 参考 | 1970 行详细实施建议——数据层/API/前端/App/主题/Elysia 最佳实践 |
 
+### 2.1.1 🔒 上线加固 ✅
+
+| # | 任务 | 决定 |
+|---|------|------|
+| P1 | 上传可信化 | 普通图片和头像都做 MIME + PNG/JPEG/WebP 魔数校验 |
+| P2 | 静态文件收口 | `/uploads/*` 与 `/assets/*` 只服务安全 basename 和允许扩展名 |
+| P3 | 分页与 ID 守卫 | `normalizePagination()` + `parsePositiveId()`，公开列表 limit≤50，管理列表 limit≤100 |
+| P4 | 限频隔离 | bucket 改为 `scope:ip`，定期清理，生产读接口加 JS cookie gate |
+| P5 | 生产数据解耦 | `DB_PATH` / `UPLOAD_DIR` 指向 `/opt/kotoba/shared`，release 目录只放代码 |
+| P6 | Turnstile sitekey 源码化 | `VITE_TURNSTILE_SITEKEY` 从根 `.env` 注入，不再手改 dist |
+| P7 | 隐私收口 | README/部署脚本移除硬编码个人仓库地址，改为 `<your-repository-url>` / `KOTOBA_REPO_URL` |
+
 ---
 
 ## App 移动端设计
@@ -193,7 +205,7 @@
 | 阶段 | 进度 | 状态 |
 |------|------|------|
 | 文档和约束盘点 | `[##########] 100%` | 已读取 LONGTODO / Trying / SUGGESTION / future 上线文档 |
-| Mobile Web/PWA | `[#########-] 90%` | Mobile Web 交付候选：详情入口、完整回复树、Me 页主题/头像、safe-area、reduced-motion、bot guard 已补齐；PWA 未做 |
+| Mobile Web/PWA | `[#########-] 95%` | Mobile Web 交付候选：详情入口、完整回复树、Me 页主题/头像、safe-area、reduced-motion、bot guard、上线加固已补齐；PWA 未做 |
 | 原生 App 架构设计 | `[#####-----] 45%` | 已完成框架矩阵和长期路线；未创建原生工程 |
 | 后端 mobile token | `[----------] 0%` | 待写认证 ADR；Web cookie 保持不变 |
 | iOS SwiftUI App | `[----------] 0%` | 待 `mobile/ios` 工程 |

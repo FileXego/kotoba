@@ -87,15 +87,21 @@ function clearTables() {
 
 /** Remove the temporary test DB file. Call once at process exit. */
 export function cleanup() {
-  try {
-    unlinkSync(resolve(TEST_DB));
-  } catch {
-    // already cleaned up
-  }
+  removeTestDbFiles();
 }
 
 // Delete the test DB file when the process exits
-process.on("exit", () => { try { unlinkSync(resolve(TEST_DB)); } catch {} });
+process.on("exit", removeTestDbFiles);
+
+function removeTestDbFiles() {
+  for (const suffix of ["", "-wal", "-shm"]) {
+    try {
+      unlinkSync(resolve(`${TEST_DB}${suffix}`));
+    } catch {
+      // already cleaned up
+    }
+  }
+}
 
 /** Extract the session cookie value from a Set-Cookie header. */
 export function extractCookie(res: Response): string | null {

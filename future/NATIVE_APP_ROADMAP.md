@@ -40,15 +40,15 @@
 | 阶段 | 进度 | 当前状态 | 下一步 |
 |---|---:|---|---|
 | P0 文档和约束盘点 | `[##########] 100%` | 已完成本轮读取和冲突整理 | 后续只维护增量 |
-| P1 Web 生产前置 | `[########--] 85%` | Turnstile sitekey 已源码化、上线方案已写、bot guard 已加、CSP 已部署 | 部署脚本数据持久化（sqlite.db 复制）、真机复核 |
-| P2 Mobile Web/PWA | `[#########-] 90%` | Mobile Web 交付候选：路由、导航、Thread/Me、详情入口、完整回复树、safe-area、reduced-motion、气氛层、bot guard、Turnstile env | 真机 375/390/430 宽度复核、PWA icon 决策 |
+| P1 Web 生产前置 | `[#########-] 95%` | Turnstile sitekey 已源码化、上线方案已写、bot guard、CSP、安全头、上传魔数校验、shared 数据部署已补齐 | 真机复核、首台 VPS 实部署 |
+| P2 Mobile Web/PWA | `[#########-] 95%` | Mobile Web 交付候选：路由、导航、Thread/Me、详情入口、完整回复树、safe-area、reduced-motion、气氛层、bot guard、Turnstile env、上线加固 | 真机 375/390/430 宽度复核、PWA icon 决策 |
 | P3 原生 App 架构设计 | `[#####-----] 45%` | 框架矩阵、iOS/Android 结构、App v1 范围已完成文档化 | 写移动端认证 ADR |
 | P4 后端 mobile token | `[----------] 0%` | 现有 Web cookie 可用；App token 未实现 | 决定 `@elysia/jwt` 依赖例外或 Bun/WebCrypto signed token |
 | P5 iOS SwiftUI App | `[----------] 0%` | 无 Xcode 工程 | 等 P4 后建 `mobile/ios` |
 | P6 Android Compose App | `[----------] 0%` | 无 Gradle 工程 | iOS v1 后再建 `mobile/android` |
 | P7 商店上架材料 | `[#---------] 10%` | 商店约束已核对 | 准备隐私政策、UGC 管理、截图、账号 |
 
-当前做到的位置：**P2 Mobile Web 已进入交付候选（含详情入口、完整回复树、Me 页主题/头像、气氛层、bot guard、reduced-motion），P3 框架矩阵完成；没有创建原生工程，后端 mobile token 仍未开始。**
+当前做到的位置：**P1 Web 生产前置已基本补齐，P2 Mobile Web 已进入交付候选（含详情入口、完整回复树、Me 页主题/头像、气氛层、bot guard、reduced-motion、上传校验、shared 数据部署），P3 框架矩阵完成；没有创建原生工程，后端 mobile token 仍未开始。**
 
 ## Mobile Web Phase A 完成记录
 
@@ -98,7 +98,7 @@ VITE_MOBILE_ROUTES_ENABLED=true
 
 ```powershell
 bun test
-# 85 pass, 0 fail
+# 91 pass, 0 fail
 
 cd client
 bun run lint

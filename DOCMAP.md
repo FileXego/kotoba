@@ -16,6 +16,7 @@ When you add a new component, API endpoint, capability, or visual change:
 | `README.md` | Features list, API table, Architecture diagram, Design section |
 | `LONGTODO.md` | Progress bars in the current-version section |
 | `future/NATIVE_APP_ROADMAP.md` | Progress bars, "当前做到的位置" line |
+| `future/ONLINE_PLAN.md` / `future/DEPLOY.md` | If launch or deployment behavior changed |
 | `AGENTS.md` | API table (if new endpoint), Schema section (if DB change), Architecture diagram |
 | `client/src/i18n.ts` | New UI keys → ja + zh entries |
 
@@ -64,7 +65,7 @@ When a roadmap phase is finished:
 | `future/NATIVE_APP_ROADMAP.md` | Native app progress | Mobile Web Phase A |
 | `future/APP_FRAMEWORKS_AND_CONSTRAINTS.md` | Framework matrix | Phase A checked |
 | `future/ONLINE_PLAN.md` | Production launch guide | Turbistile+CSP added |
-| `future/DEPLOY.md` | Deployment guide | (needs review — deploy.sh diverged) |
+| `future/DEPLOY.md` | Deployment guide | Shared data deploy script |
 | `COMPAT.md` | Compatibility | Stable |
 | `README.md` | Public face | Atmosphere + mobile + security |
 | `client/README.md` | Client boot notes | Not maintained — consider removing |

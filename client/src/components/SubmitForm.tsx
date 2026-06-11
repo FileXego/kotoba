@@ -19,7 +19,7 @@ export function SubmitForm({ lang, onSubmit, onImageUpload, loggedIn }: Props) {
     if (!content.trim()) return;
     setSending(true);
     try { await onSubmit(content.trim()); setContent(""); }
-    catch { alert(t(lang, "list.loadFail")); }
+    catch { alert(t(lang, "error.SUBMIT_FAIL")); }
     finally { setSending(false); }
   };
 

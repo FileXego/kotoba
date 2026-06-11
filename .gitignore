@@ -26,13 +26,18 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 sqlite.db
 sqlite.db-journal
 sqlite.db-wal
+sqlite.db-shm
 
 # uploads
 uploads/
 
 # test databases (temp files created by bun test)
 testbug/.test-*.db
+testbug/.test-*.db-wal
+testbug/.test-*.db-shm
 .test-*.db
+.test-*.db-wal
+.test-*.db-shm
 
 # caches
 .eslintcache

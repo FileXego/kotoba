@@ -46,6 +46,11 @@
 | 38 | 登录/注册错误全吞成"网络错误" | ⚙️ UI | ✅ |
 | 39 | like/bookmark toggle 前不检查 message 存在 | 🔇 静默 | ✅ |
 | 40 | 文档进度落后于代码实际进度 | 📋 同步 | ✅ |
+| 41 | Bun `--cwd` 参数顺序写错导致前端验证误跑根脚本 | 🔧 工程 | ✅ |
+| 42 | deploy.sh 版本目录绑定数据 + 硬编码仓库地址 | 🔴 部署 | ✅ |
+| 43 | 上传只信 MIME，伪装图片可落盘 | 🔒 安全 | ✅ |
+| 44 | 限频 bucket 按 IP 共享且不清理 | 🔇 静默 | ✅ |
+| 45 | 分页/路径 ID 边界过宽 | 🔒 安全 | ✅ |
 
 > 图例：✅已修复 ⚠️已知待修 N/A不适用
 
@@ -108,7 +113,7 @@
 
 **问题**：
 - `&&` 不被支持 → 用 `;` 或分两次 `bash` 调用
-- `cd client && bun run dev` 报错 → `bun run dev --cwd client`
+- `cd client && bun run dev` 报错 → `bun run --cwd client dev`
 - 后台任务：`Start-Job` + `Receive-Job` + `Remove-Job`
 - `&` 被解析为调用运算符 → 用 `Start-Job -ScriptBlock {}` 替代
 
@@ -433,7 +438,7 @@ import { unique } from "drizzle-orm/sqlite-core";
 
 **预防措施**：
 1. 钩子提取/代码迁移后 **必须** grep 源文件的 eslint-disable 注释，确认都跟过去了
-2. 本地验证增加一步：`bun run lint --cwd client`（不只用 `tsc -b`）
+2. 本地验证增加一步：`bun run --cwd client lint`（不只用 `tsc -b`）
 3. 动态 i18n key 用显式 Record 映射，不靠 `as any` 绕过
 
 ---
@@ -506,3 +511,63 @@ import { unique } from "drizzle-orm/sqlite-core";
 3. 批量更新 LONGTODO（70%→85%）、NATIVE_APP_ROADMAP（P1/P2 进度条）、WORKFLOW（1.0→2.1.0 描述）
 
 **预防**：每完成一个 feature 后，grep 所有 .md 文件中的进度标记，全部同步。
+
+---
+
+## 41. Bun `--cwd` 参数顺序写错
+
+**现象**：`bun run lint --cwd client` / `bun run build --cwd client` 在 Bun 1.3.11 下会去根 `package.json` 找 `lint/build`，不是进入 `client`。
+
+**根因**：把 `--cwd` 放在脚本名后面，Bun 将其作为脚本参数而非 run 参数。
+
+**修复**：文档和 CI 统一为 `bun run --cwd client lint` / `bun run --cwd client build`；根 `package.json` 增加 `lint:client`、`build:client`。
+
+**预防**：所有文档只保留一种 `--cwd` 写法。
+
+---
+
+## 42. deploy.sh 版本目录绑定数据 + 硬编码仓库地址
+
+**现象**：旧脚本按版本目录部署，但更新只复制 uploads，不复制 `sqlite.db`；切换 symlink 后可能看到空数据库。脚本和文档还硬编码了个人仓库 URL。
+
+**根因**：代码 release 与生产数据未解耦，部署脚本假设公开固定仓库。
+
+**修复**：改为 `/opt/kotoba/releases` + `/opt/kotoba/shared`；`.env`、`sqlite.db`、`uploads`、`backups` 全在 shared。仓库 URL 通过 `KOTOBA_REPO_URL` 或当前 git remote 推导，不写个人地址。
+
+**预防**：部署更新不得移动或重建生产数据目录；上线文档必须使用占位仓库 URL。
+
+---
+
+## 43. 上传只信 MIME，伪装图片可落盘
+
+**现象**：`Blob(["text"], { type: "image/png" })` 能通过原来的上传扩展名映射。
+
+**根因**：只检查 `file.type`，没有验证 PNG/JPEG/WebP 文件头。
+
+**修复**：新增 `src/lib/images.ts`，头像和普通上传都校验 MIME 与魔数一致；失败返回 `400 INVALID_FILE_TYPE`。
+
+**预防**：任何上传入口都必须复用同一套文件类型校验。
+
+---
+
+## 44. 限频 bucket 按 IP 共享且不清理
+
+**现象**：同一 IP 访问 `/api/messages` 会消耗登录/上传等其他端点的限频额度；大量不同 IP 会让 Map 长期增长。
+
+**根因**：bucket key 只有 IP，没有端点 scope，也没有过期清理。
+
+**修复**：bucket 改为 `scope:ip`，每分钟清理过期 bucket；生产读接口增加 JS cookie gate。
+
+**预防**：新增限频端点必须指定独立 scope。
+
+---
+
+## 45. 分页/路径 ID 边界过宽
+
+**现象**：`limit=999999`、负 offset、`/messages/1.5/like` 这类输入不会被统一收窄。
+
+**根因**：分页直接信任 query；路径 ID 只检查 NaN，没有检查正整数。
+
+**修复**：新增 `normalizePagination()` 和 `parsePositiveId()`；公开列表 limit 上限 50，管理列表上限 100，路径 ID 必须是正整数。
+
+**预防**：所有新列表端点都走分页 helper；所有路径 ID 都走 `parsePositiveId()`。

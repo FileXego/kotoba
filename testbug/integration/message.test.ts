@@ -249,6 +249,16 @@ describe("Messages", () => {
     expect(data.limit).toBe(1);
   });
 
+  it("GET /api/messages clamps negative offset and excessive limit", async () => {
+    const res = await app.handle(new Request("http://localhost/api/messages?offset=-5&limit=999"));
+    const data = (await res.json()) as Json;
+    expect(res.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(data.offset).toBe(0);
+    expect(data.limit).toBe(50);
+    expect((data.data as Array<unknown>).length).toBeLessThanOrEqual(50);
+  });
+
   // Test 12
   it("GET /api/messages with search → q=keyword finds message with that content", async () => {
 
@@ -321,6 +331,16 @@ describe("Messages", () => {
     expect(Array.isArray(data.data)).toBe(true);
     expect((data.data as Array<unknown>).length).toBe(1);
     expect((data.data as Array<Record<string, unknown>>)[0]!.id).toBe(lonelyMsgId);
+  });
+
+  it("GET /api/messages/:id/replies rejects non-positive and decimal ids", async () => {
+    for (const badId of ["0", "-1", "1.5"]) {
+      const res = await app.handle(new Request(`http://localhost/api/messages/${badId}/replies`));
+      const data = (await res.json()) as Json;
+      expect(res.status).toBe(400);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe("INVALID_ID");
+    }
   });
 
   // Test 16
@@ -537,6 +557,19 @@ describe("Messages", () => {
     expect(res.status).toBe(404);
     expect(data.success).toBe(false);
     expect(data.error).toBe("NOT_FOUND");
+  });
+
+  it("POST /api/messages/:id/like rejects decimal ids", async () => {
+    const res = await app.handle(
+      new Request("http://localhost/api/messages/1.5/like", {
+        method: "POST",
+        headers: { Cookie: cookie1! },
+      }),
+    );
+    const data = (await res.json()) as Json;
+    expect(res.status).toBe(422);
+    expect(data.success).toBe(false);
+    expect(data.error).toBe("INVALID_ID");
   });
 
   // ── POST /api/messages/:id/bookmark ─────────────────────────────────

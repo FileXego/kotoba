@@ -5,30 +5,30 @@ import { bookmarkRoute } from "./routes/bookmark";
 import { uploadRoute } from "./routes/upload";
 import { auth } from "./plugins/auth";
 import { admin } from "./plugins/admin";
+import { assetDir, clientIndexPath, serveLocalFile, uploadDir } from "./lib/files";
 
 export interface AppOptions {
   staticMode?: boolean;
 }
 
-function fileNameFromPath(request: Request, marker: string) {
-  const url = new URL(request.url);
-  const filename = url.pathname.split(marker)[1];
-  if (!filename || filename.includes("..")) return null;
-  return filename;
-}
+const UPLOAD_EXTS = new Set(["png", "jpg", "jpeg", "webp"]);
+const ASSET_EXTS = new Set(["css", "js", "map", "png", "jpg", "jpeg", "webp", "svg", "ico", "woff", "woff2"]);
 
 export function createApp(options: AppOptions = {}) {
   const app = new Elysia({
     sanitize: (value) => (typeof value === "string" ? Bun.escapeHTML(value) : value),
   })
-    .state("csp", "default-src 'self'; script-src 'self' https://challenges.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-src https://challenges.cloudflare.com; connect-src 'self'")
+    .state("csp", "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-src https://challenges.cloudflare.com; connect-src 'self'")
     .onAfterHandle(({ set, store: { csp } }) => {
       set.headers["Content-Security-Policy"] = csp;
+      set.headers["X-Content-Type-Options"] = "nosniff";
+      set.headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+      set.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
     })
     .onError(({ code, status, error }) => {
       if (code === "VALIDATION") return status(422, { success: false, error: "VALIDATION" });
       if (code === "NOT_FOUND") return status(404, { success: false, error: "NOT_FOUND" });
-      console.error(error);
+      console.error("Unhandled request error:", error instanceof Error ? `${error.name}: ${error.message}` : String(error));
       return status(500, { success: false, error: "INTERNAL_ERROR" });
     })
     .use(rateLimiter)
@@ -38,26 +38,18 @@ export function createApp(options: AppOptions = {}) {
     .use(bookmarkRoute)
     .use(uploadRoute)
     .get("/api/health", () => ({ success: true, version: "2.1.0" }))
-    .get("/uploads/*", async ({ request, status }) => {
-      const filename = fileNameFromPath(request, "/uploads/");
-      if (!filename) return status(403, { success: false, error: "FORBIDDEN" });
-      const file = Bun.file(`./uploads/${filename}`);
-      if (!(await file.exists())) return status(404, { success: false, error: "NOT_FOUND" });
-      return file;
-    });
+    .get("/uploads/*", async ({ request, status }) =>
+      serveLocalFile(request, status, "/uploads/", uploadDir, UPLOAD_EXTS)
+    );
 
   if (!options.staticMode) {
     return app.get("/", () => "ElysiaJS is running!");
   }
 
   return app
-    .get("/assets/*", async ({ request, status }) => {
-      const filename = fileNameFromPath(request, "/assets/");
-      if (!filename) return status(403, { success: false, error: "FORBIDDEN" });
-      const file = Bun.file(`./client/dist/assets/${filename}`);
-      if (!(await file.exists())) return status(404, { success: false, error: "NOT_FOUND" });
-      return file;
-    })
+    .get("/assets/*", async ({ request, status }) =>
+      serveLocalFile(request, status, "/assets/", assetDir, ASSET_EXTS)
+    )
     .get("/api/*", ({ status }) => status(404, { success: false, error: "NOT_FOUND" }))
-    .get("*", () => Bun.file("./client/dist/index.html"));
+    .get("*", () => Bun.file(clientIndexPath));
 }

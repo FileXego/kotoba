@@ -4,12 +4,18 @@ After=network.target
 
 [Service]
 Type=simple
-User=www-data
-WorkingDirectory=/opt/kotoba
+User=kotoba
+Group=kotoba
+WorkingDirectory=/opt/kotoba/current
+EnvironmentFile=/opt/kotoba/shared/.env
 ExecStart=/usr/local/bin/bun run src/start.ts
 Restart=always
 RestartSec=5
 Environment=NODE_ENV=production
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/opt/kotoba/shared
 
 [Install]
 WantedBy=multi-user.target

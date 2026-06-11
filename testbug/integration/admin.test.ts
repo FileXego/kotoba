@@ -273,4 +273,18 @@ describe("Admin", () => {
     expect(data.success).toBe(false);
     expect(data.error).toBe("SELF_ADMIN");
   });
+
+  it("returns 404 when toggling admin for a non-existent user", async () => {
+    const res = await app.handle(
+      new Request("http://localhost/api/admin/users/999999/admin", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: adminCookie! },
+        body: JSON.stringify({ admin: true }),
+      }),
+    );
+    expect(res.status).toBe(404);
+    const data = (await res.json()) as Json;
+    expect(data.success).toBe(false);
+    expect(data.error).toBe("NOT_FOUND");
+  });
 });
