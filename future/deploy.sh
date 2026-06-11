@@ -64,7 +64,8 @@ ensure_env_file() {
   fi
 
   sudo touch "$ENV_FILE"
-  sudo grep -q '^DB_PATH=' "$ENV_FILE" || echo "DB_PATH=$DB_PATH" | sudo tee -a "$ENV_FILE" >/dev/null
+  # Ensure DB_PATH uses the shared absolute path (not a release-relative default)
+  sudo sed -i "s|^DB_PATH=.*|DB_PATH=$DB_PATH|" "$ENV_FILE"
   sudo grep -q '^UPLOAD_DIR=' "$ENV_FILE" || echo "UPLOAD_DIR=$UPLOAD_DIR" | sudo tee -a "$ENV_FILE" >/dev/null
 
   if sudo grep -Eq '^COOKIE_SECRET=(dev-secret|dev-secret-change-me)?$' "$ENV_FILE"; then
