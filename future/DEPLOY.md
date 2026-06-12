@@ -57,6 +57,7 @@ nano /opt/kotoba/shared/.env
 COOKIE_SECRET=<openssl rand -hex 32>
 TURNSTILE_SECRET=<Cloudflare Turnstile secret key>
 VITE_TURNSTILE_SITEKEY=<Cloudflare Turnstile site key>
+VITE_MOBILE_ROUTES_ENABLED=true
 DB_PATH=/opt/kotoba/shared/sqlite.db
 UPLOAD_DIR=/opt/kotoba/shared/uploads
 ```

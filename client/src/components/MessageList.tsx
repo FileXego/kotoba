@@ -6,6 +6,7 @@ interface Props {
   lang: Lang; messages: Message[]; total: number;
   loading: boolean; loadingMore: boolean; error: string | null;
   replyTrees: Record<number, Message[]>; loadingReplies: Set<number>;
+  replyErrors: Record<number, string>;
   currentUser: User | null; likedIds: Set<number>; bookmarkedIds: Set<number>;
   onUpdate: (id: number, data: { content?: string; deleted?: number }) => Promise<void>;
   onLoadReplies: (rootId: number) => void; onLoadMore: () => void;
@@ -16,7 +17,7 @@ interface Props {
 
 export function MessageList({
   lang, messages, total, loading, loadingMore, error,
-  replyTrees, loadingReplies, currentUser, likedIds, bookmarkedIds,
+  replyTrees, loadingReplies, replyErrors, currentUser, likedIds, bookmarkedIds,
   onUpdate, onLoadReplies, onLoadMore, onSubmitReply,
   onToggleLike, onToggleBookmark, onOpenThread,
 }: Props) {
@@ -32,6 +33,7 @@ export function MessageList({
         {messages.map((msg) => (
           <MessageCard key={msg.id} lang={lang} message={msg}
             replies={replyTrees[msg.id] ?? null} loadingReplies={loadingReplies.has(msg.id)}
+            replyLoadError={replyErrors[msg.id]}
             currentUser={currentUser} likedIds={likedIds} bookmarkedIds={bookmarkedIds}
             onUpdate={onUpdate} onLoadReplies={onLoadReplies} onSubmitReply={onSubmitReply}
             onToggleLike={onToggleLike} onToggleBookmark={onToggleBookmark}

@@ -51,6 +51,7 @@
 | 43 | 上传只信 MIME，伪装图片可落盘 | 🔒 安全 | ✅ |
 | 44 | 限频 bucket 按 IP 共享且不清理 | 🔇 静默 | ✅ |
 | 45 | 分页/路径 ID 边界过宽 | 🔒 安全 | ✅ |
+| 46 | 移动端 CSS 覆盖顺序 + `.app` 容器未挂载 | ⚙️ UI | ✅ |
 
 > 图例：✅已修复 ⚠️已知待修 N/A不适用
 
@@ -571,3 +572,23 @@ import { unique } from "drizzle-orm/sqlite-core";
 **修复**：新增 `normalizePagination()` 和 `parsePositiveId()`；公开列表 limit 上限 50，管理列表上限 100，路径 ID 必须是正整数。
 
 **预防**：所有新列表端点都走分页 helper；所有路径 ID 都走 `parsePositiveId()`。
+
+---
+
+## 46. 移动端 CSS 覆盖顺序 + `.app` 容器未挂载
+
+**现象**：`VITE_MOBILE_ROUTES_ENABLED=true` 后，375px 宽度下底部导航仍是 `display: none`；详情页返回按钮和消息卡片贴到屏幕左边，时间文本容易顶到边缘。
+
+**根因**：
+
+- `styles.css` 中移动断点先写了 `.mobile-nav { display: grid; }`，但后面的 base `.mobile-nav { display: none; }` 又把它覆盖。
+- CSS 定义了 `.app` 的最大宽度和页面 padding，但 React 根组件没有实际渲染 `.app` 容器，导致布局钩子不存在。
+
+**修复**：
+
+- `App.tsx` 重新挂载 `.app` 容器，底部导航保持 fixed 层级。
+- 移动端覆盖规则追加到 base rule 之后，并用 `.mobile-shell .mobile-nav` 提高特异性。
+- `index.html` 增加 `viewport-fit=cover`，移动端 safe-area padding 才能生效。
+- 浏览器复核 375 / 390 / 430 宽度：底部导航为 `grid`，无横向溢出，页面内容不被底部导航遮挡。
+
+**预防**：新增布局 class 后必须确认 JSX 真实挂载；响应式 `display/position/padding` 覆盖不能只看 CSS 文件，必须用浏览器 computed style 验证。

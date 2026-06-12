@@ -12,7 +12,7 @@
 - 4 theme presets (Washi / Night / Sumi / Sakura) with per-theme atmosphere layers
 - Avatar upload + personal signature
 - Ink-wash theme transition animation
-- Mobile web support — responsive layout, bottom navigation, thread detail entry, full reply tree, profile page
+- Mobile web support — responsive shell, bottom navigation, thread detail, bookmarks, profile, admin-safe compact views, and safe-area spacing
 - Japanese / Chinese bilingual UI
 - User accounts (sign up / sign in)
 - Turnstile CAPTCHA on registration
@@ -65,6 +65,7 @@ bun run --cwd client dev     # Frontend → http://localhost:5173
 | `COOKIE_SECRET` | Yes in production | Random string for session cookie signing |
 | `TURNSTILE_SECRET` | For CAPTCHA | Cloudflare Turnstile secret key |
 | `VITE_TURNSTILE_SITEKEY` | For CAPTCHA UI | Cloudflare Turnstile site key, read by Vite from root `.env` |
+| `VITE_MOBILE_ROUTES_ENABLED` | For mobile launch | Enables mobile bottom navigation, thread detail, and profile routes when set to `true` |
 | `DB_PATH` | Production recommended | SQLite database path |
 | `UPLOAD_DIR` | Production recommended | Persistent upload directory |
 
@@ -115,6 +116,7 @@ Production deployment keeps releases and data separate: code lives under `/opt/k
 - **Atmosphere layers**: per-theme CSS-only `radial-gradient` effects — gold dust (light/sakura), night stars + moon (dark), silver star field (sumi) — deterministic scatter, no runtime random, gated by `prefers-reduced-motion`
 - **Ink-wash theme transition**: `clip-path` ellipse spread + `mix-blend-mode: difference`, four ink palettes (light/dark/sumi/sakura)
 - **Asymmetric border-radius**: `2px 8px 2px 8px` evokes brush-stroke edges
+- **Mobile composition**: constrained paper column, thumb-reachable bottom navigation, compact cards, bottom-sheet replies, and `viewport-fit=cover` safe-area spacing
 - **Fonts**: `Noto Serif JP` (display) + `Noto Sans SC` (body)
 
 ## i18n

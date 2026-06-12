@@ -16,22 +16,28 @@ export function MobileBottomNav({ lang, route, navigate, onComposeFocus }: Props
   return (
     <nav className="mobile-nav" aria-label={t(lang, "nav.mobile")}>
       <button
+        type="button"
         className={`mobile-nav-btn ${route === "/" ? "active" : ""}`}
+        aria-current={route === "/" ? "page" : undefined}
         onClick={() => navigate("/")}
       >
         {t(lang, "nav.home")}
       </button>
       <button
+        type="button"
         className={`mobile-nav-btn ${route === "/bookmarks" ? "active" : ""}`}
+        aria-current={route === "/bookmarks" ? "page" : undefined}
         onClick={() => navigate("/bookmarks")}
       >
         {t(lang, "nav.saved")}
       </button>
-      <button className="mobile-nav-btn" onClick={onComposeFocus}>
+      <button type="button" className="mobile-nav-btn mobile-nav-compose" onClick={onComposeFocus}>
         {t(lang, "nav.write")}
       </button>
       <button
+        type="button"
         className={`mobile-nav-btn ${route === "/me" ? "active" : ""}`}
+        aria-current={route === "/me" ? "page" : undefined}
         onClick={() => navigate("/me")}
       >
         {t(lang, "nav.me")}

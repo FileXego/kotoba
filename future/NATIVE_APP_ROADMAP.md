@@ -1,6 +1,6 @@
 # Kotoba 原生 App 路线与进度
 
-> 日期：2026-06-09  
+> 日期：2026-06-13
 > 状态：长期路线 + 当前进度台账。本文不创建 iOS/Android 工程，不改后端认证，不引入依赖。
 
 ## 当前结论
@@ -41,14 +41,14 @@
 |---|---:|---|---|
 | P0 文档和约束盘点 | `[##########] 100%` | 已完成本轮读取和冲突整理 | 后续只维护增量 |
 | P1 Web 生产前置 | `[#########-] 95%` | Turnstile sitekey 已源码化、上线方案已写、bot guard、CSP、安全头、上传魔数校验、shared 数据部署已补齐 | 真机复核、首台 VPS 实部署 |
-| P2 Mobile Web/PWA | `[#########-] 95%` | Mobile Web 交付候选：路由、导航、Thread/Me、详情入口、完整回复树、safe-area、reduced-motion、气氛层、bot guard、Turnstile env、上线加固 | 真机 375/390/430 宽度复核、PWA icon 决策 |
+| P2 Mobile Web/PWA | `[##########] 100%` | Mobile Web 可上线候选：路由、底部导航、Thread/Bookmarks/Me/Admin、详情入口、完整回复树、safe-area、触控目标、状态反馈、bot guard、Turnstile env、上线加固 | 真机 Safari/Chrome 复核、PWA icon 决策 |
 | P3 原生 App 架构设计 | `[#####-----] 45%` | 框架矩阵、iOS/Android 结构、App v1 范围已完成文档化 | 写移动端认证 ADR |
 | P4 后端 mobile token | `[----------] 0%` | 现有 Web cookie 可用；App token 未实现 | 决定 `@elysia/jwt` 依赖例外或 Bun/WebCrypto signed token |
 | P5 iOS SwiftUI App | `[----------] 0%` | 无 Xcode 工程 | 等 P4 后建 `mobile/ios` |
 | P6 Android Compose App | `[----------] 0%` | 无 Gradle 工程 | iOS v1 后再建 `mobile/android` |
 | P7 商店上架材料 | `[#---------] 10%` | 商店约束已核对 | 准备隐私政策、UGC 管理、截图、账号 |
 
-当前做到的位置：**P1 Web 生产前置已基本补齐，P2 Mobile Web 已进入交付候选（含详情入口、完整回复树、Me 页主题/头像、气氛层、bot guard、reduced-motion、上传校验、shared 数据部署），P3 框架矩阵完成；没有创建原生工程，后端 mobile token 仍未开始。**
+当前做到的位置：**P1 Web 生产前置已基本补齐，P2 Mobile Web 已进入可上线候选（含详情入口、完整回复树、收藏、Me 页、Admin 窄屏、底部导航、safe-area、触控目标、状态反馈、气氛层、bot guard、reduced-motion、上传校验、shared 数据部署），P3 框架矩阵完成；没有创建原生工程，后端 mobile token 仍未开始。**
 
 ## Mobile Web Phase A 完成记录
 
@@ -77,6 +77,20 @@
 | Me 页 | 主题色块选择指定主题；Me 页 JSX class 与 CSS 对齐 |
 | 头像 | 前端限制改为 256KB，与 `PATCH /api/auth/avatar` 后端一致 |
 | 底部导航 | CSS 默认隐藏，`max-width: 640px` 才显示 fixed bottom nav |
+
+### 2026-06-13 上线前移动 UX 补齐
+
+| 项目 | 结果 |
+|---|---|
+| 页面容器 | `App.tsx` 重新挂载 `.app` 容器，移动/桌面都恢复最大宽度与页面 padding |
+| 底部导航 | 修复 CSS 顺序覆盖，`VITE_MOBILE_ROUTES_ENABLED=true` 下底部导航显示为 grid |
+| 手机阅读节奏 | 首屏压缩 header/search/composer，卡片 16px 纸面间距，作者/时间不再贴边 |
+| Thread | 增加 topbar，`nav.home` / `nav.back` 文案拆分；详情页不再左侧裁切 |
+| Reply | 移动端回复表单改为底部 sheet，桌面保留 inline |
+| Bookmarks | 收藏卡片可进入详情、回复、编辑/删除后刷新；未登录显示登录提示 |
+| Me | 增加身份卡、头像/签名/主题状态反馈，去掉阻断式 alert |
+| Admin | 窄屏 tabs/list/action 保持密集可用，不做高动效 |
+| Safe area | `viewport-fit=cover` + bottom nav/page padding 已接入 |
 
 ### 开关状态
 
@@ -117,11 +131,24 @@ bun run build
 # pass；Vite dynamic/static import warning 仍为既有非阻断警告
 ```
 
-### 仍需人工复核
+2026-06-13 移动 UX 复验：
 
-- 375 x 812。
-- 390 x 844。
-- 430 x 932。
+```powershell
+bun run --cwd client lint
+bun run --cwd client build
+# pass；Vite dynamic/static import warning 仍为既有非阻断警告
+```
+
+浏览器自动复核：
+
+| 视口 | 结果 |
+|---|---|
+| 375 x 812 | 底部导航 `display:grid`，无横向溢出，首页首屏截图通过 |
+| 390 x 844 | 底部导航 `display:grid`，无横向溢出 |
+| 430 x 932 | 底部导航 `display:grid`，无横向溢出 |
+
+### 仍需真机人工复核
+
 - iOS safe-area 底部不遮挡最后一张卡片。
 - Android back 行为：非 Home 页面回 Home。
 - `prefers-reduced-motion` 下动效降级。

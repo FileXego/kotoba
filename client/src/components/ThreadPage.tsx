@@ -68,9 +68,12 @@ export function ThreadPage({
 
   return (
     <div className="thread-page">
-      <button className="thread-back" onClick={onBack}>
-        {t(lang, "nav.home")}
-      </button>
+      <div className="thread-topbar">
+        <button type="button" className="thread-back" onClick={onBack}>
+          {t(lang, "nav.back")}
+        </button>
+        <h2 className="thread-title">{t(lang, "thread.title")}</h2>
+      </div>
       <MessageCard
         lang={lang} message={rootMsg} replies={replies}
         loadingReplies={false} currentUser={currentUser}

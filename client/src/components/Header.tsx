@@ -77,28 +77,30 @@ export function Header({ theme, lang, onToggleTheme, onToggleLang, user, onUserC
   return (
     <header className="header">
       <div className="header-toggles">
-        <button className="theme-toggle" onClick={(e) => onToggleTheme(e.clientX, e.clientY)}
+        <button type="button" className="theme-toggle" onClick={(e) => onToggleTheme(e.clientX, e.clientY)}
           aria-label={t(lang, themeKeys[nextTheme(theme)])}
           title={t(lang, themeKeys[nextTheme(theme)])}>
           {theme === "light" ? "☀" : theme === "dark" ? "☾" : theme === "sumi" ? "墨" : "桜"}
         </button>
-        <button className="lang-toggle" onClick={onToggleLang}
+        <button type="button" className="lang-toggle" onClick={onToggleLang}
           aria-label={t(lang, lang === "ja" ? "lang.zh" : "lang.ja")}>
           {lang === "ja" ? "中" : "日"}
         </button>
       </div>
-      <h1 className="header-title" onClick={onHomeClick} style={{ cursor: "pointer" }}>{t(lang, "app.title")}</h1>
+      <button type="button" className="header-title-button" onClick={onHomeClick}>
+        <span className="header-title">{t(lang, "app.title")}</span>
+      </button>
       <p className="header-sub">{t(lang, "app.subtitle")}</p>
       <div className="auth-area">
         {user ? (
           <div className="auth-user">
             <span className="auth-username">{user.username}</span>
-            <button className="auth-btn" onClick={onBookmarksClick}>{t(lang, "bookmarks.title")}</button>
-            {user.isAdmin ? <button className="auth-btn admin-link" onClick={onAdminClick}>{t(lang, "admin.title")}</button> : null}
-            <button className="auth-btn" onClick={handleSignOut}>{t(lang, "auth.logout")}</button>
+            <button type="button" className="auth-btn auth-bookmarks-btn" onClick={onBookmarksClick}>{t(lang, "bookmarks.title")}</button>
+            {user.isAdmin ? <button type="button" className="auth-btn admin-link" onClick={onAdminClick}>{t(lang, "admin.title")}</button> : null}
+            <button type="button" className="auth-btn auth-logout-btn" onClick={handleSignOut}>{t(lang, "auth.logout")}</button>
           </div>
         ) : (
-          <button className="auth-btn" onClick={() => setShowAuth(!showAuth)}>
+          <button type="button" className="auth-btn" onClick={() => setShowAuth(!showAuth)}>
             {showAuth ? t(lang, "auth.close") : t(lang, "auth.login")}
           </button>
         )}

@@ -77,12 +77,28 @@ html {
   -webkit-font-smoothing: antialiased;
 }
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 body {
   font-family: var(--font-body);
   color: var(--text);
   background-color: var(--bg);
   min-height: 100vh;
   line-height: 1.8;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ===== Washi Paper Texture ===== */
@@ -184,7 +200,7 @@ body::before {
 
 /* ===== Layout ===== */
 .app {
-  max-width: var(--max-width);
+  width: min(100%, var(--max-width));
   margin: 0 auto;
   padding: 3rem 1.5rem 6rem;
 }
@@ -196,12 +212,22 @@ body::before {
 }
 
 .header-title {
+  display: block;
   font-family: var(--font-display);
   font-size: 2.5rem;
   font-weight: 700;
   letter-spacing: 0.15em;
   color: var(--text);
   margin-bottom: 0.25rem;
+}
+
+.header-title-button {
+  display: inline-block;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
 }
 
 .header-sub {
@@ -339,6 +365,14 @@ body::before {
   box-shadow: var(--shadow-sm);
   position: relative;
   transition: box-shadow 0.3s;
+}
+
+.message-card[data-depth="1"] {
+  margin-left: 2rem;
+}
+
+.message-card[data-depth="2"] {
+  margin-left: 4rem;
 }
 
 .message-card:hover {
@@ -884,6 +918,14 @@ body::before {
   gap: 0.75rem;
 }
 
+.file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .upload-btn {
   display: flex; align-items: center; justify-content: center;
   width: 2.5rem; height: 2.5rem; font-size: 1.2rem;
@@ -923,6 +965,10 @@ body::before {
 .inline-reply-form {
   margin-top: 0.75rem; padding-top: 0.75rem;
   border-top: 1px solid var(--border);
+}
+
+.reply-sheet-backdrop {
+  display: none;
 }
 .reply-input, .reply-textarea {
   display: block; width: 100%; font-family: var(--font-body);
@@ -1130,6 +1176,64 @@ body::before {
   margin-bottom: 2rem;
 }
 
+.me-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.me-profile-card .avatar {
+  width: 3rem;
+  height: 3rem;
+  font-size: 1.2rem;
+}
+
+.me-profile-copy {
+  min-width: 0;
+}
+
+.me-profile-copy h3 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.me-profile-copy p,
+.me-profile-copy span {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.me-status {
+  margin-bottom: 0.75rem;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 2px 6px 2px 6px;
+  background: var(--card-bg);
+}
+
+.me-status.ok {
+  color: var(--accent-subtle);
+}
+
+.me-status.error {
+  color: var(--accent);
+}
+
 .me-avatar-section {
   display: flex;
   flex-direction: column;
@@ -1316,4 +1420,425 @@ body::before {
   font-family: var(--font-display);
   font-size: 1rem;
   letter-spacing: 0.1em;
+}
+
+/* ===== Mobile UX Refinement ===== */
+@media (max-width: 640px) {
+  body {
+    line-height: 1.65;
+    overflow-x: hidden;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 30rem;
+    padding: calc(1.25rem + env(safe-area-inset-top, 0px)) 1rem calc(6.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobile-shell {
+    min-height: 100vh;
+    padding-bottom: 0;
+  }
+
+  .header {
+    position: relative;
+    margin-bottom: 1.1rem;
+    padding-top: 0.25rem;
+  }
+
+  .header-title-button {
+    max-width: calc(100% - 6rem);
+  }
+
+  .header-title {
+    font-size: 1.78rem;
+    letter-spacing: 0.12em;
+  }
+
+  .header-sub {
+    font-size: 0.68rem;
+    letter-spacing: 0.22em;
+  }
+
+  .header-line {
+    margin-top: 0.9rem;
+  }
+
+  .header-toggles {
+    top: 0;
+    right: 0;
+    gap: 0.2rem;
+  }
+
+  .theme-toggle,
+  .lang-toggle {
+    display: grid;
+    place-items: center;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 2px 6px 2px 6px;
+  }
+
+  .auth-area {
+    margin-top: 0.65rem;
+  }
+
+  .auth-user {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .auth-username {
+    max-width: 12rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-shell .auth-bookmarks-btn,
+  .mobile-shell .auth-logout-btn {
+    display: none;
+  }
+
+  .auth-btn,
+  .auth-submit,
+  .auth-tab {
+    min-height: 38px;
+  }
+
+  .auth-form {
+    margin-top: 0.85rem;
+    padding: 0.9rem;
+    border: 1px solid var(--border);
+  }
+
+  .search-input {
+    width: 100%;
+    margin-bottom: 1rem;
+    padding: 0.75rem 0;
+    font-size: 1rem;
+  }
+
+  .submit-form {
+    margin-bottom: 1.25rem;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .submit-form textarea {
+    min-height: 3.35rem;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+  }
+
+  .form-actions {
+    align-items: stretch;
+  }
+
+  .submit-btn {
+    flex: 1;
+    min-height: 44px;
+  }
+
+  .form-error {
+    margin-bottom: 0.75rem;
+  }
+
+  .list-header {
+    margin: 1rem 0 0.75rem;
+    padding-bottom: 0.6rem;
+  }
+
+  .message-list {
+    gap: 1rem;
+  }
+
+  .message-card {
+    margin-left: 0;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 2px 7px 2px 7px;
+  }
+
+  .message-card[data-depth="1"] {
+    margin-left: 0.75rem;
+  }
+
+  .message-card[data-depth="2"] {
+    margin-left: 1rem;
+    padding: 0.85rem;
+  }
+
+  .card-header {
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    gap: 0.65rem;
+  }
+
+  .avatar {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .card-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .card-time {
+    max-width: 8.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.68rem;
+  }
+
+  .card-content {
+    font-size: 0.95rem;
+    line-height: 1.75;
+  }
+
+  .card-actions {
+    gap: 0.35rem;
+    row-gap: 0.3rem;
+  }
+
+  .action-btn {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0.45rem;
+    border-radius: 2px 6px 2px 6px;
+  }
+
+  .owner-btn,
+  .thread-link-btn,
+  .reply-btn,
+  .toggle-replies-btn,
+  .expand-link {
+    min-width: auto;
+    padding: 0.45rem 0.35rem;
+  }
+
+  .owner-btn {
+    margin-left: 0;
+  }
+
+  .card-actions .thread-link-btn {
+    margin-left: auto;
+  }
+
+  .card-action-error {
+    margin-top: 0.5rem;
+  }
+
+  .reply-tree {
+    margin-top: 0.65rem;
+  }
+
+  .reply-sheet-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0 0 calc(4.75rem + env(safe-area-inset-bottom, 0px)) 0;
+    z-index: 108;
+    background: rgba(0, 0, 0, 0.22);
+    border: none;
+  }
+
+  .inline-reply-form {
+    position: fixed;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: calc(4.95rem + env(safe-area-inset-bottom, 0px));
+    z-index: 120;
+    margin: 0;
+    padding: 1rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px 10px 4px 10px;
+    box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.22);
+  }
+
+  .reply-textarea {
+    min-height: 5rem;
+    line-height: 1.65;
+  }
+
+  .reply-form-actions {
+    justify-content: space-between;
+  }
+
+  .thread-page {
+    padding-bottom: 1rem;
+  }
+
+  .thread-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.7rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .thread-title {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    letter-spacing: 0.12em;
+  }
+
+  .thread-back {
+    min-height: 40px;
+    margin-bottom: 0;
+    padding: 0.35rem 0;
+  }
+
+  .me-page {
+    max-width: none;
+  }
+
+  .me-title {
+    text-align: left;
+    margin-bottom: 1rem;
+  }
+
+  .me-profile-card {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .me-profile-card .avatar {
+    width: 3rem;
+    height: 3rem;
+    font-size: 1.2rem;
+  }
+
+  .me-profile-copy {
+    min-width: 0;
+  }
+
+  .me-profile-copy h3 {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 400;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .me-profile-copy p,
+  .me-profile-copy span {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .me-status {
+    margin-bottom: 0.75rem;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 2px 6px 2px 6px;
+    background: var(--card-bg);
+  }
+
+  .me-status.ok {
+    color: var(--accent-subtle);
+  }
+
+  .me-status.error {
+    color: var(--accent);
+  }
+
+  .me-section {
+    padding: 1rem 0;
+  }
+
+  .me-avatar-row {
+    justify-content: space-between;
+  }
+
+  .me-input {
+    line-height: 1.65;
+  }
+
+  .me-theme-swatches {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+
+  .me-theme-swatch {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    max-height: 3rem;
+  }
+
+  .admin-panel {
+    padding: 1rem;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .admin-header {
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .admin-meta {
+    display: block;
+    margin-left: 0;
+    margin-top: 0.15rem;
+  }
+
+  .admin-actions {
+    flex-wrap: wrap;
+  }
+
+  .mobile-shell .mobile-nav {
+    display: grid;
+  }
+
+  .mobile-nav {
+    min-height: calc(4.45rem + env(safe-area-inset-bottom, 0px));
+    padding: 0.45rem 0.75rem calc(0.55rem + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.08);
+  }
+
+  .mobile-nav-btn {
+    position: relative;
+    min-height: 44px;
+    border-radius: 2px 6px 2px 6px;
+    font-size: 0.76rem;
+  }
+
+  .mobile-nav-btn.active::before {
+    content: "";
+    position: absolute;
+    top: 0.22rem;
+    left: 50%;
+    width: 1.35rem;
+    height: 2px;
+    background: var(--accent);
+    transform: translateX(-50%);
+  }
+
+  .mobile-nav-compose {
+    color: var(--accent);
+  }
 }

@@ -49,6 +49,7 @@ export function useMessageFeed(
     try {
       const replies = await fetchReplies(rootId);
       setReplyTrees(prev => ({ ...prev, [rootId]: replies.data }));
+      setReplyErrors(prev => { const next = { ...prev }; delete next[rootId]; return next; });
     } catch {
       console.error("Failed to load replies for", rootId);
       setReplyErrors(prev => ({ ...prev, [rootId]: t(lang, "list.loadFail") }));

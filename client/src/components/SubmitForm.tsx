@@ -1,4 +1,4 @@
-import { useState, useRef, type FormEvent } from "react";
+import { useState, useRef, type ChangeEvent, type FormEvent } from "react";
 import { t, type Lang } from "../i18n";
 
 interface Props {
@@ -12,26 +12,33 @@ export function SubmitForm({ lang, onSubmit, onImageUpload, loggedIn }: Props) {
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
+    setError("");
     setSending(true);
     try { await onSubmit(content.trim()); setContent(""); }
-    catch { alert(t(lang, "error.SUBMIT_FAIL")); }
+    catch { setError(t(lang, "error.SUBMIT_FAIL")); }
     finally { setSending(false); }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) return alert(t(lang, "form.imageToolarge"));
+    setError("");
+    if (file.size > 2 * 1024 * 1024) {
+      setError(t(lang, "form.imageToolarge"));
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     setUploading(true);
     try {
       const url = await onImageUpload(file);
       setContent((prev) => prev + (prev ? "\n" : "") + `[image:${url}]`);
-    } catch { alert(t(lang, "form.imageFail")); }
+    } catch { setError(t(lang, "form.imageFail")); }
     finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = ""; }
   };
 
@@ -44,9 +51,11 @@ export function SubmitForm({ lang, onSubmit, onImageUpload, loggedIn }: Props) {
       <label htmlFor="content">{t(lang, "form.thought")}</label>
       <textarea id="content" value={content} onChange={(e) => setContent(e.target.value)}
         maxLength={500} placeholder={t(lang, "form.placeholder")} required />
+      {error && <p className="auth-error form-error">{error}</p>}
       <div className="form-actions">
-        <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageUpload} style={{ display: "none" }} />
-        <button type="button" className="upload-btn" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+        <input ref={fileInputRef} className="file-input" type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageUpload} />
+        <button type="button" className="upload-btn" aria-label={t(lang, "form.uploadImage")}
+          title={t(lang, "form.uploadImage")} onClick={() => fileInputRef.current?.click()} disabled={uploading}>
           {uploading ? "···" : "🖼"}
         </button>
         <button type="submit" className="submit-btn" disabled={sending || uploading}>

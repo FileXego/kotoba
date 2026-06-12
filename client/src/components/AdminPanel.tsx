@@ -35,11 +35,11 @@ export function AdminPanel({ lang, onClose }: { lang: Lang; onClose: () => void 
     <div className="admin-panel">
       <div className="admin-header">
         <h2>{t(lang, "admin.title")}</h2>
-        <button className="auth-btn" onClick={onClose}>{t(lang, "admin.close")}</button>
+        <button type="button" className="auth-btn" onClick={onClose}>{t(lang, "admin.close")}</button>
       </div>
       <div className="auth-tabs">
-        <button className={`auth-tab ${tab === "messages" ? "active" : ""}`} onClick={() => setTab("messages")}>{t(lang, "admin.messages")}</button>
-        <button className={`auth-tab ${tab === "users" ? "active" : ""}`} onClick={() => setTab("users")}>{t(lang, "admin.users")}</button>
+        <button type="button" className={`auth-tab ${tab === "messages" ? "active" : ""}`} onClick={() => setTab("messages")}>{t(lang, "admin.messages")}</button>
+        <button type="button" className={`auth-tab ${tab === "users" ? "active" : ""}`} onClick={() => setTab("users")}>{t(lang, "admin.users")}</button>
       </div>
       {loading && <div className="loading">{t(lang, "list.loading")}</div>}
       {error && <div className="error-msg">{error}</div>}
@@ -51,7 +51,7 @@ export function AdminPanel({ lang, onClose }: { lang: Lang; onClose: () => void 
               <div className="admin-content">{m.content.slice(0, 100)}</div>
               {m.deleted ? (
                 <div className="admin-actions">
-                  <button className="auth-btn" onClick={() => restore(m.id)}>{t(lang, "admin.restore")}</button>
+                  <button type="button" className="auth-btn" onClick={() => restore(m.id)}>{t(lang, "admin.restore")}</button>
                 </div>
               ) : null}
             </div>
@@ -65,9 +65,9 @@ export function AdminPanel({ lang, onClose }: { lang: Lang; onClose: () => void 
               <div><strong>{u.username}</strong> <span className="admin-meta">{u.email}</span></div>
               <div className="admin-actions">
                 {u.isAdmin ? (
-                  <button className="auth-btn" onClick={() => toggleAdmin(u.id, false)}>{t(lang, "admin.removeAdmin")}</button>
+                  <button type="button" className="auth-btn" onClick={() => toggleAdmin(u.id, false)}>{t(lang, "admin.removeAdmin")}</button>
                 ) : (
-                  <button className="auth-btn" onClick={() => toggleAdmin(u.id, true)}>{t(lang, "admin.makeAdmin")}</button>
+                  <button type="button" className="auth-btn" onClick={() => toggleAdmin(u.id, true)}>{t(lang, "admin.makeAdmin")}</button>
                 )}
               </div>
             </div>

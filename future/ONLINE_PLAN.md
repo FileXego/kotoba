@@ -81,6 +81,7 @@ bun run src/start.ts
 COOKIE_SECRET=<openssl rand -hex 32>
 TURNSTILE_SECRET=<Cloudflare Turnstile secret key>
 VITE_TURNSTILE_SITEKEY=<Cloudflare Turnstile site key>
+VITE_MOBILE_ROUTES_ENABLED=true
 DB_PATH=/opt/kotoba/shared/sqlite.db
 UPLOAD_DIR=/opt/kotoba/shared/uploads
 ```
@@ -210,7 +211,7 @@ export KOTOBA_REPO_URL="<your-repository-url>"
 
 因此：
 
-- 移动 Web 可以随主站一起上线。
+- 移动 Web 可以随主站一起上线；生产 build 前把 `VITE_MOBILE_ROUTES_ENABLED=true` 写入 `/opt/kotoba/shared/.env`。
 - PWA 是下一步，需要 manifest、icons、service worker、安装体验和离线策略。
 - 原生 App 不能现在直接上架；需要新增 iOS/Android 工程、认证策略、API base、上传权限、隐私政策、商店资料和构建签名。
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { type Message, type User } from "../api";
 import { t, type Lang } from "../i18n";
 import { Avatar } from "./Avatar";
@@ -7,7 +7,7 @@ interface ReplyInfo { message: Message; replies: Message[]; ownDepth: number; }
 
 interface Props {
   lang: Lang; message: Message; replies: Message[] | null;
-  loadingReplies: boolean; currentUser: User | null;
+  loadingReplies: boolean; replyLoadError?: string; currentUser: User | null;
   likedIds: Set<number>; bookmarkedIds: Set<number>;
   onUpdate: (id: number, data: { content?: string; deleted?: number }) => Promise<void>;
   onLoadReplies: (rootId: number) => void;
@@ -50,7 +50,7 @@ function renderContent(content: string) {
 
 export function MessageCard({
   lang, message: { id, name, content, createdAt, depth = 0, likeCount = 0, avatarUrl, signature, userId },
-  replies, loadingReplies, currentUser, likedIds, bookmarkedIds,
+  replies, loadingReplies, replyLoadError, currentUser, likedIds, bookmarkedIds,
   onUpdate, onLoadReplies, onSubmitReply, onToggleLike, onToggleBookmark, ownDepth,
   onOpenThread, expandRepliesByDefault,
 }: Props) {
@@ -66,6 +66,7 @@ export function MessageCard({
   const [replying, setReplying] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [replyError, setReplyError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
 
   const isMine = currentUser?.id === userId || currentUser?.username === name;
@@ -81,12 +82,14 @@ export function MessageCard({
     catch { setEditError(t(lang, "list.loadFail")); }
   };
   const handleDelete = async () => {
+    setActionError("");
     try { await onUpdate(id, { deleted: 1 }); }
-    catch { alert(t(lang, "list.loadFail")); }
+    catch { setActionError(t(lang, "list.loadFail")); }
   };
   const handleToggleReplies = () => { if (!replies && !showReplies) onLoadReplies(id); setShowReplies(!showReplies); };
 
-  const handleReplySubmit = async () => {
+  const handleReplySubmit = async (e?: FormEvent) => {
+    e?.preventDefault();
     if (!replyContent.trim()) return;
     setSendingReply(true);
     setReplyError("");
@@ -97,7 +100,7 @@ export function MessageCard({
 
   return (
     <div>
-      <article className="message-card" style={{ marginLeft: d > 0 ? `${d * 2}rem` : undefined }}>
+      <article className="message-card" data-depth={d}>
         <div className="card-header">
           <Avatar name={name} src={avatarUrl} />
           <span className="card-name">{name}</span>
@@ -120,59 +123,65 @@ export function MessageCard({
         )}
         <div className="card-actions">
           {long && !editing && (
-            <button className="expand-link" onClick={() => setExpanded(!expanded)}>
+            <button type="button" className="expand-link" onClick={() => setExpanded(!expanded)}>
               {expanded ? t(lang, "form.collapse") : t(lang, "form.expand")}
             </button>
           )}
           {currentUser && (
-            <button className={`action-btn ${liked ? "liked" : ""}`} onClick={() => onToggleLike(id)}>
+            <button type="button" className={`action-btn ${liked ? "liked" : ""}`}
+              aria-label={t(lang, "form.like")} title={t(lang, "form.like")} onClick={() => onToggleLike(id)}>
               {liked ? "♥" : "♡"}{likeCount > 0 && <span className="action-count">{likeCount}</span>}
             </button>
           )}
           {currentUser && (
-            <button className={`action-btn ${bookmarked ? "bookmarked" : ""}`} onClick={() => onToggleBookmark(id)}>
+            <button type="button" className={`action-btn ${bookmarked ? "bookmarked" : ""}`}
+              aria-label={t(lang, "bookmarks.title")} title={t(lang, "bookmarks.title")} onClick={() => onToggleBookmark(id)}>
               {bookmarked ? "★" : "☆"}
             </button>
           )}
           {onOpenThread && d === 0 && !editing && (
-            <button className="action-btn thread-link-btn" onClick={() => onOpenThread(id)}>
+            <button type="button" className="action-btn thread-link-btn" onClick={() => onOpenThread(id)}>
               {t(lang, "form.thread")}
             </button>
           )}
           {isMine && !editing && (<>
-            <button className="action-btn owner-btn" onClick={() => { setEditText(content); setEditing(true); setEditError(""); }}>
+            <button type="button" className="action-btn owner-btn" onClick={() => { setEditText(content); setEditing(true); setEditError(""); setActionError(""); }}>
               {t(lang, "form.edit")}</button>
-            <button className="action-btn owner-btn del-btn" onClick={handleDelete}>{t(lang, "form.delete")}</button>
+            <button type="button" className="action-btn owner-btn del-btn" onClick={handleDelete}>{t(lang, "form.delete")}</button>
           </>)}
           {editing && (<>
-            <button className="action-btn owner-btn" onClick={handleSave}>{t(lang, "form.save")}</button>
-            <button className="action-btn owner-btn" onClick={() => { setEditing(false); setEditError(""); }}>{t(lang, "form.cancel")}</button>
+            <button type="button" className="action-btn owner-btn" onClick={handleSave}>{t(lang, "form.save")}</button>
+            <button type="button" className="action-btn owner-btn" onClick={() => { setEditing(false); setEditError(""); }}>{t(lang, "form.cancel")}</button>
           </>)}
           {currentUser && canReply && !editing && (
-            <button className="action-btn reply-btn" onClick={() => setReplying(!replying)}>{t(lang, "form.reply")}</button>
+            <button type="button" className="action-btn reply-btn" onClick={() => { setReplying(!replying); setActionError(""); }}>{t(lang, "form.reply")}</button>
           )}
           {replyCount !== null && replyCount > 0 && (
-            <button className="action-btn toggle-replies-btn" onClick={handleToggleReplies}>
+            <button type="button" className="action-btn toggle-replies-btn" onClick={handleToggleReplies}>
               {showReplies ? "▾" : "▸"} {replyCount}{t(lang, "form.replyCount")}
             </button>
           )}
           {loadingReplies && <span className="loading-replies">{t(lang, "list.loading")}</span>}
         </div>
-        {replying && (<div className="inline-reply-form">
+        {replyLoadError && <p className="auth-error card-action-error">{replyLoadError}</p>}
+        {actionError && <p className="auth-error card-action-error">{actionError}</p>}
+        {replying && <button type="button" className="reply-sheet-backdrop" aria-label={t(lang, "form.cancel")} onClick={() => setReplying(false)} />}
+        {replying && (<form className="inline-reply-form" onSubmit={handleReplySubmit} aria-label={t(lang, "form.reply")}>
           <textarea className="reply-textarea" placeholder={t(lang, "form.reply") + "..."}
             value={replyContent} onChange={(e) => setReplyContent(e.target.value)} maxLength={500} />
           <div className="reply-form-actions">
-            <button className="action-btn owner-btn" onClick={handleReplySubmit} disabled={sendingReply}>
+            <button type="submit" className="action-btn owner-btn" disabled={sendingReply}>
               {sendingReply ? "..." : t(lang, "form.send")}</button>
-            <button className="action-btn owner-btn" onClick={() => setReplying(false)}>{t(lang, "form.cancel")}</button>
+            <button type="button" className="action-btn owner-btn" onClick={() => setReplying(false)}>{t(lang, "form.cancel")}</button>
           </div>
           {replyError && <p className="auth-error">{replyError}</p>}
-        </div>)}
+        </form>)}
       </article>
       {showReplies && childReplies.length > 0 && (<div className="reply-tree">
         {childReplies.map(({ message, replies, ownDepth }) => (
           <MessageCard key={message.id} lang={lang} message={message} replies={replies}
             loadingReplies={false} currentUser={currentUser}
+            replyLoadError={undefined}
             likedIds={likedIds} bookmarkedIds={bookmarkedIds}
             onUpdate={onUpdate} onLoadReplies={onLoadReplies} onSubmitReply={onSubmitReply}
             ownDepth={ownDepth} onToggleLike={onToggleLike} onToggleBookmark={onToggleBookmark}

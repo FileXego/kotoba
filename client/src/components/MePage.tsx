@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef, type ChangeEvent } from "react";
 import { updateMe, uploadAvatar, signOut, type User } from "../api";
 import { t, type Lang } from "../i18n";
 import { Avatar } from "./Avatar";
@@ -24,7 +24,15 @@ export function MePage({ lang, user, theme, onUserChange, onThemeChange }: Props
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [noticeKind, setNoticeKind] = useState<"ok" | "error">("ok");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    setSignature(user?.signature ?? "");
+  }, [user?.id, user?.signature]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!user) {
     return (
@@ -36,20 +44,26 @@ export function MePage({ lang, user, theme, onUserChange, onThemeChange }: Props
     );
   }
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const showNotice = (message: string, kind: "ok" | "error" = "ok") => {
+    setNotice(message);
+    setNoticeKind(kind);
+  };
+
+  const handleAvatarChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 256 * 1024) {
-      alert(t(lang, "me.avatarTooLarge"));
+      showNotice(t(lang, "me.avatarTooLarge"), "error");
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
     setUploading(true);
     try {
       const res = await uploadAvatar(file);
       if (res.user) onUserChange(res.user);
-    } catch {
-      alert(t(lang, "form.imageFail"));
-    } finally {
+      showNotice(t(lang, "me.avatarSaved"));
+    } catch { showNotice(t(lang, "me.avatarFail"), "error"); }
+    finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
@@ -60,9 +74,9 @@ export function MePage({ lang, user, theme, onUserChange, onThemeChange }: Props
     try {
       const res = await updateMe({ signature });
       onUserChange(res.user);
-    } catch {
-      alert(t(lang, "list.loadFail"));
-    } finally {
+      showNotice(t(lang, "me.signatureSaved"));
+    } catch { showNotice(t(lang, "me.saveFail"), "error"); }
+    finally {
       setSaving(false);
     }
   };
@@ -72,16 +86,26 @@ export function MePage({ lang, user, theme, onUserChange, onThemeChange }: Props
     try {
       await signOut();
       onUserChange(null);
-    } catch {
-      alert(t(lang, "list.loadFail"));
-    } finally {
+    } catch { showNotice(t(lang, "list.loadFail"), "error"); }
+    finally {
       setSigningOut(false);
     }
   };
 
+  const signatureChanged = signature !== (user.signature ?? "");
+
   return (
     <div className="me-page">
       <h2 className="me-title">{t(lang, "me.title")}</h2>
+      <div className="me-profile-card">
+        <Avatar name={user.username} src={user.avatarUrl} />
+        <div className="me-profile-copy">
+          <h3>{user.username}</h3>
+          <p>{user.email}</p>
+          {user.signature && <span>{user.signature}</span>}
+        </div>
+      </div>
+      {notice && <p className={`me-status ${noticeKind}`} aria-live="polite">{notice}</p>}
 
       <section className="me-section">
         <label className="me-label">{t(lang, "me.avatar")}</label>
@@ -89,12 +113,13 @@ export function MePage({ lang, user, theme, onUserChange, onThemeChange }: Props
           <Avatar name={user.username} src={user.avatarUrl} />
           <input
             ref={fileInputRef}
+            className="file-input"
             type="file"
             accept="image/png,image/jpeg,image/webp"
             onChange={handleAvatarChange}
-            style={{ display: "none" }}
           />
           <button
+            type="button"
             className="auth-btn"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
@@ -114,7 +139,7 @@ export function MePage({ lang, user, theme, onUserChange, onThemeChange }: Props
           maxLength={100}
           rows={2}
         />
-        <button className="auth-btn" onClick={handleSignatureSave} disabled={saving}>
+        <button type="button" className="auth-btn" onClick={handleSignatureSave} disabled={saving || !signatureChanged}>
           {saving ? "···" : t(lang, "form.save")}
         </button>
       </section>
@@ -126,7 +151,7 @@ export function MePage({ lang, user, theme, onUserChange, onThemeChange }: Props
             <button
               key={name}
               className={`me-theme-swatch ${theme === name ? "active" : ""}`}
-              onClick={() => onThemeChange(name)}
+              onClick={() => { onThemeChange(name); showNotice(t(lang, "me.themeApplied")); }}
               data-theme={name}
               aria-label={t(lang, labelKey)}
               title={t(lang, labelKey)}
@@ -138,7 +163,7 @@ export function MePage({ lang, user, theme, onUserChange, onThemeChange }: Props
       </section>
 
       <section className="me-section">
-        <button className="me-signout-btn" onClick={handleSignOut} disabled={signingOut}>
+        <button type="button" className="me-signout-btn" onClick={handleSignOut} disabled={signingOut}>
           {signingOut ? "···" : t(lang, "me.signOut")}
         </button>
       </section>

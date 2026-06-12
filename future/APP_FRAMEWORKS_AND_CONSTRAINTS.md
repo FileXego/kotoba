@@ -1,6 +1,6 @@
 # App 框架体系与约束条件
 
-> 日期：2026-06-09  
+> 日期：2026-06-13
 > 状态：App 形态选择和约束总表。本文只做架构框定，不创建工程、不引入依赖、不改业务代码。
 
 ## 总结
@@ -64,7 +64,7 @@ Layer 3: Native App
 
 目标：手机浏览器访问主站时已经像 App。
 
-当前状态：**Phase A 已完成，Mobile Web 进入交付候选**。默认由 `VITE_MOBILE_ROUTES_ENABLED=false` 关闭；设为 `true` 后启用移动路由、底部导航、Thread 页面和 Me 页面。本轮已补齐详情入口、完整回复树默认展开、Me 页主题/头像交互、底部导航小屏显示边界。
+当前状态：**Phase A 已完成，Mobile Web 进入可上线候选**。默认由 `VITE_MOBILE_ROUTES_ENABLED=false` 关闭；上线移动端时设为 `true` 后启用移动路由、底部导航、Thread、Bookmarks、Me 和 Admin 窄屏视图。本轮已补齐页面容器、底部导航 CSS 覆盖、详情入口、完整回复树默认展开、Me 页主题/头像交互、收藏页交互、回复底部 sheet、safe-area 和 375/390/430 宽度自动复核。
 
 框架体系：
 
@@ -103,17 +103,17 @@ client/src/
 - 底部导航。✅
 - Thread detail。✅
 - Me/Profile 页面。✅
-- 375 / 390 / 430 宽度检查。待人工复核
+- 375 / 390 / 430 宽度检查。✅ 浏览器自动复核通过；仍需真机抽查
 - `prefers-reduced-motion` 降级。待人工复核
 
 验收：
 
-- 手机端首页、收藏、详情、我的可用。✅
+- 手机端首页、收藏、详情、我的、Admin 窄屏可用。✅
 - 首页到 `/message/:id` 详情入口可用，详情页默认展开完整回复树。✅
 - Me 页头像 256KB 限制与后端一致，主题色块可直接选择目标主题。✅
 - 登录、发帖、回复、点赞、收藏、上传仍走现有 `/api`。✅
 - `bun test` 通过。✅ 91 pass
-- `bun run lint` 和 `bun run build` 在 `client/` 通过。✅ 2026-06-09 复验
+- `bun run --cwd client lint` 和 `bun run --cwd client build` 通过。✅ 2026-06-13 复验
 
 ### Phase B: PWA
 

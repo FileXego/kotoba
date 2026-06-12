@@ -129,6 +129,7 @@
 7. **约束传播**：代码跨文件迁移时，grep 源文件的 `eslint-disable` 和类型守卫，全量带到目标文件
 8. **文档同步**：改代码后按 `DOCMAP.md` 的触发类型找到对应清单，逐项更新。改 Feature → 查 A；改规则 → 查 B；修 bug → 查 C；完成里程碑 → 查 D
 9. **生产数据解耦**：部署脚本、systemd、迁移命令必须保持 `DB_PATH`/`UPLOAD_DIR` 指向 shared 数据目录，不把用户数据放进 release 目录
+10. **CSS 渲染钩子**：布局 class 必须在 JSX 中真实挂载；响应式覆盖写完后用浏览器检查 computed style，不只看 CSS 文件
 
 **前端验证三步**（缺一不可）：
 

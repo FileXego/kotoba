@@ -75,6 +75,7 @@ bookmarks(user_id, message_id, created_at) UNIQUE(user_id, message_id)
 8. **文档同步** — 代码改动后查 `DOCMAP.md` 确认要同步哪些文档：按触发类型（Feature/Rule/Bug/Milestone）找到对应清单，逐项更新进度条/状态/版本号/完成清单。不允许文档进度落后于代码实际进度
 9. **生产数据解耦** — 部署更新不得把 `sqlite.db`/`uploads` 绑在版本目录；生产必须用 `DB_PATH`/`UPLOAD_DIR` 指向 shared 数据目录
 10. **入口参数顺序** — `bun run --cwd client <script>` 是唯一文档化写法；不要写 `bun run <script> --cwd client`
+11. **CSS 渲染钩子** — 新增/依赖 `.app`、`.mobile-*` 等布局 class 后必须确认 React 实际渲染了该 class；响应式 `display/position/padding` 覆盖必须放在 base rule 之后或用更高特异性，并用浏览器 computed style 验证
 
 ## L2 触发时机
 

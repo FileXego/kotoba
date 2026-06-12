@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Header } from "./components/Header";
 import { SubmitForm } from "./components/SubmitForm";
 import { MessageList } from "./components/MessageList";
@@ -28,7 +28,10 @@ export default function App() {
     if (MOBILE_ROUTES_ENABLED) {
       navigate("/");
       requestAnimationFrame(() => {
-        setTimeout(() => composerRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+        setTimeout(() => {
+          composerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          composerRef.current?.querySelector("textarea")?.focus({ preventScroll: true });
+        }, 100);
       });
     }
   };
@@ -37,6 +40,7 @@ export default function App() {
   const { likedIds, bookmarkedIds, setLikedIds, setBookmarkedIds } = useInteractions(user);
   const {
     messages, total, loading, loadingMore, error, replyTrees, loadingReplies,
+    replyErrors,
     handleLoadMore, handleLoadReplies, handleSubmit, handleUpdate,
     handleToggleLike, handleToggleBookmark,
   } = useMessageFeed(lang, searchQuery, likedIds, setLikedIds, bookmarkedIds, setBookmarkedIds);
@@ -47,43 +51,56 @@ export default function App() {
     return next;
   });
 
+  useEffect(() => {
+    if (route !== "/") window.scrollTo({ top: 0 });
+  }, [route, messageId]);
+
+  const routeClass = route === "/" ? "home" : route.slice(1);
+
   return (
     <MobileShell>
-      <Header theme={theme} lang={lang} onToggleTheme={(x, y) => toggleTheme(x, y)} onToggleLang={toggleLang}
-        user={user} onUserChange={setUser} onAdminClick={() => navigate("/admin")}
-        onBookmarksClick={() => navigate("/bookmarks")} onHomeClick={() => navigate("/")} />
-      {route === "/admin" && <AdminPanel lang={lang} onClose={() => navigate("/")} />}
-      {route === "/bookmarks" && <BookmarksPage lang={lang} currentUser={user} />}
-      {route === "/message" && messageId != null && (
-        <ThreadPage lang={lang} messageId={messageId} currentUser={user}
-          likedIds={likedIds} bookmarkedIds={bookmarkedIds}
-          onSubmitReply={handleSubmit} onUpdate={handleUpdate} onToggleLike={handleToggleLike}
-          onToggleBookmark={handleToggleBookmark} onBack={() => navigate("/")} />
-      )}
-      {route === "/me" && (
-        <MePage lang={lang} user={user} theme={theme}
-          onUserChange={setUser} onThemeChange={chooseTheme} />
-      )}
-      {route === "/" && (
-        <>
-          <input className="search-input" type="text" placeholder={t(lang, "search.placeholder")}
-            value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-          <div ref={composerRef}>
-            <SubmitForm lang={lang}
-              onImageUpload={async (f) => { const r = await (await import("./api")).uploadImage(f); return r.url; }}
-              onSubmit={handleSubmit} loggedIn={!!user} />
-          </div>
-          <MessageList lang={lang}
-            messages={messages} total={total} loading={loading} loadingMore={loadingMore}
-            error={error} replyTrees={replyTrees} loadingReplies={loadingReplies}
-            currentUser={user} likedIds={likedIds} bookmarkedIds={bookmarkedIds}
-            onUpdate={handleUpdate} onLoadReplies={handleLoadReplies}
-            onLoadMore={handleLoadMore} onSubmitReply={handleSubmit}
-            onToggleLike={handleToggleLike} onToggleBookmark={handleToggleBookmark}
-            onOpenThread={MOBILE_ROUTES_ENABLED ? (id) => navigate("/message", id) : undefined}
-          />
-        </>
-      )}
+      <div className={`app app-route-${routeClass}`}>
+        <Header theme={theme} lang={lang} onToggleTheme={(x, y) => toggleTheme(x, y)} onToggleLang={toggleLang}
+          user={user} onUserChange={setUser} onAdminClick={() => navigate("/admin")}
+          onBookmarksClick={() => navigate("/bookmarks")} onHomeClick={() => navigate("/")} />
+        {route === "/admin" && <AdminPanel lang={lang} onClose={() => navigate("/")} />}
+        {route === "/bookmarks" && (
+          <BookmarksPage lang={lang} currentUser={user}
+            onUpdate={handleUpdate} onSubmitReply={handleSubmit}
+            onOpenThread={MOBILE_ROUTES_ENABLED ? (id) => navigate("/message", id) : undefined} />
+        )}
+        {route === "/message" && messageId != null && (
+          <ThreadPage lang={lang} messageId={messageId} currentUser={user}
+            likedIds={likedIds} bookmarkedIds={bookmarkedIds}
+            onSubmitReply={handleSubmit} onUpdate={handleUpdate} onToggleLike={handleToggleLike}
+            onToggleBookmark={handleToggleBookmark} onBack={() => navigate("/")} />
+        )}
+        {route === "/me" && (
+          <MePage lang={lang} user={user} theme={theme}
+            onUserChange={setUser} onThemeChange={chooseTheme} />
+        )}
+        {route === "/" && (
+          <>
+            <input className="search-input" type="text" placeholder={t(lang, "search.placeholder")}
+              value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            <div ref={composerRef}>
+              <SubmitForm lang={lang}
+                onImageUpload={async (f) => { const r = await (await import("./api")).uploadImage(f); return r.url; }}
+                onSubmit={handleSubmit} loggedIn={!!user} />
+            </div>
+            <MessageList lang={lang}
+              messages={messages} total={total} loading={loading} loadingMore={loadingMore}
+              error={error} replyTrees={replyTrees} loadingReplies={loadingReplies}
+              replyErrors={replyErrors}
+              currentUser={user} likedIds={likedIds} bookmarkedIds={bookmarkedIds}
+              onUpdate={handleUpdate} onLoadReplies={handleLoadReplies}
+              onLoadMore={handleLoadMore} onSubmitReply={handleSubmit}
+              onToggleLike={handleToggleLike} onToggleBookmark={handleToggleBookmark}
+              onOpenThread={MOBILE_ROUTES_ENABLED ? (id) => navigate("/message", id) : undefined}
+            />
+          </>
+        )}
+      </div>
       {MOBILE_ROUTES_ENABLED && (
         <MobileBottomNav lang={lang} route={route} navigate={navigate} onComposeFocus={focusComposer} />
       )}
