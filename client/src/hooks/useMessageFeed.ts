@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  fetchMessages, fetchReplies, submitMessage, updateMessage, toggleLike, toggleBookmark,
+  fetchMessages, fetchReplies, submitMessage, updateMessage, toggleLike, toggleBookmark, fetchInteractions,
   type Message,
 } from "../api";
 import { type Lang, t } from "../i18n";
+import type { RealtimeClientEvent } from "./useRealtimeEvents";
 
 const PAGE_SIZE = 20;
 
@@ -43,7 +44,7 @@ export function useMessageFeed(
     loadMessages(messages.length, q, true);
   };
 
-  const handleLoadReplies = async (rootId: number, force = false) => {
+  const handleLoadReplies = useCallback(async (rootId: number, force = false) => {
     if (!force && (replyTrees[rootId] || loadingReplies.has(rootId))) return;
     setLoadingReplies(prev => new Set(prev).add(rootId));
     try {
@@ -56,7 +57,18 @@ export function useMessageFeed(
     } finally {
       setLoadingReplies(prev => { const n = new Set(prev); n.delete(rootId); return n; });
     }
-  };
+  }, [lang, loadingReplies, replyTrees]);
+
+  const applyLikeCount = useCallback((messageId: number, count: number) => {
+    setMessages(prev => prev.map(m => m.id === messageId ? { ...m, likeCount: count } : m));
+    setReplyTrees(prev => {
+      const next = { ...prev };
+      for (const [rootId, replies] of Object.entries(next)) {
+        next[Number(rootId)] = replies.map(r => r.id === messageId ? { ...r, likeCount: count } : r);
+      }
+      return next;
+    });
+  }, []);
 
   const handleSubmit = async (content: string, parentId?: number) => {
     await submitMessage(content, parentId);
@@ -96,14 +108,7 @@ export function useMessageFeed(
     try {
       const res = await toggleLike(id);
       setLikedIds(p => { const n = new Set(p); if (res.liked) n.add(id); else n.delete(id); return n; });
-      setMessages(prev => prev.map(m => m.id === id ? { ...m, likeCount: res.count } : m));
-      setReplyTrees(prev => {
-        const next = { ...prev };
-        for (const [rootId, replies] of Object.entries(next)) {
-          next[Number(rootId)] = replies.map(r => r.id === id ? { ...r, likeCount: res.count } : r);
-        }
-        return next;
-      });
+      applyLikeCount(id, res.count);
     } catch {
       setLikedIds(p => { const n = new Set(p); if (wasLiked) n.add(id); else n.delete(id); return n; });
     }
@@ -120,6 +125,54 @@ export function useMessageFeed(
     }
   };
 
+  const applyRealtimeEvent = useCallback((event: RealtimeClientEvent) => {
+    if (event.type === "ready") return;
+
+    if (event.type === "sync.tick") {
+      void loadMessages(0, q);
+      for (const rootId of Object.keys(replyTrees)) void handleLoadReplies(Number(rootId), true);
+      void fetchInteractions().then((r) => {
+        setLikedIds(new Set(r.liked));
+        setBookmarkedIds(new Set(r.bookmarked));
+      }).catch(() => {});
+      return;
+    }
+
+    if (event.type === "message.liked") {
+      applyLikeCount(event.messageId, event.count);
+      return;
+    }
+
+    if (event.type === "interaction.changed") {
+      if (event.liked !== undefined) {
+        setLikedIds(prev => {
+          const next = new Set(prev);
+          if (event.liked) next.add(event.messageId);
+          else next.delete(event.messageId);
+          return next;
+        });
+      }
+      if (event.bookmarked !== undefined) {
+        setBookmarkedIds(prev => {
+          const next = new Set(prev);
+          if (event.bookmarked) next.add(event.messageId);
+          else next.delete(event.messageId);
+          return next;
+        });
+      }
+      if (event.count !== undefined) applyLikeCount(event.messageId, event.count);
+      return;
+    }
+
+    const rootId = event.type === "message.restored"
+      ? event.messageId
+      : event.rootId ?? event.messageId;
+    const touchesTopLevel = event.type === "message.restored" || event.parentId === null;
+
+    if (touchesTopLevel || q) void loadMessages(0, q);
+    if (replyTrees[rootId]) void handleLoadReplies(rootId, true);
+  }, [applyLikeCount, handleLoadReplies, loadMessages, q, replyTrees, setBookmarkedIds, setLikedIds]);
+
   const initialLoaded = useRef(false);
 
   // search debounce + initial load (combined to avoid double-fetch)
@@ -133,6 +186,6 @@ export function useMessageFeed(
   return {
     messages, total, loading, loadingMore, error, replyTrees, loadingReplies, replyErrors,
     loadMessages, handleLoadMore, handleLoadReplies, handleSubmit, handleUpdate,
-    handleToggleLike, handleToggleBookmark,
+    handleToggleLike, handleToggleBookmark, applyRealtimeEvent,
   };
 }

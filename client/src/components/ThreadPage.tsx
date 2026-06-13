@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchReplies, type Message, type User } from "../api";
 import { t, type Lang } from "../i18n";
+import type { RealtimeClientEvent } from "../hooks/useRealtimeEvents";
 import { MessageCard } from "./MessageCard";
 
 interface Props {
@@ -14,11 +15,13 @@ interface Props {
   onToggleLike: (id: number) => void;
   onToggleBookmark: (id: number) => void;
   onBack: () => void;
+  realtimeEvent: RealtimeClientEvent | null;
 }
 
 export function ThreadPage({
   lang, messageId, currentUser, likedIds, bookmarkedIds,
   onSubmitReply, onUpdate, onToggleLike, onToggleBookmark, onBack,
+  realtimeEvent,
 }: Props) {
   const [replies, setReplies] = useState<Message[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,6 +46,26 @@ export function ThreadPage({
     loadThread(() => cancelled);
     return () => { cancelled = true; };
   }, [loadThread]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!realtimeEvent || realtimeEvent.type === "ready" || realtimeEvent.type === "interaction.changed") return;
+    if (realtimeEvent.type === "sync.tick") {
+      void loadThread();
+      return;
+    }
+    if (realtimeEvent.type === "message.liked") {
+      setReplies(prev => prev?.map(m => m.id === realtimeEvent.messageId ? { ...m, likeCount: realtimeEvent.count } : m) ?? prev);
+      return;
+    }
+    if (realtimeEvent.type === "message.restored") {
+      if (realtimeEvent.messageId === messageId) void loadThread();
+      return;
+    }
+    const rootId = realtimeEvent.rootId ?? realtimeEvent.messageId;
+    if (rootId === messageId || realtimeEvent.messageId === messageId) void loadThread();
+  }, [loadThread, messageId, realtimeEvent]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSubmitReply = async (content: string, parentId?: number) => {

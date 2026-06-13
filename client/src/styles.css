@@ -270,6 +270,42 @@ body::before {
   border-bottom-color: var(--accent);
 }
 
+/* ===== Realtime Sync ===== */
+.realtime-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: -1.4rem 0 1.4rem;
+  padding: 0.32rem 0.65rem;
+  color: var(--text-secondary);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+.realtime-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--accent-subtle);
+  box-shadow: 0 0 0 3px rgba(107, 142, 122, 0.14);
+}
+
+.realtime-live .realtime-dot {
+  background: var(--accent-subtle);
+}
+
+.realtime-connecting .realtime-dot,
+.realtime-offline .realtime-dot {
+  background: var(--accent);
+}
+
+.realtime-offline {
+  color: var(--accent);
+}
+
 /* ===== Submit Form ===== */
 .submit-form {
   background: var(--card-bg);
@@ -1353,6 +1389,13 @@ body::before {
     margin-top: 0.85rem;
     padding: 0.9rem;
     border: 1px solid var(--border);
+  }
+
+  .realtime-badge {
+    margin: -0.35rem 0 0.85rem;
+    padding: 0.24rem 0.55rem;
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
   }
 
   .search-input {

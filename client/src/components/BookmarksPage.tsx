@@ -1,6 +1,7 @@
 import { useCallback, useState, useEffect } from "react";
 import { fetchBookmarks, toggleBookmark, toggleLike, fetchInteractions, type Message, type User } from "../api";
 import { t, type Lang } from "../i18n";
+import type { RealtimeClientEvent } from "../hooks/useRealtimeEvents";
 import { MessageCard } from "./MessageCard";
 
 interface Props {
@@ -9,9 +10,10 @@ interface Props {
   onUpdate: (id: number, data: { content?: string; deleted?: number }) => Promise<void>;
   onSubmitReply: (content: string, parentId?: number) => Promise<void>;
   onOpenThread?: (id: number) => void;
+  realtimeEvent: RealtimeClientEvent | null;
 }
 
-export function BookmarksPage({ lang, currentUser, onUpdate, onSubmitReply, onOpenThread }: Props) {
+export function BookmarksPage({ lang, currentUser, onUpdate, onSubmitReply, onOpenThread, realtimeEvent }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +47,48 @@ export function BookmarksPage({ lang, currentUser, onUpdate, onSubmitReply, onOp
   useEffect(() => {
     if (currentUser) load();
   }, [currentUser, load]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!currentUser || !realtimeEvent || realtimeEvent.type === "ready") return;
+    if (realtimeEvent.type === "sync.tick") {
+      void load();
+      void fetchInteractions().then(r => {
+        setLikedIds(new Set(r.liked));
+        setBookmarkedIds(new Set(r.bookmarked));
+      }).catch(() => {});
+      return;
+    }
+    if (realtimeEvent.type === "message.liked") {
+      setMessages(prev => prev.map(m => m.id === realtimeEvent.messageId ? { ...m, likeCount: realtimeEvent.count } : m));
+      return;
+    }
+    if (realtimeEvent.type === "interaction.changed") {
+      if (realtimeEvent.liked !== undefined) {
+        setLikedIds(prev => {
+          const next = new Set(prev);
+          if (realtimeEvent.liked) next.add(realtimeEvent.messageId);
+          else next.delete(realtimeEvent.messageId);
+          return next;
+        });
+      }
+      if (realtimeEvent.bookmarked !== undefined) {
+        setBookmarkedIds(prev => {
+          const next = new Set(prev);
+          if (realtimeEvent.bookmarked) next.add(realtimeEvent.messageId);
+          else next.delete(realtimeEvent.messageId);
+          return next;
+        });
+        void load();
+      }
+      if (realtimeEvent.count !== undefined) {
+        setMessages(prev => prev.map(m => m.id === realtimeEvent.messageId ? { ...m, likeCount: realtimeEvent.count } : m));
+      }
+      return;
+    }
+    void load();
+  }, [currentUser, load, realtimeEvent]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!currentUser) return <div className="submit-form auth-prompt"><p>{t(lang, "auth.needLogin")}</p></div>;

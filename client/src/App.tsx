@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Header } from "./components/Header";
 import { SubmitForm } from "./components/SubmitForm";
 import { MessageList } from "./components/MessageList";
@@ -8,11 +8,13 @@ import { MobileShell } from "./components/MobileShell";
 import { MobileBottomNav } from "./components/MobileBottomNav";
 import { ThreadPage } from "./components/ThreadPage";
 import { MePage } from "./components/MePage";
+import { RealtimeBadge } from "./components/RealtimeBadge";
 import { useRouter } from "./hooks/useRouter";
 import { useTheme } from "./hooks/useTheme";
 import { useSession } from "./hooks/useSession";
 import { useInteractions } from "./hooks/useInteractions";
 import { useMessageFeed } from "./hooks/useMessageFeed";
+import { useRealtimeEvents, type RealtimeClientEvent } from "./hooks/useRealtimeEvents";
 import { MOBILE_ROUTES_ENABLED } from "./flags";
 import { t, type Lang } from "./i18n";
 
@@ -22,6 +24,7 @@ export default function App() {
     return stored === "zh" ? "zh" : "ja";
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [realtimeEvent, setRealtimeEvent] = useState<RealtimeClientEvent | null>(null);
   const { route, navigate, messageId } = useRouter();
   const composerRef = useRef<HTMLDivElement>(null);
   const focusComposer = () => {
@@ -42,8 +45,14 @@ export default function App() {
     messages, total, loading, loadingMore, error, replyTrees, loadingReplies,
     replyErrors,
     handleLoadMore, handleLoadReplies, handleSubmit, handleUpdate,
-    handleToggleLike, handleToggleBookmark,
+    handleToggleLike, handleToggleBookmark, applyRealtimeEvent,
   } = useMessageFeed(lang, searchQuery, likedIds, setLikedIds, bookmarkedIds, setBookmarkedIds);
+
+  const handleRealtimeEvent = useCallback((event: RealtimeClientEvent) => {
+    setRealtimeEvent(event);
+    applyRealtimeEvent(event);
+  }, [applyRealtimeEvent]);
+  const realtimeStatus = useRealtimeEvents(handleRealtimeEvent);
 
   const toggleLang = () => setLang((l) => {
     const next = l === "ja" ? "zh" : "ja";
@@ -61,17 +70,20 @@ export default function App() {
         <Header theme={theme} lang={lang} onToggleTheme={(x, y) => toggleTheme(x, y)} onToggleLang={toggleLang}
           user={user} onUserChange={setUser} onAdminClick={() => navigate("/admin")}
           onBookmarksClick={() => navigate("/bookmarks")} onHomeClick={() => navigate("/")} />
+        <RealtimeBadge lang={lang} status={realtimeStatus} />
         {route === "/admin" && <AdminPanel lang={lang} onClose={() => navigate("/")} />}
         {route === "/bookmarks" && (
           <BookmarksPage lang={lang} currentUser={user}
             onUpdate={handleUpdate} onSubmitReply={handleSubmit}
-            onOpenThread={MOBILE_ROUTES_ENABLED ? (id) => navigate("/message", id) : undefined} />
+            onOpenThread={MOBILE_ROUTES_ENABLED ? (id) => navigate("/message", id) : undefined}
+            realtimeEvent={realtimeEvent} />
         )}
         {route === "/message" && messageId != null && (
           <ThreadPage lang={lang} messageId={messageId} currentUser={user}
             likedIds={likedIds} bookmarkedIds={bookmarkedIds}
             onSubmitReply={handleSubmit} onUpdate={handleUpdate} onToggleLike={handleToggleLike}
-            onToggleBookmark={handleToggleBookmark} onBack={() => navigate("/")} />
+            onToggleBookmark={handleToggleBookmark} onBack={() => navigate("/")}
+            realtimeEvent={realtimeEvent} />
         )}
         {route === "/me" && (
           <MePage lang={lang} user={user} theme={theme}

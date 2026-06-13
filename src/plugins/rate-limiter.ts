@@ -83,7 +83,7 @@ export const rateLimiter = new Elysia()
     const ip = clientIp(request);
     const url = new URL(request.url);
     const ua = request.headers.get("user-agent");
-    const readPath = url.pathname === "/api/messages" || url.pathname === "/api/bookmarks";
+    const readPath = url.pathname === "/api/messages" || url.pathname === "/api/bookmarks" || url.pathname === "/api/events";
 
     // Burst check — per-IP request flood protection
     if (isBursting(ip)) return status(429, { success: false, error: "TOO_MANY_REQUESTS" });
@@ -111,5 +111,8 @@ export const rateLimiter = new Elysia()
     }
     if (url.pathname === "/api/messages") {
       if (!checkRate("messages", ip, 60)) return status(429, { success: false, error: "RATE_LIMITED" });
+    }
+    if (url.pathname === "/api/events") {
+      if (!checkRate("events", ip, 20)) return status(429, { success: false, error: "RATE_LIMITED" });
     }
   });

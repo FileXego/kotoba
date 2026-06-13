@@ -2,7 +2,7 @@
 
 > ⚠️ **工作许可证**：不读完本文件 + WORKFLOW.md，不许改代码。读完再动手。
 
-> 最终更新：2026-05-15 · 详细问题记录见 PROBLEM.md
+> 最终更新：2026-06-13 · 详细问题记录见 PROBLEM.md
 
 ## 命令
 
@@ -23,12 +23,12 @@ Bun · ElysiaJS (TypeBox) · Drizzle ORM + SQLite · React 19 + Vite 8
 
 ```
 src/plugins/   auth.ts / admin.ts / rate-limiter.ts   ← Elysia 插件
-src/routes/    message.ts / bookmark.ts / upload.ts   ← 路由
-src/lib/       files.ts / images.ts / ids.ts / pagination.ts ← 共享守卫
+src/routes/    message.ts / bookmark.ts / events.ts / upload.ts   ← 路由
+src/lib/       files.ts / images.ts / ids.ts / pagination.ts / realtime.ts ← 共享守卫/事件
 src/db/        schema.ts / index.ts                ← Drizzle
 client/src/    App.tsx → Header / SubmitForm / MessageList(→MessageCard) / AdminPanel / BookmarksPage
 ```
-插件挂载顺序：**rateLimiter → auth → admin → messageRoute → bookmarkRoute → uploadRoute**（derive 依赖 auth 在前）
+插件挂载顺序：**rateLimiter → auth → admin → eventRoute → messageRoute → bookmarkRoute → uploadRoute**（derive 依赖 auth 在前）
 
 ## API 速查
 
@@ -40,6 +40,7 @@ client/src/    App.tsx → Header / SubmitForm / MessageList(→MessageCard) / A
 | POST /api/messages/:id/like | 登录，toggle | 422/INVALID_ID |
 | POST /api/messages/:id/bookmark | 登录，toggle | 422/INVALID_ID |
 | GET /api/messages/:id/replies | — | 400/INVALID_ID |
+| GET /api/events | SSE 长连接；公共消息事件 + 当前用户私有互动事件；前端有兼容轮询兜底 | 403/FORBIDDEN 429/RATE_LIMITED |
 | GET /api/bookmarks | 登录，分页 | 401/AUTH_REQUIRED |
 | POST /api/auth/sign-up | `{ username, email, password, captchaToken }` 后端自验 | 409/DUPLICATE 429/CAPTCHA_FAIL |
 | POST /api/auth/sign-in | `{ username, password }` | 401/INVALID_CREDENTIALS |
@@ -48,7 +49,7 @@ client/src/    App.tsx → Header / SubmitForm / MessageList(→MessageCard) / A
 | GET /api/admin/* | guard isAdmin，restore/toggle | 403/FORBIDDEN 400/SELF_ADMIN |
 | POST /api/upload | 登录，MIME+魔数校验映射扩展名 | 401/AUTH_REQUIRED 400/INVALID_FILE_TYPE |
 | GET /api/health | 健康检查 | — |
-| 全局限频 | sign-up 3次/分，upload 5次/分 | 429/RATE_LIMITED |
+| 全局限频 | sign-up 3次/分，upload 5次/分，events 20次/分重连 | 429/RATE_LIMITED |
 
 **错误码规范**：所有错误必须 `return status(N, { success: false, error: "CODE" })`，不裸 `return {}`。<br>
 **前端调用**：统一 `requestJSON<T>(url, init)` → `[HTTP_NNN]` / `[API]` Error 前缀。

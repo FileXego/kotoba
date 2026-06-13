@@ -2,6 +2,7 @@ import { Elysia } from "elysia";
 import { rateLimiter } from "./plugins/rate-limiter";
 import { messageRoute } from "./routes/message";
 import { bookmarkRoute } from "./routes/bookmark";
+import { eventRoute } from "./routes/events";
 import { uploadRoute } from "./routes/upload";
 import { auth } from "./plugins/auth";
 import { admin } from "./plugins/admin";
@@ -36,6 +37,7 @@ export async function createApp(options: AppOptions = {}) {
     .use(rateLimiter)
     .use(auth)
     .use(admin)
+    .use(eventRoute)
     .use(messageRoute)
     .use(bookmarkRoute)
     .use(uploadRoute)

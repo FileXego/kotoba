@@ -4,6 +4,7 @@ import { messages, users } from "../db/schema";
 import { eq, desc } from "drizzle-orm";
 import { normalizePagination } from "../lib/pagination";
 import { parsePositiveId } from "../lib/ids";
+import { publishRealtime } from "../lib/realtime";
 
 export const admin = new Elysia({ prefix: "/api/admin" })
   .guard(
@@ -28,6 +29,12 @@ export const admin = new Elysia({ prefix: "/api/admin" })
           const [msg] = await db.select({ id: messages.id }).from(messages).where(eq(messages.id, id)).limit(1);
           if (!msg) return status(404, { success: false, error: "NOT_FOUND" });
           await db.update(messages).set({ deleted: 0 }).where(eq(messages.id, id));
+          publishRealtime({
+            audience: "public",
+            type: "message.restored",
+            messageId: id,
+            updatedAt: new Date().toISOString(),
+          });
           return { success: true };
         }, { params: t.Object({ id: t.String() }) })
         .get("/users", async () => {

@@ -9,7 +9,7 @@ Kotoba 当前最合适的 App 路线分三层：
 
 ```text
 Layer 1: Mobile Web
-  直接随主站上线，复用当前 React/Vite + /api，同源 cookie。
+  直接随主站上线，复用当前 React/Vite + /api，同源 cookie + SSE。
 
 Layer 2: PWA
   在 Mobile Web 稳定后评估。需要 manifest、icons、service worker。
@@ -64,7 +64,7 @@ Layer 3: Native App
 
 目标：手机浏览器访问主站时已经像 App。
 
-当前状态：**Phase A 已完成，Mobile Web 进入可上线候选**。默认由 `VITE_MOBILE_ROUTES_ENABLED=false` 关闭；上线移动端时设为 `true` 后启用移动路由、底部导航、Thread、Bookmarks、Me 和 Admin 窄屏视图。本轮已补齐页面容器、底部导航 CSS 覆盖、详情入口、完整回复树默认展开、Me 页主题/头像交互、收藏页交互、回复底部 sheet、safe-area 和 375/390/430 宽度自动复核。
+当前状态：**Phase A 已完成，Mobile Web 进入可上线候选**。默认由 `VITE_MOBILE_ROUTES_ENABLED=false` 关闭；上线移动端时设为 `true` 后启用移动路由、底部导航、Thread、Bookmarks、Me 和 Admin 窄屏视图。本轮已补齐页面容器、底部导航 CSS 覆盖、详情入口、完整回复树默认展开、Me 页主题/头像交互、收藏页交互、回复底部 sheet、双端即时同步、safe-area 和 375/390/430 宽度自动复核。
 
 框架体系：
 
@@ -75,6 +75,7 @@ client/src/
     useRouter.ts
     useSession.ts
     useMessageFeed.ts
+    useRealtimeEvents.ts
     useInteractions.ts
     useTheme.ts
   components/
@@ -83,6 +84,7 @@ client/src/
     MessageList.tsx
     MessageCard.tsx
     BookmarksPage.tsx
+    RealtimeBadge.tsx
     AdminPanel.tsx
     future mobile components
 ```
@@ -90,7 +92,7 @@ client/src/
 约束：
 
 - 不新增 React Router。
-- 不新增 mobile API。
+- 不新增 mobile API；Web 侧实时更新使用同源 `/api/events` SSE。
 - 不新增 JWT。
 - 继续 `BASE = "/api"`。
 - mobile flags 默认关闭。
@@ -110,9 +112,10 @@ client/src/
 
 - 手机端首页、收藏、详情、我的、Admin 窄屏可用。✅
 - 首页到 `/message/:id` 详情入口可用，详情页默认展开完整回复树。✅
+- Home / Thread / Bookmarks 可通过 `/api/events` 接收双端即时更新，并在浏览器/代理异常时低频兜底。✅
 - Me 页头像 256KB 限制与后端一致，主题色块可直接选择目标主题。✅
 - 登录、发帖、回复、点赞、收藏、上传仍走现有 `/api`。✅
-- `bun test` 通过。✅ 91 pass
+- `bun test` 通过。✅ 92 pass
 - `bun run --cwd client lint` 和 `bun run --cwd client build` 通过。✅ 2026-06-13 复验
 
 ### Phase B: PWA
@@ -374,6 +377,7 @@ GET  /api/messages/:id/replies
 POST /api/messages/:id/like
 POST /api/messages/:id/bookmark
 GET  /api/bookmarks
+GET  /api/events
 POST /api/upload
 PATCH /api/auth/me
 PATCH /api/auth/avatar

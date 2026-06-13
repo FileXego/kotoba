@@ -42,7 +42,8 @@ bun run src/start.ts
 
 - `GET /api/health` 返回 `200 {"success":true,"version":"2.1.0"}`。
 - SPA fallback 可用。
-- 生产 `/api/messages` 需要先加载页面写入 `_kb=1` JS cookie，这是 bot gate 的一部分。
+- 生产 `/api/messages` 与 `/api/events` 需要先加载页面写入 `_kb=1` JS cookie，这是 bot gate 的一部分。
+- `/api/events` 使用 SSE，nginx 必须关闭该 location 的 proxy buffering，保持即时推送。
 
 ## 已补齐的上线前置
 
@@ -55,6 +56,7 @@ bun run src/start.ts
 | 上传安全 | PNG/JPEG/WebP 同时校验 MIME 和文件头 |
 | 静态文件 | `/uploads/*` 和 `/assets/*` 只服务安全 basename + 允许扩展名 |
 | API 边界 | 分页 limit 有上限，路径 ID 必须正整数 |
+| 双端即时同步 | `/api/events` SSE，公共消息/点赞广播，收藏/喜欢私有事件按用户过滤；前端带浏览器/代理兜底同步 |
 | 限频 | bucket 按 endpoint scope 隔离，过期清理 |
 | 安全头 | CSP 去掉 `script-src 'unsafe-inline'`，增加 nosniff/referrer/permissions policy |
 
@@ -156,6 +158,8 @@ curl -f https://example.com/api/health
 ```
 
 Cloudflare SSL/TLS 建议用 `Full (strict)`；不要缓存 `/api/*`。
+
+`/api/events` 是长连接，保留 `future/nginx.conf` 中独立 location 的 `proxy_buffering off` 和 `proxy_read_timeout 1h`。Cloudflare 侧不要给 `/api/*` 配缓存规则。
 
 ## 管理员初始化
 

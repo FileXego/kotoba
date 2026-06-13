@@ -5,6 +5,7 @@ import { desc, eq, and, isNull, or, like, sql } from "drizzle-orm";
 import { normalizePagination, SEARCH_MAX_LENGTH } from "../lib/pagination";
 import { parsePositiveId } from "../lib/ids";
 import { getBannedFilter } from "../lib/banned";
+import { publishRealtime } from "../lib/realtime";
 
 const MAX_DEPTH = 2;
 
@@ -37,6 +38,14 @@ export const messageRoute = new Elysia({ prefix: "/api" })
         rootId,
         depth,
       }).returning({ id: messages.id });
+      publishRealtime({
+        audience: "public",
+        type: "message.created",
+        messageId: result.id,
+        parentId: body.parentId ?? null,
+        rootId,
+        createdAt: new Date().toISOString(),
+      });
       return { success: true, id: result.id };
     },
     { body: t.Object({ content: t.String({ minLength: 1, maxLength: 500 }), parentId: t.Optional(t.Number()) }) }
@@ -98,7 +107,12 @@ export const messageRoute = new Elysia({ prefix: "/api" })
     async ({ params, body, currentUser, status }) => {
       const id = parsePositiveId(params.id);
       if (!id) return status(400, { success: false, error: "INVALID_ID" });
-      const [msg] = await db.select({ userId: messages.userId, name: messages.name }).from(messages).where(eq(messages.id, id)).limit(1);
+      const [msg] = await db.select({
+        userId: messages.userId,
+        name: messages.name,
+        parentId: messages.parentId,
+        rootId: messages.rootId,
+      }).from(messages).where(eq(messages.id, id)).limit(1);
       if (!msg) return status(404, { success: false, error: "NOT_FOUND" });
       const isAuthor = !!currentUser && (
         (msg.userId != null && msg.userId === currentUser.id)
@@ -109,7 +123,8 @@ export const messageRoute = new Elysia({ prefix: "/api" })
       if (!isAuthor && !isAdminDelete) {
         return status(403, { success: false, error: "FORBIDDEN" });
       }
-      const update: Record<string, unknown> = { updatedAt: new Date() };
+      const updatedAt = new Date();
+      const update: Record<string, unknown> = { updatedAt };
       if (body.content !== undefined) {
         if (getBannedFilter().containsAny(body.content)) {
           return status(409, { success: false, error: "CONTAINS_BANNED_WORD" });
@@ -118,6 +133,14 @@ export const messageRoute = new Elysia({ prefix: "/api" })
       }
       if (body.deleted !== undefined) update.deleted = body.deleted;
       await db.update(messages).set(update).where(eq(messages.id, id));
+      publishRealtime({
+        audience: "public",
+        type: body.deleted === 1 ? "message.deleted" : "message.updated",
+        messageId: id,
+        parentId: msg.parentId,
+        rootId: msg.rootId,
+        updatedAt: updatedAt.toISOString(),
+      });
       return { success: true };
     },
     { params: t.Object({ id: t.String() }), body: t.Object({ content: t.Optional(t.String({ minLength: 1, maxLength: 500 })), deleted: t.Optional(t.Number({ minimum: 0, maximum: 1 })) }) }
@@ -138,7 +161,25 @@ export const messageRoute = new Elysia({ prefix: "/api" })
         await db.insert(likes).values({ userId: currentUser.id, messageId });
       }
       const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(likes).where(eq(likes.messageId, messageId));
-      return { success: true, liked: !existing, count };
+      const likeCount = Number(count);
+      const updatedAt = new Date().toISOString();
+      publishRealtime({
+        audience: "public",
+        type: "message.liked",
+        messageId,
+        count: likeCount,
+        updatedAt,
+      });
+      publishRealtime({
+        audience: "user",
+        type: "interaction.changed",
+        userId: currentUser.id,
+        messageId,
+        liked: !existing,
+        count: likeCount,
+        updatedAt,
+      });
+      return { success: true, liked: !existing, count: likeCount };
     },
     { params: t.Object({ id: t.String() }) }
   )
@@ -157,6 +198,14 @@ export const messageRoute = new Elysia({ prefix: "/api" })
       } else {
         await db.insert(bookmarks).values({ userId: currentUser.id, messageId });
       }
+      publishRealtime({
+        audience: "user",
+        type: "interaction.changed",
+        userId: currentUser.id,
+        messageId,
+        bookmarked: !existing,
+        updatedAt: new Date().toISOString(),
+      });
       return { success: true, bookmarked: !existing };
     },
     { params: t.Object({ id: t.String() }) }

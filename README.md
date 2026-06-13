@@ -9,6 +9,7 @@
 - Keyword search + pagination
 - Like & bookmark with persistence
 - Bookmarks page (saved messages)
+- Realtime cross-device sync for messages, likes, and private bookmark state via Server-Sent Events with browser/proxy fallback polling
 - 4 theme presets (Washi / Night / Sumi / Sakura) with per-theme atmosphere layers
 - Avatar upload + personal signature
 - Ink-wash theme transition animation
@@ -19,7 +20,7 @@
 - Admin panel for moderation
 - Content-Security-Policy header on all responses
 - Bot / scraper guard — User-Agent filter + JS cookie gate + read rate limit
-- 91 tests (bun:test, 0 extra deps)
+- 92 tests (bun:test, 0 extra deps)
 - 0 extra npm dependencies — Bun built-ins only
 
 ## Tech Stack
@@ -81,6 +82,7 @@ See `.env.example` for dev defaults.
 | `GET` | `/api/messages/:id/replies` | — |
 | `POST` | `/api/messages/:id/like` | Login |
 | `POST` | `/api/messages/:id/bookmark` | Login |
+| `GET` | `/api/events` | Cookie optional |
 | `GET` | `/api/bookmarks?offset=&limit=` | Login |
 | `POST` | `/api/upload` | Login |
 | `POST` | `/api/auth/sign-up` | Captcha |
@@ -96,9 +98,9 @@ See `.env.example` for dev defaults.
 ```
 src/
 ├── plugins/    rate-limiter.ts · auth.ts · admin.ts    ← Elysia plugins
-├── routes/     message.ts · bookmark.ts · upload.ts    ← Route handlers
+├── routes/     message.ts · bookmark.ts · events.ts · upload.ts ← Route handlers
 ├── db/         schema.ts · index.ts                     ← Drizzle + SQLite
-├── lib/        files.ts · images.ts · pagination.ts     ← Shared guards
+├── lib/        files.ts · images.ts · pagination.ts · realtime.ts ← Shared guards/events
 ├── app.ts      createApp({ staticMode })                ← Unified app factory
 ├── index.ts    dev entry
 ├── start.ts    prod entry (static + SPA fallback)
@@ -117,6 +119,7 @@ Production deployment keeps releases and data separate: code lives under `/opt/k
 - **Ink-wash theme transition**: `clip-path` ellipse spread + `mix-blend-mode: difference`, four ink palettes (light/dark/sumi/sakura)
 - **Asymmetric border-radius**: `2px 8px 2px 8px` evokes brush-stroke edges
 - **Mobile composition**: constrained paper column, thumb-reachable bottom navigation, compact cards, bottom-sheet replies, and `viewport-fit=cover` safe-area spacing
+- **Realtime affordance**: a quiet sync chip reflects the SSE connection without changing the calm paper-first layout
 - **Fonts**: `Noto Serif JP` (display) + `Noto Sans SC` (body)
 
 ## i18n

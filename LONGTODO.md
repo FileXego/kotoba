@@ -184,6 +184,7 @@
 | P5 | 生产数据解耦 | `DB_PATH` / `UPLOAD_DIR` 指向 `/opt/kotoba/shared`，release 目录只放代码 |
 | P6 | Turnstile sitekey 源码化 | `VITE_TURNSTILE_SITEKEY` 从根 `.env` 注入，不再手改 dist |
 | P7 | 隐私收口 | README/部署脚本移除硬编码个人仓库地址，改为 `<your-repository-url>` / `KOTOBA_REPO_URL` |
+| P8 | 双端即时同步 | `/api/events` SSE 广播消息/点赞，按用户过滤收藏/喜欢私有事件；前端共享 EventSource，同步 Home/Thread/Bookmarks，并在浏览器/代理不支持时低频兜底 |
 
 ---
 
@@ -205,14 +206,14 @@
 | 阶段 | 进度 | 状态 |
 |------|------|------|
 | 文档和约束盘点 | `[##########] 100%` | 已读取 LONGTODO / Trying / SUGGESTION / future 上线文档 |
-| Mobile Web/PWA | `[##########] 100%` | Mobile Web 可上线候选：底部导航、详情、收藏、Me、Admin 紧凑视图、safe-area、触控目标、状态反馈、bot guard、上线加固已补齐；PWA 仍需 icon/manifest ADR |
+| Mobile Web/PWA | `[##########] 100%` | Mobile Web 可上线候选：底部导航、详情、收藏、Me、Admin 紧凑视图、safe-area、触控目标、状态反馈、双端即时同步、bot guard、上线加固已补齐；PWA 仍需 icon/manifest ADR |
 | 原生 App 架构设计 | `[#####-----] 45%` | 已完成框架矩阵和长期路线；未创建原生工程 |
 | 后端 mobile token | `[----------] 0%` | 待写认证 ADR；Web cookie 保持不变 |
 | iOS SwiftUI App | `[----------] 0%` | 待 `mobile/ios` 工程 |
 | Android Compose App | `[----------] 0%` | iOS v1 后再启动 |
 | 商店上架材料 | `[#---------] 10%` | 已核对商店门槛；UGC/隐私/截图未准备 |
 
-当前结论：手机浏览器版本可以进入上线前真机验收；原生 App 仍不要空建 `mobile/` 工程。框架体系见 `future/APP_FRAMEWORKS_AND_CONSTRAINTS.md`；下一步先写移动端认证 ADR，再做 `/api/mobile/*` 和 iOS SwiftUI v1。2026-06-13 已补齐移动端容器、底部导航、Thread/Bookmarks/Me/Admin 窄屏交互、回复底部 sheet、状态反馈与 375/390/430 宽度自动复核。
+当前结论：手机浏览器版本可以进入上线前真机验收；原生 App 仍不要空建 `mobile/` 工程。框架体系见 `future/APP_FRAMEWORKS_AND_CONSTRAINTS.md`；下一步先写移动端认证 ADR，再做 `/api/mobile/*` 和 iOS SwiftUI v1。2026-06-13 已补齐移动端容器、底部导航、Thread/Bookmarks/Me/Admin 窄屏交互、回复底部 sheet、实时同步状态、双端即时刷新与 375/390/430 宽度自动复核。
 
 ### 2.2.0 App v1 (iOS)
 

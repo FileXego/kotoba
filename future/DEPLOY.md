@@ -87,6 +87,8 @@ curl -f http://127.0.0.1:3000/api/health
 curl -f https://example.com/api/health
 ```
 
+`/api/events` 是 Server-Sent Events 长连接。若手工维护 nginx 配置，必须保留 `future/nginx.conf` 中 `location /api/events` 的 `proxy_buffering off`、`proxy_cache off` 和较长 `proxy_read_timeout`，否则双端即时更新会被代理缓冲。
+
 ## 管理员初始化
 
 注册第一个用户后手工提升：
