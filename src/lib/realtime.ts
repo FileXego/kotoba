@@ -74,7 +74,7 @@ export function createRealtimeStream(userId: number | null, signal?: AbortSignal
         id: clientId,
         userId,
         controller,
-        heartbeat: setInterval(() => enqueue(client, encoder.encode(": keep-alive\n\n")), 25000),
+        heartbeat: setInterval(() => enqueue(client, encodeSse("ping", { ts: Date.now() })), 25000),
       };
       client.heartbeat.unref?.();
       clients.set(clientId, client);

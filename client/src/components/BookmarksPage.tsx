@@ -51,7 +51,7 @@ export function BookmarksPage({ lang, currentUser, onUpdate, onSubmitReply, onOp
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (!currentUser || !realtimeEvent || realtimeEvent.type === "ready") return;
+    if (!currentUser || !realtimeEvent || realtimeEvent.type === "ready" || realtimeEvent.type === "ping") return;
     if (realtimeEvent.type === "sync.tick") {
       void load();
       void fetchInteractions().then(r => {

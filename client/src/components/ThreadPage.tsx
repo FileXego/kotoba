@@ -50,7 +50,7 @@ export function ThreadPage({
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (!realtimeEvent || realtimeEvent.type === "ready" || realtimeEvent.type === "interaction.changed") return;
+    if (!realtimeEvent || realtimeEvent.type === "ready" || realtimeEvent.type === "interaction.changed" || realtimeEvent.type === "ping") return;
     if (realtimeEvent.type === "sync.tick") {
       void loadThread();
       return;

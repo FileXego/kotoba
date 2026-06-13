@@ -126,7 +126,7 @@ export function useMessageFeed(
   };
 
   const applyRealtimeEvent = useCallback((event: RealtimeClientEvent) => {
-    if (event.type === "ready") return;
+    if (event.type === "ready" || event.type === "ping") return;
 
     if (event.type === "sync.tick") {
       void loadMessages(0, q);

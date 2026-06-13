@@ -10,7 +10,8 @@ export type RealtimeClientEvent =
   | { type: "message.deleted"; messageId: number; parentId: number | null; rootId: number | null; updatedAt: string }
   | { type: "message.restored"; messageId: number; updatedAt: string }
   | { type: "message.liked"; messageId: number; count: number; updatedAt: string }
-  | { type: "interaction.changed"; messageId: number; liked?: boolean; bookmarked?: boolean; count?: number; updatedAt: string };
+  | { type: "interaction.changed"; messageId: number; liked?: boolean; bookmarked?: boolean; count?: number; updatedAt: string }
+  | { type: "ping"; ts: number };
 
 const EVENT_TYPES: RealtimeClientEvent["type"][] = [
   "ready",
@@ -20,6 +21,7 @@ const EVENT_TYPES: RealtimeClientEvent["type"][] = [
   "message.restored",
   "message.liked",
   "interaction.changed",
+  "ping",
 ];
 
 const FALLBACK_SYNC_MS = 15000;
