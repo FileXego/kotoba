@@ -55,11 +55,9 @@ export default function App() {
     if (route !== "/") window.scrollTo({ top: 0 });
   }, [route, messageId]);
 
-  const routeClass = route === "/" ? "home" : route.slice(1);
-
   return (
     <MobileShell>
-      <div className={`app app-route-${routeClass}`}>
+      <div className="app">
         <Header theme={theme} lang={lang} onToggleTheme={(x, y) => toggleTheme(x, y)} onToggleLang={toggleLang}
           user={user} onUserChange={setUser} onAdminClick={() => navigate("/admin")}
           onBookmarksClick={() => navigate("/bookmarks")} onHomeClick={() => navigate("/")} />
