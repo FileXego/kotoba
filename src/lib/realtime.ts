@@ -28,6 +28,7 @@ interface RealtimeClient {
 
 const encoder = new TextEncoder();
 const clients = new Map<number, RealtimeClient>();
+const MAX_SSE_CLIENTS = 500;
 let nextClientId = 1;
 let nextEventId = 1;
 
@@ -69,6 +70,10 @@ export function createRealtimeStream(userId: number | null, signal?: AbortSignal
   let clientId = 0;
   return new ReadableStream<Uint8Array>({
     start(controller) {
+      if (clients.size >= MAX_SSE_CLIENTS) {
+        controller.close();
+        return;
+      }
       clientId = nextClientId++;
       const client: RealtimeClient = {
         id: clientId,

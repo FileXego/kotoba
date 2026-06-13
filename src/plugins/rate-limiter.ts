@@ -2,6 +2,7 @@ import { Elysia } from "elysia";
 
 // in-memory rate limiter: scope:IP → { count, resetAt }
 const buckets = new Map<string, { count: number; resetAt: number }>();
+const BUCKETS_MAX = 50000;
 const isProd = import.meta.env.NODE_ENV === "production";
 let lastCleanup = 0;
 
@@ -11,6 +12,7 @@ function checkRate(scope: string, ip: string, maxPerMinute: number): boolean {
   const key = `${scope}:${ip}`;
   const bucket = buckets.get(key);
   if (!bucket || now > bucket.resetAt) {
+    if (buckets.size >= BUCKETS_MAX) return false;
     buckets.set(key, { count: 1, resetAt: now + 60000 });
     return true;
   }
@@ -48,6 +50,7 @@ function hasCookie(request: Request, name: string, value: string) {
 
 // ── Burst rate limit ──
 const requestTimes = new Map<string, number[]>();
+const REQUEST_TIMES_MAX = 10000;
 const BURST_MAX = 100;
 const BURST_WINDOW = 10000; // 10 seconds
 
@@ -56,7 +59,9 @@ function isBursting(ip: string): boolean {
   const times = requestTimes.get(ip) ?? [];
   const recent = times.filter(t => now - t < BURST_WINDOW);
   recent.push(now);
-  requestTimes.set(ip, recent);
+  if (requestTimes.size < REQUEST_TIMES_MAX || requestTimes.has(ip)) {
+    requestTimes.set(ip, recent);
+  }
   return recent.length > BURST_MAX;
 }
 
