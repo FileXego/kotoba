@@ -48,6 +48,10 @@ export function SubmitForm({ lang, onSubmit, onImageUpload, loggedIn }: Props) {
 
   return (
     <form className="submit-form" onSubmit={handleSubmit}>
+      <div className="composer-heading">
+        <span>{t(lang, "editorial.compose")}</span>
+        <span className="composer-seal" aria-hidden="true">{t(lang, "editorial.seal")}</span>
+      </div>
       <label htmlFor="content">{t(lang, "form.thought")}</label>
       <textarea id="content" value={content} onChange={(e) => setContent(e.target.value)}
         maxLength={500} placeholder={t(lang, "form.placeholder")} required />
@@ -59,7 +63,8 @@ export function SubmitForm({ lang, onSubmit, onImageUpload, loggedIn }: Props) {
           {uploading ? "···" : "🖼"}
         </button>
         <button type="submit" className="submit-btn" disabled={sending || uploading}>
-          {sending ? "···" : t(lang, "form.submit")}
+          <span aria-hidden="true" className="submit-mark">{t(lang, "editorial.submitMark")}</span>
+          <span>{sending ? "···" : t(lang, "form.submit")}</span>
         </button>
       </div>
     </form>

@@ -1,7 +1,6 @@
 import { MOBILE_ROUTES_ENABLED } from "../flags";
 import { t, type Lang } from "../i18n";
-
-type Route = "/" | "/admin" | "/bookmarks" | "/message" | "/me";
+import type { Route } from "../hooks/useRouter";
 
 interface Props {
   lang: Lang;
@@ -21,7 +20,8 @@ export function MobileBottomNav({ lang, route, navigate, onComposeFocus }: Props
         aria-current={route === "/" ? "page" : undefined}
         onClick={() => navigate("/")}
       >
-        {t(lang, "nav.home")}
+        <span className="mobile-nav-folio" aria-hidden="true">{t(lang, "editorial.navHomeMark")}</span>
+        <span className="mobile-nav-label">{t(lang, "nav.home")}</span>
       </button>
       <button
         type="button"
@@ -29,10 +29,12 @@ export function MobileBottomNav({ lang, route, navigate, onComposeFocus }: Props
         aria-current={route === "/bookmarks" ? "page" : undefined}
         onClick={() => navigate("/bookmarks")}
       >
-        {t(lang, "nav.saved")}
+        <span className="mobile-nav-folio" aria-hidden="true">{t(lang, "editorial.navSavedMark")}</span>
+        <span className="mobile-nav-label">{t(lang, "nav.saved")}</span>
       </button>
       <button type="button" className="mobile-nav-btn mobile-nav-compose" onClick={onComposeFocus}>
-        {t(lang, "nav.write")}
+        <span className="mobile-nav-folio" aria-hidden="true">{t(lang, "editorial.navWriteMark")}</span>
+        <span className="mobile-nav-label">{t(lang, "nav.write")}</span>
       </button>
       <button
         type="button"
@@ -40,7 +42,8 @@ export function MobileBottomNav({ lang, route, navigate, onComposeFocus }: Props
         aria-current={route === "/me" ? "page" : undefined}
         onClick={() => navigate("/me")}
       >
-        {t(lang, "nav.me")}
+        <span className="mobile-nav-folio" aria-hidden="true">{t(lang, "editorial.navMeMark")}</span>
+        <span className="mobile-nav-label">{t(lang, "nav.me")}</span>
       </button>
     </nav>
   );

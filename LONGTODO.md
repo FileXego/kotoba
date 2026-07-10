@@ -93,7 +93,7 @@
 | 适度耦合 | 不拆成微服务，但组件间 props 穿透不超过 3 层 |
 | 端点自治 | 每个端点自含鉴权、校验、错误处理。不依赖调用顺序 |
 | 扩展先行 | 加功能前先看它触碰多少文件。>3 个文件考虑重构 |
-| 0 新增依赖 | 延续 1.0 传统。Bun 内置 + Elysia 内置全覆盖 |
+| 依赖受控 | 默认不增加；跨页面平台能力可在许可证、降级路径和双端验证明确后用 Bun 引入 |
 | 状态分层 | App 层 → hook 层 → 组件层。不跨层传状态 |
 
 ### 路线
@@ -114,7 +114,7 @@
 
 ## 2.1.0 🎨 个性化 + 收藏页
 
-**核心词**：可维护扩展。不加依赖，适度解耦，pushState 路由。
+**核心词**：可维护扩展。依赖受控，适度解耦，pushState 路由。
 
 ### 架构基础
 
@@ -199,21 +199,21 @@
 | 依赖 | App 也极简——HttpURLConnection，不装 OkHttp/Coil/第三方库 |
 | 开发顺序 | iOS v1 → Android v1 |
 
-### 当前进度（2026-06-13）
+### 当前进度（2026-07-10）
 
 详细台账见 `future/NATIVE_APP_ROADMAP.md`。
 
 | 阶段 | 进度 | 状态 |
 |------|------|------|
 | 文档和约束盘点 | `[##########] 100%` | 已读取 LONGTODO / Trying / SUGGESTION / future 上线文档 |
-| Mobile Web/PWA | `[##########] 100%` | Mobile Web 可上线候选：底部导航、详情、收藏、Me、Admin 紧凑视图、safe-area、触控目标、状态反馈、双端即时同步、bot guard、上线加固已补齐；PWA 仍需 icon/manifest ADR |
+| Mobile Web/PWA | `[##########] 100%` | Mobile Web 可上线候选：现代东方书刊设计系统、底部书签导航、详情、收藏、Me、Admin、safe-area、触控目标、双端即时同步与上线加固已补齐；PWA 仍需 manifest/offline ADR |
 | 原生 App 架构设计 | `[#####-----] 45%` | 已完成框架矩阵和长期路线；未创建原生工程 |
 | 后端 mobile token | `[----------] 0%` | 待写认证 ADR；Web cookie 保持不变 |
 | iOS SwiftUI App | `[----------] 0%` | 待 `mobile/ios` 工程 |
 | Android Compose App | `[----------] 0%` | iOS v1 后再启动 |
 | 商店上架材料 | `[#---------] 10%` | 已核对商店门槛；UGC/隐私/截图未准备 |
 
-当前结论：手机浏览器版本可以进入上线前真机验收；原生 App 仍不要空建 `mobile/` 工程。框架体系见 `future/APP_FRAMEWORKS_AND_CONSTRAINTS.md`；下一步先写移动端认证 ADR，再做 `/api/mobile/*` 和 iOS SwiftUI v1。2026-06-13 已补齐移动端容器、底部导航、Thread/Bookmarks/Me/Admin 窄屏交互、回复底部 sheet、实时同步状态、双端即时刷新与 375/390/430 宽度自动复核。
+当前结论：手机浏览器版本可以进入上线前真机验收；原生 App 仍不要空建 `mobile/` 工程。框架体系见 `future/APP_FRAMEWORKS_AND_CONSTRAINTS.md`；下一步先写移动端认证 ADR，再做 `/api/mobile/*` 和 iOS SwiftUI v1。2026-07-10 已将全站统一为现代东方书刊系统，并完成四主题、375/390/430/768/1024/1440 宽度、底部导航和 reduced-motion 浏览器复核。
 
 ### 2.2.0 App v1 (iOS)
 

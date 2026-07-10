@@ -96,6 +96,7 @@ export function MePage({ lang, user, theme, onUserChange, onThemeChange }: Props
 
   return (
     <div className="me-page">
+      <span className="section-kicker">{t(lang, "editorial.issue")} · 04</span>
       <h2 className="me-title">{t(lang, "me.title")}</h2>
       <div className="me-profile-card">
         <Avatar name={user.username} src={user.avatarUrl} />

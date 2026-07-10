@@ -97,10 +97,13 @@ export function BookmarksPage({ lang, currentUser, onUpdate, onSubmitReply, onOp
   if (messages.length === 0) return <div className="empty-state"><p>{t(lang, "bookmarks.empty")}</p></div>;
 
   return (
-    <section>
-      <div className="list-header">{t(lang, "bookmarks.title")}</div>
+    <section className="editorial-section bookmarks-page">
+      <div className="list-header">
+        <span className="section-kicker">{t(lang, "editorial.issue")} · 02</span>
+        <span>{t(lang, "bookmarks.title")}</span>
+      </div>
       <div className="message-list">
-        {messages.map((msg) => (
+        {messages.map((msg, index) => (
             <MessageCard key={msg.id} lang={lang} message={msg}
               replies={null} loadingReplies={false}
               currentUser={currentUser} likedIds={likedIds} bookmarkedIds={bookmarkedIds}
@@ -128,7 +131,7 @@ export function BookmarksPage({ lang, currentUser, onUpdate, onSubmitReply, onOp
                 }
                 load();
               }}
-              onOpenThread={onOpenThread} />
+              onOpenThread={onOpenThread} entryIndex={index} />
         ))}
       </div>
       {messages.length < total && (

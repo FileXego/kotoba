@@ -21,7 +21,7 @@
 
 本轮已按现有约束读取和对齐：
 
-- `AGENTS.md` / `WORKFLOW.md`：项目铁律、验证规则、0 app 级 npm 依赖、禁止图片文件、API 错误码规范。
+- `AGENTS.md` / `WORKFLOW.md`：项目铁律、验证规则、依赖与资产治理、API 错误码规范。
 - `LONGTODO.md`：2.2.0 iOS 原生、2.5.0 Android 原生、`mobile/` 目录、App token 鉴权方向。
 - `Trying/plan.md`：第一阶段 mobile Web/PWA，同源 `/api`，原生包壳延后。
 - `Trying/review-and-native-decision-list.md`：`/api/mobile/*`、JWT、Keychain/Keystore、原生离线队列延后到正式原生阶段。
@@ -41,14 +41,14 @@
 |---|---:|---|---|
 | P0 文档和约束盘点 | `[##########] 100%` | 已完成本轮读取和冲突整理 | 后续只维护增量 |
 | P1 Web 生产前置 | `[#########-] 95%` | Turnstile sitekey 已源码化、上线方案已写、bot guard、CSP、安全头、上传魔数校验、shared 数据部署已补齐 | 真机复核、首台 VPS 实部署 |
-| P2 Mobile Web/PWA | `[##########] 100%` | Mobile Web 可上线候选：路由、底部导航、Thread/Bookmarks/Me/Admin、详情入口、完整回复树、safe-area、触控目标、状态反馈、双端即时同步、bot guard、Turnstile env、上线加固 | 真机 Safari/Chrome 复核、PWA icon 决策 |
+| P2 Mobile Web/PWA | `[##########] 100%` | Mobile Web 可上线候选：现代东方书刊设计系统、路由、书签式底部导航、Thread/Bookmarks/Me/Admin、safe-area、触控目标、双端即时同步和上线加固 | 真机 Safari/Chrome 复核、PWA manifest/offline 决策 |
 | P3 原生 App 架构设计 | `[#####-----] 45%` | 框架矩阵、iOS/Android 结构、App v1 范围已完成文档化 | 写移动端认证 ADR |
 | P4 后端 mobile token | `[----------] 0%` | 现有 Web cookie 可用；App token 未实现 | 决定 `@elysia/jwt` 依赖例外或 Bun/WebCrypto signed token |
 | P5 iOS SwiftUI App | `[----------] 0%` | 无 Xcode 工程 | 等 P4 后建 `mobile/ios` |
 | P6 Android Compose App | `[----------] 0%` | 无 Gradle 工程 | iOS v1 后再建 `mobile/android` |
 | P7 商店上架材料 | `[#---------] 10%` | 商店约束已核对 | 准备隐私政策、UGC 管理、截图、账号 |
 
-当前做到的位置：**P1 Web 生产前置已基本补齐，P2 Mobile Web 已进入可上线候选（含详情入口、完整回复树、收藏、Me 页、Admin 窄屏、底部导航、safe-area、触控目标、状态反馈、双端即时同步、气氛层、bot guard、reduced-motion、上传校验、shared 数据部署），P3 框架矩阵完成；没有创建原生工程，后端 mobile token 仍未开始。**
+当前做到的位置：**P1 Web 生产前置已基本补齐，P2 Mobile Web 已进入可上线候选（含现代东方书刊视觉系统、四种书刊版本、详情、完整回复树、收藏、Me、Admin、底部导航、safe-area、双端即时同步、reduced-motion、上传校验和 shared 数据部署），P3 框架矩阵完成；没有创建原生工程，后端 mobile token 仍未开始。**
 
 ## Mobile Web Phase A 完成记录
 
@@ -64,6 +64,9 @@
 | ThreadPage | `client/src/components/ThreadPage.tsx` | `/message/:id` 单消息 + 完整回复树 |
 | MePage | `client/src/components/MePage.tsx` | 头像上传、签名编辑、四主题色块、登出 |
 | Mobile CSS | `client/src/styles.css` | 底部导航、安全区、640px 断点、主题色块 |
+| EditorialFrame | `client/src/components/EditorialFrame.tsx` | 桌面偏轴版记、移动页眉、路线编号与实时状态 |
+| Motion foundation | `client/src/design/motion.ts` + `PageTransition.tsx` | 统一展卷/条目入场，遵守 reduced-motion |
+| Design assets | `client/src/assets/` | 项目专属 SVG 材质、裁剪文楷字体与 OFL 许可证 |
 | i18n | `client/src/i18n.ts` | `nav.*` / `me.*` 日中双语 key |
 | Router | `client/src/hooks/useRouter.ts` | `/message/:id` + `/me` 路由已通 |
 | App wiring | `client/src/App.tsx` | mobile shell、bottom nav、Thread/Me 页面挂载 |
@@ -209,7 +212,7 @@ X-Kotoba-Version: 1.0.0
 
 ### 4. App 端可以有平台常规依赖，但要写 ADR
 
-Web 项目继续 0 app 级 npm 依赖。
+Web 项目默认不增加依赖；已批准的 Motion/Fontsource 只承担全站动效与双语字体基础，并由 Bun lock、许可证和降级路径治理。
 
 移动端是否允许：
 
@@ -249,13 +252,13 @@ Web 项目继续 0 app 级 npm 依赖。
 必须先写 ADR，解决这个冲突：
 
 - `LONGTODO.md` 写 iOS v1 需要 JWT / `@elysia/jwt`。
-- 项目当前铁律是 0 app 级 npm 依赖。
+- 项目当前铁律是依赖默认不增加；跨页面平台能力必须记录许可证、降级路径并完成验证。
 
 可选方案：
 
 | 方案 | 取舍 | 推荐 |
 |---|---|---|
-| `@elysia/jwt` 依赖例外 | 标准、维护成本低；打破 0 依赖 | 如果明确进入原生 App，推荐 |
+| `@elysia/jwt` 受控依赖 | 标准、维护成本低；扩大后端依赖面 | 如果明确进入原生 App，推荐 |
 | Bun/WebCrypto 自签 token | 0 依赖；长期协议和轮换要自己维护 | 不推荐长期使用 |
 | 继续 cookie | WebView 可用；原生 URLSession/OkHttp 跨域和安全存储不自然 | 不推荐原生 App |
 
@@ -402,7 +405,7 @@ mobile/
 - 严格极简：`HttpURLConnection` + `org.json` + 手写图片加载。
 - 更实际：OkHttp + kotlinx.serialization + Coil。
 
-建议：进入 Android 阶段前写 ADR，允许 Android 使用平台常规依赖；Web 继续 0 npm 依赖。
+建议：进入 Android 阶段前写 ADR，允许 Android 使用平台常规依赖；Web 继续执行受控依赖与资产治理。
 
 ## 商店上架门槛
 

@@ -2,6 +2,8 @@ import { useState, type FormEvent } from "react";
 import { type Message, type User } from "../api";
 import { t, type Lang } from "../i18n";
 import { Avatar } from "./Avatar";
+import { motion } from "motion/react";
+import { entryVariants } from "../design/motion";
 
 interface ReplyInfo { message: Message; replies: Message[]; ownDepth: number; }
 
@@ -16,6 +18,7 @@ interface Props {
   onOpenThread?: (id: number) => void;
   expandRepliesByDefault?: boolean;
   ownDepth?: number;
+  entryIndex?: number;
 }
 
 function formatTime(lang: Lang, iso: string): string {
@@ -53,6 +56,7 @@ export function MessageCard({
   replies, loadingReplies, replyLoadError, currentUser, likedIds, bookmarkedIds,
   onUpdate, onLoadReplies, onSubmitReply, onToggleLike, onToggleBookmark, ownDepth,
   onOpenThread, expandRepliesByDefault,
+  entryIndex = 0,
 }: Props) {
   const d = ownDepth ?? depth;
   const liked = likedIds.has(id);
@@ -100,8 +104,16 @@ export function MessageCard({
 
   return (
     <div>
-      <article className="message-card" data-depth={d}>
+      <motion.article
+        className="message-card"
+        data-depth={d}
+        custom={entryIndex}
+        variants={entryVariants}
+        initial="hidden"
+        animate="visible"
+      >
         <div className="card-header">
+          <span className="card-index" aria-hidden="true">{String(id).padStart(3, "0")}</span>
           <Avatar name={name} src={avatarUrl} />
           <span className="card-name">{name}</span>
           <time className="card-time">{formatTime(lang, createdAt)}</time>
@@ -176,7 +188,7 @@ export function MessageCard({
           </div>
           {replyError && <p className="auth-error">{replyError}</p>}
         </form>)}
-      </article>
+      </motion.article>
       {showReplies && childReplies.length > 0 && (<div className="reply-tree">
         {childReplies.map(({ message, replies, ownDepth }) => (
           <MessageCard key={message.id} lang={lang} message={message} replies={replies}
@@ -185,7 +197,8 @@ export function MessageCard({
             likedIds={likedIds} bookmarkedIds={bookmarkedIds}
             onUpdate={onUpdate} onLoadReplies={onLoadReplies} onSubmitReply={onSubmitReply}
             ownDepth={ownDepth} onToggleLike={onToggleLike} onToggleBookmark={onToggleBookmark}
-            onOpenThread={onOpenThread} expandRepliesByDefault={expandRepliesByDefault} />
+            onOpenThread={onOpenThread} expandRepliesByDefault={expandRepliesByDefault}
+            entryIndex={ownDepth} />
         ))}
       </div>)}
     </div>

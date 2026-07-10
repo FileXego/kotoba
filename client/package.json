@@ -10,6 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource-variable/noto-serif-jp": "^5.2.9",
+    "@fontsource-variable/noto-serif-sc": "^5.2.10",
+    "motion": "^12.42.2",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },

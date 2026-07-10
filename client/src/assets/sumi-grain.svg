@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="480" viewBox="0 0 480 480">
+  <filter id="grain" x="-10%" y="-10%" width="120%" height="120%">
+    <feTurbulence type="turbulence" baseFrequency=".82" numOctaves="2" seed="19" stitchTiles="stitch" result="noise"/>
+    <feColorMatrix in="noise" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .18 0"/>
+  </filter>
+  <rect width="480" height="480" fill="#d7ddd6" filter="url(#grain)" opacity=".26"/>
+  <g fill="#eff0e8" opacity=".17">
+    <circle cx="52" cy="72" r="1.2"/><circle cx="188" cy="36" r=".8"/><circle cx="352" cy="116" r="1"/>
+    <circle cx="416" cy="238" r=".7"/><circle cx="96" cy="294" r=".9"/><circle cx="272" cy="410" r="1.1"/>
+  </g>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
+  <filter id="paper" x="-15%" y="-15%" width="130%" height="130%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.015 0.42" numOctaves="3" seed="37" stitchTiles="stitch" result="fibers"/>
+    <feColorMatrix in="fibers" type="saturate" values="0" result="gray"/>
+    <feComponentTransfer in="gray">
+      <feFuncA type="table" tableValues="0 0.16"/>
+    </feComponentTransfer>
+  </filter>
+  <rect width="320" height="320" fill="#7b644b" filter="url(#paper)" opacity=".34"/>
+  <g stroke="#785e42" stroke-linecap="round" opacity=".12">
+    <path d="M18 48c36-5 72 4 112-1s76-7 120 2"/>
+    <path d="M72 164c52 3 106-4 174 1"/>
+    <path d="M7 269c62-4 126 5 208-2"/>
+  </g>
+</svg>

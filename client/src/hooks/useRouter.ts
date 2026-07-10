@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { MOBILE_ROUTES_ENABLED } from "../flags";
 
-type Route = "/" | "/admin" | "/bookmarks" | "/message" | "/me";
+export type Route = "/" | "/admin" | "/bookmarks" | "/message" | "/me";
 
 function getRoute(): Route {
   const path = window.location.pathname;

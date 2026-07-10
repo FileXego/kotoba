@@ -27,17 +27,20 @@ export function MessageList({
     return <div className="empty-state"><p>{t(lang, "list.empty")}</p><span>{t(lang, "list.emptySub")}</span></div>;
 
   return (
-    <section>
-      <div className="list-header">{t(lang, "list.header")}</div>
+    <section className="editorial-section">
+      <div className="list-header">
+        <span className="section-kicker">{t(lang, "editorial.issue")} · 01</span>
+        <span>{t(lang, "editorial.entries")}</span>
+      </div>
       <div className="message-list">
-        {messages.map((msg) => (
+        {messages.map((msg, index) => (
           <MessageCard key={msg.id} lang={lang} message={msg}
             replies={replyTrees[msg.id] ?? null} loadingReplies={loadingReplies.has(msg.id)}
             replyLoadError={replyErrors[msg.id]}
             currentUser={currentUser} likedIds={likedIds} bookmarkedIds={bookmarkedIds}
             onUpdate={onUpdate} onLoadReplies={onLoadReplies} onSubmitReply={onSubmitReply}
             onToggleLike={onToggleLike} onToggleBookmark={onToggleBookmark}
-            onOpenThread={onOpenThread} />
+            onOpenThread={onOpenThread} entryIndex={index} />
         ))}
       </div>
       {messages.length < total && (

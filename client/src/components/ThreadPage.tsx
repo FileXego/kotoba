@@ -92,10 +92,13 @@ export function ThreadPage({
   return (
     <div className="thread-page">
       <div className="thread-topbar">
+        <div>
+          <span className="section-kicker">{t(lang, "editorial.issue")} · 03</span>
+          <h2 className="thread-title">{t(lang, "thread.title")}</h2>
+        </div>
         <button type="button" className="thread-back" onClick={onBack}>
           {t(lang, "nav.back")}
         </button>
-        <h2 className="thread-title">{t(lang, "thread.title")}</h2>
       </div>
       <MessageCard
         lang={lang} message={rootMsg} replies={replies}

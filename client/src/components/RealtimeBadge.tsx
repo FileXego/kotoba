@@ -15,9 +15,9 @@ const LABEL_KEY: Record<RealtimeStatus, "realtime.connecting" | "realtime.live" 
 
 export function RealtimeBadge({ lang, status }: Props) {
   return (
-    <div className={`realtime-badge realtime-${status}`} aria-live="polite">
+    <div className={`realtime-badge realtime-${status}`} data-state={status} aria-live="polite">
       <span className="realtime-dot" aria-hidden="true" />
-      <span>{t(lang, LABEL_KEY[status])}</span>
+      <span className="realtime-label">{t(lang, LABEL_KEY[status])}</span>
     </div>
   );
 }

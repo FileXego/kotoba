@@ -8,7 +8,9 @@ import { MobileShell } from "./components/MobileShell";
 import { MobileBottomNav } from "./components/MobileBottomNav";
 import { ThreadPage } from "./components/ThreadPage";
 import { MePage } from "./components/MePage";
-import { RealtimeBadge } from "./components/RealtimeBadge";
+import { AnimatePresence, MotionConfig } from "motion/react";
+import { EditorialFrame } from "./components/EditorialFrame";
+import { PageTransition } from "./components/PageTransition";
 import { useRouter } from "./hooks/useRouter";
 import { useTheme } from "./hooks/useTheme";
 import { useSession } from "./hooks/useSession";
@@ -64,61 +66,70 @@ export default function App() {
     if (route !== "/") window.scrollTo({ top: 0 });
   }, [route, messageId]);
 
+  useEffect(() => {
+    document.documentElement.lang = lang === "ja" ? "ja" : "zh-CN";
+  }, [lang]);
+
   return (
-    <MobileShell>
-      <div className="app">
-        <Header theme={theme} lang={lang} onToggleTheme={(x, y) => toggleTheme(x, y)} onToggleLang={toggleLang}
-          user={user} onUserChange={setUser} onAdminClick={() => navigate("/admin")}
-          onBookmarksClick={() => navigate("/bookmarks")} onHomeClick={() => navigate("/")} />
-        <RealtimeBadge lang={lang} status={realtimeStatus} />
-        {route === "/admin" && <AdminPanel lang={lang} onClose={() => navigate("/")} />}
-        {route === "/bookmarks" && (
-          <BookmarksPage lang={lang} currentUser={user}
-            onUpdate={handleUpdate} onSubmitReply={handleSubmit}
-            onOpenThread={MOBILE_ROUTES_ENABLED ? (id) => navigate("/message", id) : undefined}
-            realtimeEvent={realtimeEvent} />
+    <MotionConfig reducedMotion="user">
+      <MobileShell>
+        <EditorialFrame lang={lang} route={route} realtimeStatus={realtimeStatus}>
+          <Header theme={theme} lang={lang} onToggleTheme={(x, y) => toggleTheme(x, y)} onToggleLang={toggleLang}
+            user={user} onUserChange={setUser} onAdminClick={() => navigate("/admin")}
+            onBookmarksClick={() => navigate("/bookmarks")} onHomeClick={() => navigate("/")} />
+          <AnimatePresence mode="wait" initial={false}>
+            <PageTransition key={`${route}-${messageId ?? "index"}`}>
+              {route === "/admin" && <AdminPanel lang={lang} onClose={() => navigate("/")} />}
+              {route === "/bookmarks" && (
+                <BookmarksPage lang={lang} currentUser={user}
+                  onUpdate={handleUpdate} onSubmitReply={handleSubmit}
+                  onOpenThread={MOBILE_ROUTES_ENABLED ? (id) => navigate("/message", id) : undefined}
+                  realtimeEvent={realtimeEvent} />
+              )}
+              {route === "/message" && messageId != null && (
+                <ThreadPage lang={lang} messageId={messageId} currentUser={user}
+                  likedIds={likedIds} bookmarkedIds={bookmarkedIds}
+                  onSubmitReply={handleSubmit} onUpdate={handleUpdate} onToggleLike={handleToggleLike}
+                  onToggleBookmark={handleToggleBookmark} onBack={() => navigate("/")}
+                  realtimeEvent={realtimeEvent} />
+              )}
+              {route === "/me" && (
+                <MePage lang={lang} user={user} theme={theme}
+                  onUserChange={setUser} onThemeChange={chooseTheme} />
+              )}
+              {route === "/" && (
+                <>
+                  <input className="search-input" type="text" placeholder={t(lang, "search.placeholder")}
+                    value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                  <div ref={composerRef}>
+                    <SubmitForm lang={lang}
+                      onImageUpload={async (f) => { const r = await (await import("./api")).uploadImage(f); return r.url; }}
+                      onSubmit={handleSubmit} loggedIn={!!user} />
+                  </div>
+                  <MessageList lang={lang}
+                    messages={messages} total={total} loading={loading} loadingMore={loadingMore}
+                    error={error} replyTrees={replyTrees} loadingReplies={loadingReplies}
+                    replyErrors={replyErrors}
+                    currentUser={user} likedIds={likedIds} bookmarkedIds={bookmarkedIds}
+                    onUpdate={handleUpdate} onLoadReplies={handleLoadReplies}
+                    onLoadMore={handleLoadMore} onSubmitReply={handleSubmit}
+                    onToggleLike={handleToggleLike} onToggleBookmark={handleToggleBookmark}
+                    onOpenThread={MOBILE_ROUTES_ENABLED ? (id) => navigate("/message", id) : undefined}
+                  />
+                </>
+              )}
+            </PageTransition>
+          </AnimatePresence>
+        </EditorialFrame>
+        {MOBILE_ROUTES_ENABLED && (
+          <MobileBottomNav lang={lang} route={route} navigate={navigate} onComposeFocus={focusComposer} />
         )}
-        {route === "/message" && messageId != null && (
-          <ThreadPage lang={lang} messageId={messageId} currentUser={user}
-            likedIds={likedIds} bookmarkedIds={bookmarkedIds}
-            onSubmitReply={handleSubmit} onUpdate={handleUpdate} onToggleLike={handleToggleLike}
-            onToggleBookmark={handleToggleBookmark} onBack={() => navigate("/")}
-            realtimeEvent={realtimeEvent} />
+        {inkAnim && (
+          <div className="ink-overlay" data-target={inkAnim.theme} style={{
+            '--ink-x': `${inkAnim.x}px`, '--ink-y': `${inkAnim.y}px`,
+          } as React.CSSProperties} />
         )}
-        {route === "/me" && (
-          <MePage lang={lang} user={user} theme={theme}
-            onUserChange={setUser} onThemeChange={chooseTheme} />
-        )}
-        {route === "/" && (
-          <>
-            <input className="search-input" type="text" placeholder={t(lang, "search.placeholder")}
-              value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-            <div ref={composerRef}>
-              <SubmitForm lang={lang}
-                onImageUpload={async (f) => { const r = await (await import("./api")).uploadImage(f); return r.url; }}
-                onSubmit={handleSubmit} loggedIn={!!user} />
-            </div>
-            <MessageList lang={lang}
-              messages={messages} total={total} loading={loading} loadingMore={loadingMore}
-              error={error} replyTrees={replyTrees} loadingReplies={loadingReplies}
-              replyErrors={replyErrors}
-              currentUser={user} likedIds={likedIds} bookmarkedIds={bookmarkedIds}
-              onUpdate={handleUpdate} onLoadReplies={handleLoadReplies}
-              onLoadMore={handleLoadMore} onSubmitReply={handleSubmit}
-              onToggleLike={handleToggleLike} onToggleBookmark={handleToggleBookmark}
-              onOpenThread={MOBILE_ROUTES_ENABLED ? (id) => navigate("/message", id) : undefined}
-            />
-          </>
-        )}
-      </div>
-      {MOBILE_ROUTES_ENABLED && (
-        <MobileBottomNav lang={lang} route={route} navigate={navigate} onComposeFocus={focusComposer} />
-      )}
-      {inkAnim && (
-        <div className="ink-overlay" data-target={inkAnim.theme} style={{
-          '--ink-x': `${inkAnim.x}px`, '--ink-y': `${inkAnim.y}px`,
-        } as React.CSSProperties} />
-      )}
-    </MobileShell>
+      </MobileShell>
+    </MotionConfig>
   );
 }

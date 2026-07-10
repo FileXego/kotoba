@@ -87,9 +87,16 @@ export function Header({ theme, lang, onToggleTheme, onToggleLang, user, onUserC
           {lang === "ja" ? "中" : "日"}
         </button>
       </div>
-      <button type="button" className="header-title-button" onClick={onHomeClick}>
-        <span className="header-title">{t(lang, "app.title")}</span>
-      </button>
+      <div className="header-issue">
+        <span>{t(lang, "editorial.issue")}</span>
+        <span aria-hidden="true">{t(lang, "editorial.navHomeMark")}</span>
+      </div>
+      <div className="header-masthead">
+        <button type="button" className="header-title-button" onClick={onHomeClick}>
+          <span className="header-title">{t(lang, "app.title")}</span>
+        </button>
+        <span className="header-seal" aria-hidden="true">{t(lang, "editorial.seal")}</span>
+      </div>
       <p className="header-sub">{t(lang, "app.subtitle")}</p>
       <div className="auth-area">
         {user ? (

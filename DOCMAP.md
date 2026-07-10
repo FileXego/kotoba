@@ -19,6 +19,7 @@ When you add a new component, API endpoint, capability, or visual change:
 | `future/ONLINE_PLAN.md` / `future/DEPLOY.md` | If launch or deployment behavior changed |
 | `AGENTS.md` | API table (if new endpoint), Schema section (if DB change), Architecture diagram |
 | `client/src/i18n.ts` | New UI keys → ja + zh entries |
+| `client/src/assets/**` | New design assets → keep license/source beside the asset and document graceful fallback |
 
 ### B. Change a Rule / Constraint
 
@@ -30,6 +31,7 @@ When you add or modify an iron rule, prevention item, or project-wide prohibitio
 | `WORKFLOW.md` | Add to 开发检查清单 if it's actionable |
 | `DOCMAP.md` | This file — if the sync trigger list changed |
 | `PROBLEM.md` | Only if the rule came from a specific bug |
+| `README.md` | If dependency or asset governance changes the public tech/design description |
 
 ### C. Fix a Bug
 
@@ -58,11 +60,11 @@ When a roadmap phase is finished:
 
 | File | Type | Last touched by Feature |
 |------|------|------------------------|
-| `AGENTS.md` | Rules & architecture | Mobile Web Phase A |
+| `AGENTS.md` | Rules & architecture | Modern Eastern editorial UI |
 | `WORKFLOW.md` | Methodology & workflow | Doc-sync rule (#8) |
 | `PROBLEM.md` | Bug archive | #40 doc-code drift |
-| `LONGTODO.md` | Roadmap | Mobile Web 70→85% |
-| `future/NATIVE_APP_ROADMAP.md` | Native app progress | Mobile Web Phase A |
+| `LONGTODO.md` | Roadmap | Editorial UI + governed design foundation |
+| `future/NATIVE_APP_ROADMAP.md` | Native app progress | Editorial UI + Mobile Web Phase A |
 | `future/APP_FRAMEWORKS_AND_CONSTRAINTS.md` | Framework matrix | Phase A checked |
 | `future/ONLINE_PLAN.md` | Production launch guide | Turbistile+CSP added |
 | `future/DEPLOY.md` | Deployment guide | Shared data deploy script |

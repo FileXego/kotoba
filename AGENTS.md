@@ -17,7 +17,7 @@ bun run db:migrate           # 执行迁移
 ## 技术栈
 
 Bun · ElysiaJS (TypeBox) · Drizzle ORM + SQLite · React 19 + Vite 8
-密码=`Bun.password` · XSS=`Bun.escapeHTML` · Session=signed cookie · **0 app 级 npm 依赖**
+密码=`Bun.password` · XSS=`Bun.escapeHTML` · Session=signed cookie · 前端平台依赖=`motion` + 自托管 Fontsource（受控）
 
 ## 架构
 
@@ -26,7 +26,9 @@ src/plugins/   auth.ts / admin.ts / rate-limiter.ts   ← Elysia 插件
 src/routes/    message.ts / bookmark.ts / events.ts / upload.ts   ← 路由
 src/lib/       files.ts / images.ts / ids.ts / pagination.ts / realtime.ts ← 共享守卫/事件
 src/db/        schema.ts / index.ts                ← Drizzle
-client/src/    App.tsx → Header / SubmitForm / MessageList(→MessageCard) / AdminPanel / BookmarksPage
+client/src/    App.tsx → EditorialFrame / PageTransition → Header / SubmitForm / MessageList(→MessageCard) / route pages
+client/src/design/ motion.ts                         ← 统一动效语言
+client/src/assets/ 纸纹/墨色 SVG + 裁剪字体与许可证     ← 受版本控制设计资产
 ```
 插件挂载顺序：**rateLimiter → auth → admin → eventRoute → messageRoute → bookmarkRoute → uploadRoute**（derive 依赖 auth 在前）
 
@@ -77,6 +79,7 @@ bookmarks(user_id, message_id, created_at) UNIQUE(user_id, message_id)
 9. **生产数据解耦** — 部署更新不得把 `sqlite.db`/`uploads` 绑在版本目录；生产必须用 `DB_PATH`/`UPLOAD_DIR` 指向 shared 数据目录
 10. **入口参数顺序** — `bun run --cwd client <script>` 是唯一文档化写法；不要写 `bun run <script> --cwd client`
 11. **CSS 渲染钩子** — 新增/依赖 `.app`、`.mobile-*` 等布局 class 后必须确认 React 实际渲染了该 class；响应式 `display/position/padding` 覆盖必须放在 base rule 之后或用更高特异性，并用浏览器 computed style 验证
+12. **依赖与资产治理** — 新依赖必须承担跨页面平台能力、用 Bun 锁定并记录许可证/验证；图片与字体只作为受版本控制的产品资产，不为单组件引入插件或无来源素材
 
 ## L2 触发时机
 
@@ -89,7 +92,7 @@ bookmarks(user_id, message_id, created_at) UNIQUE(user_id, message_id)
 
 ## 禁止
 
-❌ npm · ❌ 图片文件 · ❌ 新依赖 · ❌ Zod · ❌ 物理删除 · ❌ 只验一端
+❌ npm（使用 Bun） · ❌ 无治理的依赖/素材 · ❌ Zod · ❌ 物理删除 · ❌ 只验一端
 
 ## 审查
 

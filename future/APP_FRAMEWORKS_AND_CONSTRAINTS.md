@@ -32,13 +32,13 @@ Layer 3: Native App
 | 类别 | 约束 |
 |---|---|
 | 技术栈 | Bun / Elysia / Drizzle / SQLite / React / Vite |
-| Web 依赖 | 继续保持 0 app 级 npm 依赖传统 |
+| Web 依赖 | 默认不增加；跨页面平台能力须记录许可证、降级路径并用 Bun 锁定 |
 | 后端校验 | Elysia TypeBox，不用 Zod |
 | API 错误 | 所有失败必须 `return status(N, { success: false, error: "CODE" })` |
 | 前端请求 | 只允许 `requestJSON<T>()` 作为 fetch 入口 |
 | 路由前缀 | 所有业务 API 都在 `/api` 下 |
 | 数据 | 当前持久态是 `sqlite.db` + `uploads/` |
-| 文件 | 禁止提交图片文件；PWA icon 需要单独例外决策 |
+| 文件 | 允许受版本控制且许可明确的产品资产；PWA icon 仍需品牌与尺寸决策 |
 | 删除 | 继续软删除，不做物理删除 |
 | 认证 | Web 保持 signed cookie；原生 App 应使用 bearer token |
 | 主题 | 跨平台 key 固定为 `light / dark / sumi / sakura` |
@@ -135,7 +135,7 @@ client/
 
 约束：
 
-- 当前项目禁止图片文件，PWA icon 是第一阻塞。
+- 当前项目允许受治理的视觉资产；PWA icon 的阻塞转为品牌图形、尺寸矩阵和缓存策略决策。
 - Service worker 不应缓存 `/api/*` 的用户私有响应。
 - 离线第一版只缓存壳层，不离线提交业务 mutation。
 - Web cookie 仍是同源模式。
@@ -145,10 +145,10 @@ client/
 | 策略 | 取舍 |
 |---|---|
 | 暂不做 installable PWA | 最符合当前规则，少风险 |
-| 允许极少量 icon 例外 | 能安装，但要写进 AGENTS/ADR |
-| 部署时生成 icon，不提交仓库 | 可规避仓库图片禁令，但部署复杂 |
+| 提交一套受治理 icon | 能安装；需附来源、尺寸矩阵和缓存策略 |
+| 部署时生成 icon | 减少仓库资产，但部署复杂且难保证视觉一致 |
 
-推荐：Mobile Web 真机验收前不做 PWA。PWA 会触发 manifest/icons/service worker 决策，其中 icons 与当前“禁止图片文件”规则冲突，必须单独 ADR。
+推荐：Mobile Web 真机验收前不做 PWA。PWA 仍会触发 manifest/icons/service worker 与离线缓存决策，应单独写 ADR，但不再因图片文件规则被绝对阻塞。
 
 ### Phase C: WebView 壳
 

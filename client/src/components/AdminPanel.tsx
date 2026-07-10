@@ -34,7 +34,10 @@ export function AdminPanel({ lang, onClose }: { lang: Lang; onClose: () => void 
   return (
     <div className="admin-panel">
       <div className="admin-header">
-        <h2>{t(lang, "admin.title")}</h2>
+        <div>
+          <span className="section-kicker">{t(lang, "editorial.issue")} · 05</span>
+          <h2>{t(lang, "admin.title")}</h2>
+        </div>
         <button type="button" className="auth-btn" onClick={onClose}>{t(lang, "admin.close")}</button>
       </div>
       <div className="auth-tabs">
