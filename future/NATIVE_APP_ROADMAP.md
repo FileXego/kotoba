@@ -48,7 +48,7 @@
 | P6 Android Compose App | `[----------] 0%` | 无 Gradle 工程 | iOS v1 后再建 `mobile/android` |
 | P7 商店上架材料 | `[#---------] 10%` | 商店约束已核对 | 准备隐私政策、UGC 管理、截图、账号 |
 
-当前做到的位置：**P1 Web 生产前置已基本补齐，P2 Mobile Web 已进入可上线候选（含现代东方书刊视觉系统、四种书刊版本、详情、完整回复树、收藏、Me、Admin、底部导航、safe-area、双端即时同步、reduced-motion、上传校验和 shared 数据部署），社交安全数据库基础已增量落库但运行时仍沿用现有 Web signed cookie；P3 框架矩阵完成，没有创建原生工程，后端 mobile token 仍未开始。**
+当前做到的位置：**P1 Web 生产前置已基本补齐，P2 Mobile Web 已进入可上线候选（含现代东方书刊视觉系统、四种书刊版本、详情、完整回复树、收藏、Me、Admin、底部导航、safe-area、双端即时同步、reduced-motion、上传校验和 shared 数据部署），社交安全数据库与中央访问策略基础已完成，但现有路由接入和运行时会话切换仍未开始；P3 框架矩阵完成，没有创建原生工程，后端 mobile token 仍未开始。**
 
 ## Mobile Web Phase A 完成记录
 

@@ -24,7 +24,7 @@ Bun · ElysiaJS (TypeBox) · Drizzle ORM + SQLite · React 19 + Vite 8
 ```
 src/plugins/   auth.ts / admin.ts / rate-limiter.ts   ← Elysia 插件
 src/routes/    message.ts / bookmark.ts / events.ts / upload.ts   ← 路由
-src/lib/       files.ts / images.ts / ids.ts / pagination.ts / realtime.ts ← 共享守卫/事件
+src/lib/       files.ts / images.ts / ids.ts / pagination.ts / realtime.ts / message-access.ts ← 共享守卫/事件/访问策略
 src/db/        schema.ts / index.ts                ← Drizzle
 client/src/    App.tsx → EditorialFrame / PageTransition → Header / SubmitForm / MessageList(→MessageCard) / route pages
 client/src/design/ motion.ts                         ← 统一动效语言
@@ -88,6 +88,7 @@ bookmarks(user_id, message_id, created_at) UNIQUE(user_id, message_id)
 11. **CSS 渲染钩子** — 新增/依赖 `.app`、`.mobile-*` 等布局 class 后必须确认 React 实际渲染了该 class；响应式 `display/position/padding` 覆盖必须放在 base rule 之后或用更高特异性，并用浏览器 computed style 验证
 12. **依赖与资产治理** — 新依赖必须承担跨页面平台能力、用 Bun 锁定并记录许可证/验证；图片与字体只作为受版本控制的产品资产，不为单组件引入插件或无来源素材
 13. **迁移单一真相** — 集成测试数据库必须执行 `drizzle/migrations` 的生产迁移链，不手写平行 schema；历史迁移 fixture 合入后不可改写，只能新增更晚的兼容边界样本
+14. **访问策略前置** — 消息列表、详情、搜索、收藏、活动与计数必须复用 `message-access.ts` 的 SQL predicate，在 count/order/page/aggregate 之前过滤；不允许先取全量再在 JS 中筛选
 
 ## L2 触发时机
 

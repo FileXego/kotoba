@@ -53,6 +53,7 @@ testbug/
   fixtures/                 # immutable historical database snapshots
   integration/              # full-stack integration tests (auth, messages, etc.)
   migration/                # production-chain and upgrade regression tests
+  unit/                     # pure policy and decision matrices
   regression/               # regression tests for past bugs (TODO)
   stress/                   # stress / concurrency tests (TODO)
 ```

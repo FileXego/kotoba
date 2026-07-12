@@ -22,7 +22,8 @@
 - Content-Security-Policy header on all responses
 - Bot / scraper guard — User-Agent filter + JS cookie gate + read rate limit
 - Migration-safe social foundation — profile editions, revocable-session storage, durable follow/mute/block state, and message audience metadata
-- 99 tests (bun:test, 0 extra deps)
+- SQL-first access-policy foundation — separate read/discovery/reply/reaction/mention decisions with ancestor narrowing; route adoption is the next security slice
+- 113 tests (bun:test, 0 extra deps)
 - Governed frontend foundation — Motion plus self-hosted OFL fonts; no component-level plugin sprawl
 
 ## Tech Stack
@@ -102,7 +103,7 @@ src/
 ├── plugins/    rate-limiter.ts · auth.ts · admin.ts    ← Elysia plugins
 ├── routes/     message.ts · bookmark.ts · events.ts · upload.ts ← Route handlers
 ├── db/         schema.ts · index.ts                     ← Drizzle + SQLite social foundation
-├── lib/        files.ts · images.ts · pagination.ts · realtime.ts ← Shared guards/events
+├── lib/        files.ts · images.ts · pagination.ts · realtime.ts · message-access.ts ← Shared guards/events/policy
 ├── app.ts      createApp({ staticMode })                ← Unified app factory
 ├── index.ts    dev entry
 ├── start.ts    prod entry (static + SPA fallback)
