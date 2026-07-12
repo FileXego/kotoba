@@ -211,8 +211,8 @@ Desktop keeps asymmetric whitespace and editorial rhythm. Mobile becomes a singl
 
 ### Activity almanac
 
-- Desktop shows a 52-by-7 year using five ink-density levels.
-- Mobile presents four 13-by-7 seasonal segments so cells remain legible and touchable.
+- Desktop shows a 52-by-7 main year grid using five ink-density levels, followed by one or two clearly labeled "year remainder" cells so 365/366-day years are complete.
+- Mobile presents four 13-by-7 seasonal segments plus the same year-remainder cells so dates are never silently omitted.
 - The owner may select year and writing, replies, or both.
 - Today receives a small cinnabar seal mark; there are no streaks, inactivity warnings, or red failure states.
 - Every cell has a date-and-count accessible label. Public, acquaintance, and owner views use the same authorization-aware aggregation.
