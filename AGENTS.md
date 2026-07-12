@@ -80,6 +80,7 @@ bookmarks(user_id, message_id, created_at) UNIQUE(user_id, message_id)
 10. **入口参数顺序** — `bun run --cwd client <script>` 是唯一文档化写法；不要写 `bun run <script> --cwd client`
 11. **CSS 渲染钩子** — 新增/依赖 `.app`、`.mobile-*` 等布局 class 后必须确认 React 实际渲染了该 class；响应式 `display/position/padding` 覆盖必须放在 base rule 之后或用更高特异性，并用浏览器 computed style 验证
 12. **依赖与资产治理** — 新依赖必须承担跨页面平台能力、用 Bun 锁定并记录许可证/验证；图片与字体只作为受版本控制的产品资产，不为单组件引入插件或无来源素材
+13. **迁移单一真相** — 集成测试数据库必须执行 `drizzle/migrations` 的生产迁移链，不手写平行 schema；历史迁移 fixture 合入后不可改写，只能新增更晚的兼容边界样本
 
 ## L2 触发时机
 
