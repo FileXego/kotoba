@@ -32,7 +32,7 @@ bun test testbug/migration/social-foundation.test.ts
 
 ## Test DB isolation
 
-- A single shared SQLite DB is created before any tests run (`testbug/.test-<timestamp>.db`)
+- A single shared SQLite DB is created per test process (`testbug/.test-<pid>-<timestamp>.db`)
 - The shared DB is built by the real `drizzle/migrations` chain; tests do not maintain a second handwritten schema
 - `clearTables()` discovers migrated application tables and wipes them between suites — each `setupApp()` call starts clean
 - The DB file is deleted via `process.on("exit")` hook when the test process ends

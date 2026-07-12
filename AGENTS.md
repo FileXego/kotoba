@@ -59,12 +59,19 @@ client/src/assets/ 纸纹/墨色 SVG + 裁剪字体与许可证     ← 受版�
 ## 数据库
 
 ```sql
-messages(id, name, content, created_at, updated_at, deleted, parent_id, root_id, depth, user_id)
-users(id, username UNIQUE, email UNIQUE, password_hash, is_admin, created_at, avatar_url, signature, theme)
+messages(id, name, content, created_at, updated_at, deleted, parent_id, root_id, depth, user_id,
+         visibility, audience_anchor_user_id, moderation_state, content_version, reply_policy, client_request_id)
+users(id, username UNIQUE, email UNIQUE, password_hash, is_admin, created_at, avatar_url, signature, theme, email_verified_at)
+profiles(user_id PK/FK, display_name, avatar_url, signature, edition, seal_color, paper, title_face,
+         default_visibility, default_reply_policy, activity_audience, discoverable, external_indexing, version, updated_at)
+sessions(id PK, user_id, token_hash UNIQUE, csrf_hash, created_at, expires_at, last_seen_at, revoked_at, user_agent)
+follows(follower_id, followed_id, active, created_at, updated_at) UNIQUE(pair), CHECK(no-self)
+mutes(muter_id, muted_id, active, created_at, updated_at) UNIQUE(pair), CHECK(no-self)
+blocks(blocker_id, blocked_id, active, created_at, updated_at) UNIQUE(pair), CHECK(no-self)
 likes(user_id, message_id, created_at) UNIQUE(user_id, message_id)
 bookmarks(user_id, message_id, created_at) UNIQUE(user_id, message_id)
 ```
-回复深度 `depth ≤ 2`（0=主帖/1=回复/2=讨论）。软删除 `deleted=1`。迁移：改 schema → generate → migrate。
+回复深度 `depth ≤ 2`（0=主帖/1=回复/2=讨论）。软删除 `deleted=1`。关系用 `active` 保留历史，不物理删除。0007 保留 users 旧资料列作为回滚窗口；迁移：改 schema → generate → migrate。
 
 ## 预防清单
 

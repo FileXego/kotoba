@@ -21,7 +21,8 @@
 - Admin panel for moderation
 - Content-Security-Policy header on all responses
 - Bot / scraper guard — User-Agent filter + JS cookie gate + read rate limit
-- 92 tests (bun:test, 0 extra deps)
+- Migration-safe social foundation — profile editions, revocable-session storage, durable follow/mute/block state, and message audience metadata
+- 99 tests (bun:test, 0 extra deps)
 - Governed frontend foundation — Motion plus self-hosted OFL fonts; no component-level plugin sprawl
 
 ## Tech Stack
@@ -100,7 +101,7 @@ See `.env.example` for dev defaults.
 src/
 ├── plugins/    rate-limiter.ts · auth.ts · admin.ts    ← Elysia plugins
 ├── routes/     message.ts · bookmark.ts · events.ts · upload.ts ← Route handlers
-├── db/         schema.ts · index.ts                     ← Drizzle + SQLite
+├── db/         schema.ts · index.ts                     ← Drizzle + SQLite social foundation
 ├── lib/        files.ts · images.ts · pagination.ts · realtime.ts ← Shared guards/events
 ├── app.ts      createApp({ staticMode })                ← Unified app factory
 ├── index.ts    dev entry
@@ -115,6 +116,8 @@ client/
 Elysia plugins are composed via `.use()`. Order matters: `auth` must be mounted before `messageRoute` so `currentUser` derives correctly.
 
 Production deployment keeps releases and data separate: code lives under `/opt/kotoba/releases`, while `.env`, `sqlite.db`, uploads, and backups live under `/opt/kotoba/shared`.
+
+Database changes are verified against an immutable 0006-era fixture before release. `scripts/audit-social-db.ts` reports only aggregate integrity, ownership, thread-link, and migration facts; it never emits account or message content.
 
 ## Design
 

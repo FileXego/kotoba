@@ -5,7 +5,7 @@ import { unlinkSync } from "node:fs";
 import { resolve } from "node:path";
 
 // ===== env setup: MUST be set BEFORE any app imports =====
-export const TEST_DB = `testbug/.test-${Date.now()}.db`;
+export const TEST_DB = `testbug/.test-${process.pid}-${Date.now()}.db`;
 process.env.TEST_DB = TEST_DB;
 process.env.COOKIE_SECRET = "test-secret";
 process.env.TURNSTILE_SECRET = "1x0000000000000000000000000000000AA";
@@ -19,6 +19,7 @@ export function runMigrations(path = TEST_DB) {
   sqlite.exec("PRAGMA journal_mode = WAL");
   sqlite.exec("PRAGMA busy_timeout = 5000");
   migrate(drizzle(sqlite), { migrationsFolder: resolve("drizzle/migrations") });
+  sqlite.exec("PRAGMA wal_checkpoint(TRUNCATE)");
   sqlite.close();
 }
 
