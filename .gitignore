@@ -44,6 +44,9 @@ testbug/.test-*.db-shm
 .cache
 *.tsbuildinfo
 
+# isolated feature worktrees
+.worktrees/
+
 # meta
 OTHERS.md
 
