@@ -60,6 +60,9 @@ When a roadmap phase is finished:
 
 | File | Type | Last touched by Feature |
 |------|------|------------------------|
+| `CONTEXT.md` | Canonical social domain language & invariants | Social system design |
+| `docs/adr/*.md` | Accepted hard-to-reverse decisions | Social system design |
+| `docs/plans/2026-07-12-social-safety-personalization-design.md` | Approved social system design | Social system design |
 | `AGENTS.md` | Rules & architecture | Modern Eastern editorial UI |
 | `WORKFLOW.md` | Methodology & workflow | Doc-sync rule (#8) |
 | `PROBLEM.md` | Bug archive | #40 doc-code drift |
