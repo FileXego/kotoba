@@ -101,7 +101,7 @@ When test locations, fixtures, temp-data policy, CI jobs, audit gates, migration
 |------|------|------------------------|
 | `AGENTS.md` | Rules & architecture | 2.1.2 release/security boundaries |
 | `WORKFLOW.md` | Methodology & workflow | 2.1.2 release gates |
-| `PROBLEM.md` | Bug archive | #47–73 release readiness |
+| `PROBLEM.md` | Bug archive | #47–74 release readiness |
 | `LONGTODO.md` | Roadmap | 2.1.2 Web release closeout |
 | `future/NATIVE_APP_ROADMAP.md` | Native app progress | 2.1.2 Web boundary; native remains pending |
 | `future/APP_FRAMEWORKS_AND_CONSTRAINTS.md` | Framework matrix | Phase A checked |

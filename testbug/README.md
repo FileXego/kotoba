@@ -51,4 +51,5 @@ testbug/
 - **Rate-limit isolation**: most integration suites disable the in-memory limiter; `integration/rate-limiter.test.ts` starts isolated processes with real rate-limit and production bot-gate behavior enabled.
 - **Shared DB per worker**: suites in one worker share one migrated SQLite file. `clearTables()` ensures no cross-suite data leak.
 - **Release privilege/state gates**: release tests assert that lifecycle scripts cannot write reviewed source/root templates, dist contains no special-file escape path, cron read errors do not overwrite schedules, and only systemd's exact inactive state permits destructive work.
-- **Linux boundary**: release Bash tests validate contracts, failure propagation, and mocked state machines; they cannot replace Ubuntu staging checks for owner/mode, systemd, nginx, real locks, and a complete restore drill.
+- **Explicit privileged fixtures**: tests that cross `run_root` stub both `sudo` and the privileged command, including exact systemd exit codes; they never rely on a command being absent from the developer machine.
+- **Linux boundary**: release Bash uses POSIX-portable awk/sed and is exercised locally through Git Bash, but GitHub Ubuntu CI remains the final tag gate. Neither environment replaces Ubuntu staging checks for owner/mode, real systemd/nginx/locks, and a complete restore drill.

@@ -604,12 +604,24 @@ extract_nginx_location_block() {
   awk -v wanted="$wanted" '
     {
       line = $0
-      pattern = "^[[:space:]]*location[[:space:]]+" wanted "[[:space:]]*\\{"
-      if (!capture && line ~ pattern) capture = 1
+      if (!capture) {
+        header = line
+        gsub(/[[:space:]]+/, " ", header)
+        sub(/^ /, "", header)
+        sub(/ $/, "", header)
+        prefix = "location " wanted " {"
+        if (index(header, prefix) == 1 &&
+          (length(header) == length(prefix) ||
+            substr(header, length(prefix) + 1, 1) == " ")) {
+          capture = 1
+        }
+      }
       if (capture) {
         print line
-        opens = gsub(/\{/, "{", line)
-        closes = gsub(/\}/, "}", line)
+        brace_line = line
+        opens = gsub(/[{]/, "", brace_line)
+        brace_line = line
+        closes = gsub(/[}]/, "", brace_line)
         depth += opens - closes
         if (opens > 0) opened = 1
         if (opened && depth <= 0) exit
@@ -630,7 +642,7 @@ has_nginx_server_maintenance_guard() {
       line = $0
       before = depth
 
-      if (server_parent < 0 && line ~ /^[[:space:]]*server[[:space:]]*\{/) {
+      if (server_parent < 0 && line ~ /^[[:space:]]*server[[:space:]]*[{]/) {
         server_parent = before
       }
 
@@ -639,7 +651,7 @@ has_nginx_server_maintenance_guard() {
         sub(/^[^(]*\(/, "", condition)
         sub(/\).*/, "", condition)
         gsub(/[[:space:]]/, "", condition)
-        if (condition == expected && line ~ /\{/) {
+        if (condition == expected && index(line, "{") > 0) {
           guard_parent = before
           if (line ~ /return[[:space:]]+503[[:space:]]*;/) {
             found = 1
@@ -649,8 +661,10 @@ has_nginx_server_maintenance_guard() {
         found = 1
       }
 
-      opens = gsub(/\{/, "{", line)
-      closes = gsub(/\}/, "}", line)
+      brace_line = line
+      opens = gsub(/[{]/, "", brace_line)
+      brace_line = line
+      closes = gsub(/[}]/, "", brace_line)
       depth += opens - closes
 
       if (guard_parent >= 0 && depth <= guard_parent) {

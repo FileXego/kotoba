@@ -1122,7 +1122,18 @@ target=$(printf '%s\n' "$2" | sed -n "s/^\\.backup '\\(.*\\)'$/\\1/p")
 [ -n "$target" ]
 : > "$target"
 STUB
-chmod +x "$tmp/bin/flock" "$tmp/bin/sqlite3"
+cat > "$tmp/bin/systemctl" <<'STUB'
+#!/usr/bin/env bash
+if [ "$1" = "is-active" ] && [ "$2" = "--quiet" ] && [ "$3" = "kotoba" ]; then
+  exit 3
+fi
+exit 41
+STUB
+cat > "$tmp/bin/sudo" <<'STUB'
+#!/usr/bin/env bash
+"$@"
+STUB
+chmod +x "$tmp/bin/flock" "$tmp/bin/sqlite3" "$tmp/bin/systemctl" "$tmp/bin/sudo"
 printf 'secret=value\n' > "$tmp/config/kotoba.env"
 : > "$tmp/shared/data/sqlite.db"
 : > "$tmp/backups/env_20000101_000000"

@@ -92,6 +92,7 @@ bookmarks(user_id, message_id, created_at) UNIQUE(user_id, message_id)
 21. **Readiness 是发布契约** — 必须验证当前 release 所需 migration hash、运行时必需列、DB 写入、上传写删与生产静态首页；成功 JSON 精确包含 ready/version/revision，不能只 grep 字符串或只看 systemd active
 22. **运维锁序与一致快照** — deploy/restore 先持 deploy 独占锁；计划备份先持 deploy 共享锁再持 backup 独占锁；deploy 内备份复用已持锁。DB/env/uploads 快照整个窗口保持维护态；任何 destructive work 前只接受 systemd 明确的 inactive 状态，未知/active 都 fail-closed；安装 cron 前读取失败不得当作空 crontab
 23. **旧拓扑只走 bootstrap** — v2.1.1→2.1.2 首次升级必须从单独验真的 2.1.2 tag/SHA checkout 运行 `future/bootstrap-v2.1.1-to-v2.1.2.sh`；先保留 root-only rescue set，复制不移动旧数据，失败恢复旧 unit/symlink/cron 且健康后才放流；成功状态必须先原子提交，再删除 maintenance，避免中断后公开半完成状态
+24. **Linux 发布语义显式化** — 发布 Bash 只写 POSIX 可移植的 awk/sed；sudo/systemd/cron 测试必须 stub 完整调用链和精确退出码，不依赖某条命令在开发机缺失。Windows Git Bash 全绿后仍以 GitHub Ubuntu CI 作为最终 tag 门禁
 
 ## L2 触发时机
 
