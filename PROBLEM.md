@@ -79,7 +79,7 @@
 | 71 | Turnstile async/defer 晚加载时注册 widget 永远不渲染 | ⚙️ UI | ✅ |
 | 72 | v2.1.1→2.1.2 拓扑迁移、锁序、构建与恢复边界不完整 | 🔴 部署 | 🟡 |
 | 73 | 依赖审计、Action 引用与周检 revision 仍有供应链盲区 | 🔒 供应链 | ✅ |
-| 74 | Windows Git Bash 全绿但 Ubuntu CI 的 awk/systemctl 语义失败 | 🔴 发布 | ✅ |
+| 74 | Windows Git Bash 全绿但 Ubuntu CI 的 sed/systemctl 夹具失败 | 🔴 发布 | ✅ |
 
 > 图例：✅已修复 🟡代码已修、仍需真实 Ubuntu/运维验收 ⚠️已知待修 N/A不适用
 
@@ -933,15 +933,15 @@ import { unique } from "drizzle-orm/sqlite-core";
 
 ---
 
-## 74. Windows Git Bash 全绿但 Ubuntu CI 的 awk/systemctl 语义失败
+## 74. Windows Git Bash 全绿但 Ubuntu CI 的 sed/systemctl 夹具失败
 
 **现象**：2.1.2 候选在 Windows Git Bash 完整回归为 205/0，但第一次推送 `main` 后 Ubuntu CI 只有 203/2。一个 nginx 安全夹具在删除普通 `/api/` 的 `X-Real-IP` 后仍被校验器接受；另一个备份保留夹具在 runner 上遇到真实 `systemctl is-active` 返回 4，正确的 fail-closed 路径因此中止。
 
 **根因**：
-- nginx location 提取器把转义花括号拼进 awk 动态正则，依赖 GNU awk 的行为；Ubuntu 默认 mawk 对这类未定义转义的解释不同，可能提取错误的 location block。
+- nginx 夹具位于 `String.raw` 模板中，却仍按普通 JavaScript 字符串把 sed 的 `/` 写成 `\\/`；MSYS/Git Bash 的参数处理掩盖了多余反斜杠，Linux sed 则没有删掉目标行，所以校验器看到的仍是安全原文。
 - 备份夹具只替换了 `systemctl` 的预期环境，却没有显式穿过 `run_root → sudo` 边界；Ubuntu runner 既有 sudo 又有真实 systemctl，夹具实际状态随宿主机漂移。
-- Windows Git Bash 的 gawk、缺失/不可用 systemd 环境不能作为 Ubuntu 发布脚本的最终证据。
+- Windows Git Bash 的 MSYS 参数转换、缺失/不可用 systemd 环境不能作为 Ubuntu 发布脚本夹具的最终证据。
 
-**修复**：location 提取改为先规范化空白，再用 `index()` 精确匹配 `location <path> {` 前缀；花括号计数全部使用 POSIX 字符类，避免 awk 方言差异。备份夹具同时 stub `sudo` 与 `systemctl`，明确让 `is-active --quiet kotoba` 返回 systemd 的 exact inactive code 3，生产脚本对未知状态的 fail-closed 逻辑不变。首次红灯标签在任何部署发生前撤回，修正后的 `main` 必须先通过 Ubuntu CI 才能重新创建最终标签。
+**修复**：nginx 夹具在 `String.raw` 中只保留 sed 实际需要的一层 `\/`，不改生产解析器。备份夹具同时 stub `sudo` 与 `systemctl`，明确让 `is-active --quiet kotoba` 返回 systemd 的 exact inactive code 3，生产脚本对未知状态的 fail-closed 逻辑不变。首次红灯标签在任何部署发生前撤回，修正后的 `main` 必须先通过 Ubuntu CI 才能重新创建最终标签。
 
-**预防**：发布 Bash 逻辑只使用 POSIX 可移植的 awk/sed 写法；涉及 sudo/systemd/cron 的测试夹具必须显式模拟完整调用链及精确退出码，不能依赖开发机“命令不存在”。Windows 本地回归是前置门禁，GitHub Ubuntu CI 才是最终 Linux 发布门禁。
+**预防**：嵌入 `String.raw` 的 Bash 不再套用普通字符串的二次转义；会先修改文件再验证拒绝路径的夹具必须确保修改真的发生。涉及 sudo/systemd/cron 的测试夹具必须显式模拟完整调用链及精确退出码，不能依赖开发机“命令不存在”。Windows 本地回归是前置门禁，GitHub Ubuntu CI 才是最终 Linux 发布门禁。

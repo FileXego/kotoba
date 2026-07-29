@@ -325,7 +325,7 @@ validate_nginx_site_file "$tmp/safe.conf"
 cp "$tmp/safe.conf" "$tmp/large-safe.conf"
 head -c 1048576 /dev/zero | tr '\0' 'x' >> "$tmp/large-safe.conf"
 validate_nginx_site_file "$tmp/large-safe.conf"
-sed -i '/location \\/api\\/ {/,/}/ { /X-Real-IP/d; }' "$tmp/safe.conf"
+sed -i '/location \/api\/ {/,/}/ { /X-Real-IP/d; }' "$tmp/safe.conf"
 if validate_nginx_site_file "$tmp/safe.conf"; then
   printf 'ordinary API location without trusted client IP was accepted\n' >&2
   exit 43

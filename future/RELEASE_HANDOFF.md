@@ -59,7 +59,7 @@ release 已独立采用“测试库运行正式 migration chain”的正确做�
 - 发布构建仅允许专用构建用户写依赖和前端输出目录，构建后校验受审源码未变、拒绝静态输出中的链接和特殊文件，最终 release 全量归 root；
 - deploy/restore 对 systemd 停止状态严格 fail-closed，root crontab 读取异常不会被当成空表覆盖，维护标记拒绝符号链接；
 - legacy bootstrap 在开放流量前先落盘成功状态，避免中断时把已成功切换误判为失败回滚；
-- nginx location 校验使用 POSIX 可移植的 awk 解析，sudo/systemd 测试夹具显式模拟完整特权调用链；Windows 本地门禁之后仍以 GitHub Ubuntu `main` CI 作为最终 tag 门禁。
+- nginx 拒绝夹具使用 Linux-correct 的 `String.raw`/sed 转义，sudo/systemd 夹具显式模拟完整特权调用链；Windows 本地门禁之后仍以 GitHub Ubuntu `main` CI 作为最终 tag 门禁。
 
 两轮独立相同 prompt 的最终审查已启动，但两个审查会话均因账户额度中断，未形成完整终审报告，不能记为“终审通过”。中断前暴露的 build-account → root 权限链风险已经独立复现、修复并用红绿回归测试覆盖。
 

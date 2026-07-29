@@ -142,7 +142,7 @@
 20. **浏览器行为验收**：响应式 class、computed style、console、reduced-motion、SSE 与 XSS 显示要在真实浏览器验证
 21. **测试产物隔离**：临时数据库/上传放系统 temp，仓库只保留测试源码；清理必须校验任务专属前缀
 22. **第三方 widget 生命周期**：同时覆盖 script 先到/组件先到；render/get/reset/remove 绑定同一实例 id，cleanup 移除 listener，未创建实例不得 reset/destroy
-23. **Linux 发布语义**：release Bash 仅用 POSIX 可移植 awk/sed；sudo/systemd/cron 夹具显式模拟完整调用链和精确退出码。Windows Git Bash 通过后仍须等待 GitHub Ubuntu CI 变绿再打 tag
+23. **Linux 发布语义**：`String.raw` 里的 Bash 不做普通字符串式二次转义，文件变异夹具先证明变异生效；sudo/systemd/cron 夹具显式模拟完整调用链和精确退出码。Windows Git Bash 通过后仍须等待 GitHub Ubuntu CI 变绿再打 tag
 
 **前端验证三步**（缺一不可）：
 
