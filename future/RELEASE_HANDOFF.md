@@ -1,7 +1,7 @@
 # RELEASE_HANDOFF.md — Kotoba 2.1.2 发布交接
 
-> 状态：本机发布门禁已通过，等待提交与 main 收口 · 2026-07-29
-> 当前工作分支：`codex/release-readiness-2026-07-28`
+> 状态：本机发布门禁与分支收口已完成，2.1.2 发布源已归 `main` · 2026-07-29
+> 当前工作分支：`main`
 
 ## 发布结论
 
@@ -13,14 +13,14 @@
 
 | 分支 | 相对 release | 内容 | 处置 |
 |---|---|---|---|
-| `codex/release-readiness-2026-07-28` | 当前候选 | 本次全部应用、CI、部署、文档与测试收口 | 最终验证后作为唯一 2.1.2 release source |
-| `main` | release 基线 | 已含东方编辑 UI 和此前全部生产功能 | release 验证后只允许 fast-forward |
-| `codex/production-hardening` | 已包含 | v2.1.1 生产加固 | 新 release 稳定后删分支，保留 `v2.1.1` tag |
-| `mobileup` | 已包含 | Mobile Web、CSS 清理 | 新 release 稳定后删除本地/远端分支 |
-| `codex/realtime-dual-end` | 已包含 | SSE、ping、资源上限 | 新 release 稳定后删除本地/远端分支 |
-| `origin/copilot/network-security-analysis` | 已包含，无独有提交 | 历史安全/部署探索 | 新 main 推送并证明 ancestor 后删除 |
-| `origin/copilot/research-technical-audit` | 已包含，无独有提交 | 历史审计/启动探索 | 新 main 推送并证明 ancestor 后删除 |
-| `codex/social-safety-personalization` | 被 implementation 包含 | social 设计/计划 | implementation 安全保存后可普通 `-d` 删除 |
+| `codex/release-readiness-2026-07-28` | 已包含 | 本次全部应用、CI、部署、文档与测试收口 | 已 fast-forward 到 `main` 后普通 `-d` 删除 |
+| `main` | **当前发布源** | 东方编辑 UI、应用修复、生产加固与发布工程 | `v2.1.2` 唯一 release source |
+| `codex/production-hardening` | 已包含 | v2.1.1 生产加固 | 已删除本地/远端分支，保留 `v2.1.1` tag |
+| `mobileup` | 已包含 | Mobile Web、CSS 清理 | 已删除本地/远端分支 |
+| `codex/realtime-dual-end` | 已包含 | SSE、ping、资源上限 | 已删除本地/远端分支 |
+| `origin/copilot/network-security-analysis` | 已包含，无独有提交 | 历史安全/部署探索 | 已删除远端分支 |
+| `origin/copilot/research-technical-audit` | 已包含，无独有提交 | 历史审计/启动探索 | 已删除远端分支 |
+| `codex/social-safety-personalization` | 被 implementation 包含 | social 设计/计划 | 已在 implementation 工作树中证明 ancestor 后普通 `-d` 删除 |
 | `codex/social-safety-implementation` | **未包含** | social schema、迁移测试基础、中央访问策略；尚未完整接线 | 保留为后续功能线，不进入 2.1.2 |
 
 ## Social 分支迁移冲突
@@ -60,7 +60,9 @@ release 已独立采用“测试库运行正式 migration chain”的正确做�
 - deploy/restore 对 systemd 停止状态严格 fail-closed，root crontab 读取异常不会被当成空表覆盖，维护标记拒绝符号链接；
 - legacy bootstrap 在开放流量前先落盘成功状态，避免中断时把已成功切换误判为失败回滚。
 
-两轮独立相同 prompt 的最终审查已启动，但两个审查会话均因账户额度中断，未形成完整终审报告，不能记为“终审通过”。中断前暴露的 build-account → root 权限链风险已经独立复现、修复并用红绿回归测试覆盖。提交前仍需脚本 100755/新增文件跟踪检查，以及 main fast-forward、tag/push、旧分支逐项 ancestor 证明和清理。
+两轮独立相同 prompt 的最终审查已启动，但两个审查会话均因账户额度中断，未形成完整终审报告，不能记为“终审通过”。中断前暴露的 build-account → root 权限链风险已经独立复现、修复并用红绿回归测试覆盖。
+
+Git 收口已经完成：89 个发布文件全部跟踪，三份发布脚本均为 `100755`，release 以 fast-forward 进入 `main`；所有被清理分支均先完成 ancestor 证明。本文档提交后创建 annotated `v2.1.2` tag，并一起推送 `main` 与 tag。
 
 真实 Ubuntu 放流前另需：
 
@@ -72,16 +74,18 @@ release 已独立采用“测试库运行正式 migration chain”的正确做�
 
 ## 安全合并顺序
 
-1. 在 release 分支完成验证、双轮审查和提交。
+1. 在 release 分支完成验证、审查和提交。
 2. `git fetch --prune origin`，确认 `origin/main` 是 release ancestor。
-3. 推送 release 分支并通过 PR；或明确使用 `git merge --ff-only` 更新 main。
-4. 在最终 main commit 创建 annotated `v2.1.2` tag，并推送 tag。
+3. 明确使用 `git merge --ff-only` 更新 main。
+4. 在最终 main commit 创建 annotated `v2.1.2` tag，并推送 main 与 tag。
 5. 用完整 SHA 部署 staging/production，完成健康和回滚窗口观察。
 6. 再逐个证明旧分支是 main ancestor，使用普通 `-d`/远端 delete 清理。
 
 禁止 `reset --hard`、`branch -D`、force push 和非 fast-forward main。
 
-## 发布后分支清理
+## 已完成的分支清理
+
+2026-07-29 已按下述步骤完成。最终保留的活动分支只有 `main` 与 `codex/social-safety-implementation`；后者的本地工作树和远端均指向同一个提交。
 
 先证明每个候选都是 main 祖先：
 
