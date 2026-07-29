@@ -1,0 +1,173 @@
+name: Kotoba Project Monitor
+
+on:
+  schedule:
+    # Every Sunday at 09:00 Asia/Shanghai (01:00 UTC).
+    - cron: "0 1 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kotoba-weekly-monitor
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  monitor:
+    name: Weekly cloud monitor
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout cloud repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup repository-pinned Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+
+      - name: Install backend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install frontend dependencies
+        run: bun install --cwd client --frozen-lockfile
+
+      - name: Generate metadata-only monitor report
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p monitor-report
+          REPORT="monitor-report/kotoba-weekly-monitor.md"
+          SINCE="7 days ago"
+          CHANGED=$(git log --since="${SINCE}" --name-only --pretty=format: | sed '/^$/d' | sort -u || true)
+
+          {
+            echo "# Kotoba weekly cloud monitor"
+            echo
+            echo "- Repository: ${GITHUB_REPOSITORY}"
+            echo "- Ref: ${GITHUB_REF}"
+            echo "- Commit: ${GITHUB_SHA}"
+            echo "- Window: commits since ${SINCE}"
+            echo
+            echo "## Recent commits"
+            git log --since="${SINCE}" --pretty='- %h %ad %s' --date=short | sed -n '1,80p'
+            [ -n "$(git log --since="${SINCE}" --pretty=format:%H)" ] || echo "- No commits in the monitor window."
+            echo
+            echo "## Changed files"
+            if [ -n "$CHANGED" ]; then
+              printf '%s\n' "$CHANGED" | sed 's/^/- /' | sed -n '1,200p'
+            else
+              echo "- No changed files."
+            fi
+            echo
+            echo "## Review signals"
+            for category in \
+              'API routes:^src/(routes|plugins)/' \
+              'Database:^(src/db|drizzle)/' \
+              'Security/deploy:^(\.github/workflows|future/|src/plugins/auth|src/plugins/rate-limiter)' \
+              'Documentation:^(README|AGENTS|WORKFLOW|DOCMAP|PROBLEM|LONGTODO|COMPAT|future/.*\.md)'; do
+              label="${category%%:*}"
+              pattern="${category#*:}"
+              count=$(printf '%s\n' "$CHANGED" | grep -Ec "$pattern" || true)
+              echo "- ${label}: ${count} changed file(s)"
+            done
+          } > "$REPORT"
+
+      - name: Verify migrations on a clean database
+        env:
+          DB_PATH: ${{ runner.temp }}/kotoba-monitor.sqlite
+        run: |
+          set -euo pipefail
+          bun run db:generate
+          git diff --exit-code -- drizzle/migrations
+          bun run db:migrate
+
+      - name: Run backend tests
+        run: bun test
+
+      - name: Run frontend lint
+        run: bun run --cwd client lint
+
+      - name: Build frontend
+        env:
+          VITE_TURNSTILE_SITEKEY: monitor-real-site-key
+          VITE_MOBILE_ROUTES_ENABLED: "true"
+        run: bun run --cwd client build
+
+      - name: Run dependency audits
+        run: |
+          set -euo pipefail
+          bun audit --registry=https://registry.npmjs.org
+          bun audit --cwd client --registry=https://registry.npmjs.org
+
+      - name: Smoke-test production entrypoint
+        env:
+          NODE_ENV: production
+          COOKIE_SECRET: 0123456789abcdef0123456789abcdef
+          TURNSTILE_SECRET: monitor-real-server-key
+          VITE_TURNSTILE_SITEKEY: monitor-real-site-key
+          DB_PATH: ${{ runner.temp }}/kotoba-monitor.sqlite
+          UPLOAD_DIR: ${{ runner.temp }}/kotoba-monitor-uploads
+          UPLOAD_MAX_BYTES: "33554432"
+          RELEASE_REVISION: ${{ github.sha }}
+          HOST: 127.0.0.1
+          PORT: "3000"
+        run: |
+          set -euo pipefail
+          SERVER_PID=""
+          cleanup() {
+            if [ -n "$SERVER_PID" ]; then
+              kill "$SERVER_PID" 2>/dev/null || true
+            fi
+            rm -f .release-revision
+          }
+          trap cleanup EXIT
+          EXPECTED_VERSION="$(bun -e '
+            const packageJson = await Bun.file("package.json").json();
+            if (typeof packageJson.version !== "string"
+              || !/^[0-9]+\.[0-9]+\.[0-9]+([._-][A-Za-z0-9._-]+)?$/.test(packageJson.version)) {
+              process.exit(1);
+            }
+            process.stdout.write(packageJson.version);
+          ')"
+          export EXPECTED_VERSION
+          printf '%s\n' "$RELEASE_REVISION" > .release-revision
+          bun run src/start.ts > "${RUNNER_TEMP}/kotoba-monitor.log" 2>&1 &
+          SERVER_PID=$!
+          HEALTH=""
+          for attempt in $(seq 1 30); do
+            if HEALTH=$(curl --fail --silent http://127.0.0.1:3000/api/health); then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              cat "${RUNNER_TEMP}/kotoba-monitor.log"
+              exit 1
+            fi
+            sleep 1
+          done
+          HEALTH_JSON="$HEALTH" bun -e '
+            const body = JSON.parse(process.env.HEALTH_JSON ?? "");
+            const matches = body !== null
+              && typeof body === "object"
+              && !Array.isArray(body)
+              && body.success === true
+              && body.status === "ready"
+              && body.version === process.env.EXPECTED_VERSION
+              && body.revision === process.env.RELEASE_REVISION;
+            if (!matches) process.exit(1);
+          '
+          curl --fail --silent http://127.0.0.1:3000/ | grep -qiE '<!doctype html|<div id="root"'
+
+      - name: Upload monitor report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: kotoba-weekly-monitor
+          path: monitor-report/
+          if-no-files-found: warn
+          retention-days: 14

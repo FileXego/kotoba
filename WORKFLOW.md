@@ -14,8 +14,8 @@
 1. 本文件 (WORKFLOW.md)     ← 你现在在这里
 2. AGENTS.md                 ← 命令、架构、API 速查、预防清单
 3. DOCMAP.md                 ← 文档依赖图，改代码前查
-4. PROBLEM.md                ← 40 个已知问题（顶部索引，有状态标注）
-5. LONGTODO.md               ← 路线图（当前 2.1.0 推进中）
+4. PROBLEM.md                ← 73 个问题/决策记录（顶部索引，有状态标注）
+5. LONGTODO.md               ← 路线图（当前 2.1.2 Web 发布收口；2.2.0 原生 App 尚未开始）
 6. COMPAT.md                 ← 兼容性要求
 ```
 
@@ -118,7 +118,7 @@
 
 ## 开发检查清单
 
-每次写代码时过一遍（来自 32 个历史 bug 的教训）：
+每次写代码时过一遍（来自 73 个问题和事故记录的教训）：
 
 1. **复制传播**：加新端点前，grep 旧端点确认无已知缺陷
 2. **快乐路径**：每个 `await` 后必须处理失败（try/catch 或 error 返回）
@@ -131,6 +131,17 @@
 9. **生产数据解耦**：部署脚本、systemd、迁移命令必须保持 `DB_PATH`/`UPLOAD_DIR` 指向 shared 数据目录，不把用户数据放进 release 目录
 10. **CSS 渲染钩子**：布局 class 必须在 JSX 中真实挂载；响应式覆盖写完后用浏览器检查 computed style，不只看 CSS 文件
 11. **依赖与资产治理**：新依赖只承担跨页面平台能力，使用 Bun 锁定并记录许可证；视觉资产必须有明确产品用途、来源和降级路径
+12. **原值校验**：凭证和正文按原始输入做长度/格式校验，不能先全局转义再校验；输出端按渲染上下文转义
+13. **授权产物验真**：签名 cookie 要验证真实 Set-Cookie、伪造/篡改/过期路径，不能只看配置字段
+14. **真实迁移链**：测试库运行已提交 migration；schema generate 后检查 migrations 目录无未提交漂移
+15. **上传容量**：写文件前走统一容量预留；错误和替换路径都验证释放、回收和路径边界
+16. **供应链可复现**：精确 Bun + frozen lock + 官方 registry 全依赖图 audit；安全 override 要有锁文件/测试；GitHub Actions 固定审核过的完整 commit SHA，不用可移动大版本 tag
+17. **构建与 revision 隔离**：专用无登录 `kotoba-build` 在 `env -i` 允许列表和临时 HOME/cache/tmp 中构建，只写依赖/前端产物目录；source、`.git` 和 root 运维模板始终不可写，交权前检查 Git 漂移和静态产物类型；生产身份只读 release 内完整 SHA 的 `.release-revision`
+18. **停写、锁序与旧拓扑**：运维锁固定 deploy→backup；维护态 → systemd 明确 inactive → DB/env/uploads 一致快照 → migrate → readiness → 先提交成功状态 → 放流，未知状态与恢复失败都保持维护态；cron 读取失败不得覆盖。v2.1.1 首次升级只走单独验真 checkout 中的一次性 bootstrap
+19. **Readiness 不是 active**：验证当前 release 所需 migration hash、运行时必需列、DB/上传/静态首页；health 成功 JSON 必须精确匹配 `success=true`、`status=ready`、version 和 revision
+20. **浏览器行为验收**：响应式 class、computed style、console、reduced-motion、SSE 与 XSS 显示要在真实浏览器验证
+21. **测试产物隔离**：临时数据库/上传放系统 temp，仓库只保留测试源码；清理必须校验任务专属前缀
+22. **第三方 widget 生命周期**：同时覆盖 script 先到/组件先到；render/get/reset/remove 绑定同一实例 id，cleanup 移除 listener，未创建实例不得 reset/destroy
 
 **前端验证三步**（缺一不可）：
 
@@ -185,7 +196,7 @@ bun run --cwd client lint     # eslint（CI 会跑，本地也跑）
 
 **如无必要勿增实体**。这是我们的锚点。依赖默认不增加；当它能收窄跨页面入口、替代重复实现并有明确许可证与验证时，可以作为受治理的工程基础加入。
 
-**文档即记忆**。今天发现的每个教训，明天就不该重犯。AGENTS.md 不是一次写完的——是从 32 个 bug 里迭代出来的。
+**文档即记忆**。今天发现的每个教训，明天就不该重犯。AGENTS.md 不是一次写完的——是从 73 个问题里迭代出来的。
 
 **简约不等于简陋**。后端仍保持小依赖面，前端只增加统一动效与字体基础；能力通过统一入口扩展，而不是向每个组件散落插件。
 
@@ -203,7 +214,7 @@ bun run --cwd client lint     # eslint（CI 会跑，本地也跑）
 
 入口越少，漏检概率越低。新增功能不加新入口，塞进现有入口。
 
-**2. 测试只跟伤疤走**。不提前铺测试追求覆盖率数字。bug 发生了 → 写回归测试 → 加预防规则 → 写进 PROBLEM.md。71 条测试每条背后都有一个真实的发生过的问题。
+**2. 测试只跟伤疤走**。不提前铺测试追求覆盖率数字。bug 发生了 → 写回归测试 → 加预防规则 → 写进 PROBLEM.md。当前完整回归套件覆盖真实发生过的回归、发布脚本、CI 和迁移边界；精确测试数见 `future/RELEASE_HANDOFF.md`。
 
 **3. 周期性清理**。每完成一个大版本后：
 ```

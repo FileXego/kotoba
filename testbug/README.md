@@ -26,10 +26,12 @@ bun test testbug/integration/auth.test.ts
 
 ## Test DB isolation
 
-- A single shared SQLite DB is created before any tests run (`testbug/.test-<timestamp>.db`)
+- A process-specific root is created under the OS temp directory (`kotoba-test-<pid>-*`)
+- SQLite and managed uploads live under that root, never inside the repository
+- The SQLite schema is created by the same committed Drizzle migration chain used in production
 - `clearTables()` wipes all data between suites — each `setupApp()` call starts clean
-- The DB file is deleted via `process.on("exit")` hook when the test process ends
-- `SKIP_CAPTCHA=1` and `SKIP_RATE_LIMIT=1` eliminate external dependencies and rate limits during testing
+- The temp root is removed on normal process exit; the OS can reclaim it after abnormal worker termination
+- The default integration helper uses `SKIP_CAPTCHA=1` and `SKIP_RATE_LIMIT=1`; the rate-limit suite starts separate processes with the real gates enabled
 
 ## Layer structure
 
@@ -38,12 +40,15 @@ testbug/
   helpers.ts                # setupApp, cleanup, extractCookie
   README.md
   integration/              # full-stack integration tests (auth, messages, etc.)
-  regression/               # regression tests for past bugs (TODO)
-  stress/                   # stress / concurrency tests (TODO)
+  migration/                # real migration/backfill behavior
+  release/                  # CI and deployment script gates
+  unit/                     # isolated guards/configuration
 ```
 
 ## Known limitations
 
 - **No external calls**: `SKIP_CAPTCHA=1` eliminates Cloudflare Turnstile network calls. Tests run fully offline.
-- **No rate limits**: `SKIP_RATE_LIMIT=1` disables the in-memory rate limiter during tests.
-- **Shared DB**: all test suites share one SQLite file. `clearTables()` ensures no cross-suite data leak.
+- **Rate-limit isolation**: most integration suites disable the in-memory limiter; `integration/rate-limiter.test.ts` starts isolated processes with real rate-limit and production bot-gate behavior enabled.
+- **Shared DB per worker**: suites in one worker share one migrated SQLite file. `clearTables()` ensures no cross-suite data leak.
+- **Release privilege/state gates**: release tests assert that lifecycle scripts cannot write reviewed source/root templates, dist contains no special-file escape path, cron read errors do not overwrite schedules, and only systemd's exact inactive state permits destructive work.
+- **Linux boundary**: release Bash tests validate contracts, failure propagation, and mocked state machines; they cannot replace Ubuntu staging checks for owner/mode, systemd, nginx, real locks, and a complete restore drill.

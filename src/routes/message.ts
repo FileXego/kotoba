@@ -38,6 +38,9 @@ export const messageRoute = new Elysia({ prefix: "/api" })
         rootId,
         depth,
       }).returning({ id: messages.id });
+      if (!result) {
+        return status(500, { success: false, error: "INTERNAL_ERROR" });
+      }
       publishRealtime({
         audience: "public",
         type: "message.created",
@@ -52,7 +55,7 @@ export const messageRoute = new Elysia({ prefix: "/api" })
   )
   .get(
     "/messages",
-    async ({ query, currentUser }) => {
+    async ({ query }) => {
       const { offset, limit } = normalizePagination(query.offset, query.limit, { defaultLimit: 20, maxLimit: 50 });
       const q = query.q?.trim();
       const where = and(
@@ -71,17 +74,13 @@ export const messageRoute = new Elysia({ prefix: "/api" })
           .where(where).orderBy(desc(messages.createdAt)).limit(limit).offset(offset),
         db.$count(messages, where),
       ]);
-      const data = rows.map(r => ({
-        ...r,
-        signature: (currentUser && (currentUser.id === r.userId || (r.userId == null && currentUser.username === r.name))) ? r.signature : null,
-      }));
-      return { success: true, data, total: count, offset, limit };
+      return { success: true, data: rows, total: count, offset, limit };
     },
     { query: t.Object({ offset: t.Optional(t.Numeric()), limit: t.Optional(t.Numeric()), q: t.Optional(t.String({ maxLength: SEARCH_MAX_LENGTH })) }) }
   )
   .get(
     "/messages/:id/replies",
-    async ({ params, currentUser, status }) => {
+    async ({ params, status }) => {
       const id = parsePositiveId(params.id);
       if (!id) return status(400, { success: false, error: "INVALID_ID" });
       const rows = await db.select({
@@ -94,11 +93,7 @@ export const messageRoute = new Elysia({ prefix: "/api" })
         .leftJoin(users, eq(messages.userId, users.id))
         .where(and(eq(messages.deleted, 0), or(eq(messages.rootId, id), eq(messages.id, id))))
         .orderBy(messages.createdAt);
-      const data = rows.map(r => ({
-        ...r,
-        signature: (currentUser && (currentUser.id === r.userId || (r.userId == null && currentUser.username === r.name))) ? r.signature : null,
-      }));
-      return { success: true, data };
+      return { success: true, data: rows };
     },
     { params: t.Object({ id: t.String() }) }
   )
@@ -114,10 +109,7 @@ export const messageRoute = new Elysia({ prefix: "/api" })
         rootId: messages.rootId,
       }).from(messages).where(eq(messages.id, id)).limit(1);
       if (!msg) return status(404, { success: false, error: "NOT_FOUND" });
-      const isAuthor = !!currentUser && (
-        (msg.userId != null && msg.userId === currentUser.id)
-        || (msg.userId == null && msg.name === currentUser.username)
-      );
+      const isAuthor = !!currentUser && msg.userId != null && msg.userId === currentUser.id;
       // Admins can soft-delete any message (set deleted=1), but cannot edit content of others' messages
       const isAdminDelete = !!currentUser?.isAdmin && body.deleted === 1 && body.content === undefined;
       if (!isAuthor && !isAdminDelete) {
@@ -154,14 +146,28 @@ export const messageRoute = new Elysia({ prefix: "/api" })
       const [msg] = await db.select({ id: messages.id }).from(messages)
         .where(and(eq(messages.id, messageId), eq(messages.deleted, 0))).limit(1);
       if (!msg) return status(404, { success: false, error: "NOT_FOUND" });
-      const [existing] = await db.select().from(likes).where(and(eq(likes.userId, currentUser.id), eq(likes.messageId, messageId))).limit(1);
-      if (existing) {
-        await db.delete(likes).where(and(eq(likes.userId, currentUser.id), eq(likes.messageId, messageId)));
-      } else {
-        await db.insert(likes).values({ userId: currentUser.id, messageId });
+      let toggle: { liked: boolean; count: number };
+      try {
+        toggle = db.transaction((tx) => {
+          const existing = tx.select({ messageId: likes.messageId }).from(likes)
+            .where(and(eq(likes.userId, currentUser.id), eq(likes.messageId, messageId)))
+            .limit(1).get();
+          if (existing) {
+            tx.delete(likes)
+              .where(and(eq(likes.userId, currentUser.id), eq(likes.messageId, messageId)))
+              .run();
+          } else {
+            tx.insert(likes).values({ userId: currentUser.id, messageId }).run();
+          }
+          const countRow = tx.select({ count: sql<number>`count(*)` }).from(likes)
+            .where(eq(likes.messageId, messageId)).get();
+          return { liked: !existing, count: Number(countRow?.count ?? 0) };
+        });
+      } catch (error) {
+        console.error("Like toggle failed:", error instanceof Error ? error.message : String(error));
+        return status(500, { success: false, error: "INTERNAL_ERROR" });
       }
-      const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(likes).where(eq(likes.messageId, messageId));
-      const likeCount = Number(count);
+      const likeCount = toggle.count;
       const updatedAt = new Date().toISOString();
       publishRealtime({
         audience: "public",
@@ -175,11 +181,11 @@ export const messageRoute = new Elysia({ prefix: "/api" })
         type: "interaction.changed",
         userId: currentUser.id,
         messageId,
-        liked: !existing,
+        liked: toggle.liked,
         count: likeCount,
         updatedAt,
       });
-      return { success: true, liked: !existing, count: likeCount };
+      return { success: true, liked: toggle.liked, count: likeCount };
     },
     { params: t.Object({ id: t.String() }) }
   )
@@ -192,21 +198,34 @@ export const messageRoute = new Elysia({ prefix: "/api" })
       const [msg] = await db.select({ id: messages.id }).from(messages)
         .where(and(eq(messages.id, messageId), eq(messages.deleted, 0))).limit(1);
       if (!msg) return status(404, { success: false, error: "NOT_FOUND" });
-      const [existing] = await db.select().from(bookmarks).where(and(eq(bookmarks.userId, currentUser.id), eq(bookmarks.messageId, messageId))).limit(1);
-      if (existing) {
-        await db.delete(bookmarks).where(and(eq(bookmarks.userId, currentUser.id), eq(bookmarks.messageId, messageId)));
-      } else {
-        await db.insert(bookmarks).values({ userId: currentUser.id, messageId });
+      let bookmarked: boolean;
+      try {
+        bookmarked = db.transaction((tx) => {
+          const existing = tx.select({ messageId: bookmarks.messageId }).from(bookmarks)
+            .where(and(eq(bookmarks.userId, currentUser.id), eq(bookmarks.messageId, messageId)))
+            .limit(1).get();
+          if (existing) {
+            tx.delete(bookmarks)
+              .where(and(eq(bookmarks.userId, currentUser.id), eq(bookmarks.messageId, messageId)))
+              .run();
+          } else {
+            tx.insert(bookmarks).values({ userId: currentUser.id, messageId }).run();
+          }
+          return !existing;
+        });
+      } catch (error) {
+        console.error("Bookmark toggle failed:", error instanceof Error ? error.message : String(error));
+        return status(500, { success: false, error: "INTERNAL_ERROR" });
       }
       publishRealtime({
         audience: "user",
         type: "interaction.changed",
         userId: currentUser.id,
         messageId,
-        bookmarked: !existing,
+        bookmarked,
         updatedAt: new Date().toISOString(),
       });
-      return { success: true, bookmarked: !existing };
+      return { success: true, bookmarked };
     },
     { params: t.Object({ id: t.String() }) }
   )

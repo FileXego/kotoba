@@ -32,8 +32,11 @@ export const ja = {
   "auth.error": "ユーザー名またはパスワードが間違っています",
   "auth.network": "ネットワークエラー",
   "auth.captcha": "認証を完了してください",
+  "auth.configError": "登録機能の設定を確認してください",
   "auth.needLogin": "ログインしてから投稿してください",
   "search.placeholder": "さがす...",
+  "search.clear": "クリア",
+  "list.retry": "再読み込み",
   "form.thought": "おもい",
   "form.placeholder": "何か書いて...",
   "form.submit": "留 言",
@@ -73,6 +76,9 @@ export const ja = {
   "admin.makeAdmin": "管理者にする",
   "admin.removeAdmin": "管理者解除",
   "admin.loadFail": "読み込み失敗",
+  "admin.pagination": "メッセージのページ",
+  "admin.previous": "前へ",
+  "admin.next": "次へ",
   "error.AUTH_REQUIRED": "ログインしてください",
   "error.PARENT_NOT_FOUND": "親メッセージが見つかりません",
   "error.MAX_DEPTH": "これ以上返信できません",
@@ -90,6 +96,7 @@ export const ja = {
   "error.INVALID_PROFILE": "プロフィールが無効です",
   "error.INVALID_THEME": "無効なテーマです",
   "error.INVALID_FILE_TYPE": "対応していない画像形式です",
+  "error.STORAGE_LIMIT": "画像ストレージの上限に達しました",
   "error.VALIDATION": "入力が無効です",
   "error.INTERNAL_ERROR": "サーバーエラー",
   "bookmarks.title": "コレクション",
@@ -146,8 +153,11 @@ export const zh: Record<Key, string> = {
   "auth.error": "用户名或密码错误",
   "auth.network": "网络错误",
   "auth.captcha": "请完成人机验证",
+  "auth.configError": "注册功能配置异常，请联系管理员",
   "auth.needLogin": "请先登录再留言",
   "search.placeholder": "搜索...",
+  "search.clear": "清除",
+  "list.retry": "重新加载",
   "form.thought": "思绪",
   "form.placeholder": "想说些什么...",
   "form.submit": "留 言",
@@ -187,6 +197,9 @@ export const zh: Record<Key, string> = {
   "admin.makeAdmin": "设为管理员",
   "admin.removeAdmin": "取消管理员",
   "admin.loadFail": "加载失败",
+  "admin.pagination": "留言分页",
+  "admin.previous": "上一页",
+  "admin.next": "下一页",
   "error.AUTH_REQUIRED": "请先登录",
   "error.PARENT_NOT_FOUND": "找不到父留言",
   "error.MAX_DEPTH": "无法继续回复",
@@ -204,6 +217,7 @@ export const zh: Record<Key, string> = {
   "error.INVALID_PROFILE": "个人资料无效",
   "error.INVALID_THEME": "无效主题",
   "error.INVALID_FILE_TYPE": "不支持的图片格式",
+  "error.STORAGE_LIMIT": "图片存储空间已达到上限",
   "error.VALIDATION": "输入无效",
   "error.INTERNAL_ERROR": "服务器错误",
   "bookmarks.title": "收藏",
@@ -228,6 +242,35 @@ export const zh: Record<Key, string> = {
   "me.saveFail": "保存失败",
   "me.themeApplied": "主题已切换",
 };
+
+const ERROR_MAP: Record<string, Key> = {
+  AUTH_REQUIRED: "error.AUTH_REQUIRED",
+  PARENT_NOT_FOUND: "error.PARENT_NOT_FOUND",
+  MAX_DEPTH: "error.MAX_DEPTH",
+  FORBIDDEN: "error.FORBIDDEN",
+  INVALID_ID: "error.INVALID_ID",
+  NOT_FOUND: "error.NOT_FOUND",
+  DUPLICATE: "error.DUPLICATE",
+  INVALID_CREDENTIALS: "error.INVALID_CREDENTIALS",
+  SELF_ADMIN: "error.SELF_ADMIN",
+  SUBMIT_FAIL: "error.SUBMIT_FAIL",
+  CAPTCHA_FAIL: "error.CAPTCHA_FAIL",
+  RATE_LIMITED: "error.RATE_LIMITED",
+  CONTAINS_BANNED_WORD: "error.CONTAINS_BANNED_WORD",
+  TOO_MANY_REQUESTS: "error.TOO_MANY_REQUESTS",
+  INVALID_PROFILE: "error.INVALID_PROFILE",
+  INVALID_THEME: "error.INVALID_THEME",
+  INVALID_FILE_TYPE: "error.INVALID_FILE_TYPE",
+  STORAGE_LIMIT: "error.STORAGE_LIMIT",
+  VALIDATION: "error.VALIDATION",
+  INTERNAL_ERROR: "error.INTERNAL_ERROR",
+};
+
+export function parseApiError(lang: Lang, raw: string, fallback: Key): string {
+  const code = raw.split("] ")[1] || "";
+  const key = ERROR_MAP[code];
+  return key ? t(lang, key) : t(lang, fallback);
+}
 
 export function t(lang: Lang, key: Key): string {
   return lang === "ja" ? ja[key] : zh[key];

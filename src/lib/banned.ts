@@ -3,6 +3,7 @@
  * Builds a trie, then scans text in O(n + matches).
  * 0 dependencies.
  */
+import { fileURLToPath } from "node:url";
 
 interface TrieNode {
   children: Map<string, TrieNode>;
@@ -73,14 +74,25 @@ export class AhoCorasick {
 // ── Singleton ──
 let _ac: AhoCorasick | null = null;
 
+const isProd = import.meta.env.NODE_ENV === "production";
+
 /** Load banned words from file. Call once at startup. */
-export async function loadBannedWords(path = "banned.txt"): Promise<AhoCorasick> {
+export async function loadBannedWords(path?: string): Promise<AhoCorasick> {
   if (_ac) return _ac;
+  const resolvedPath = path ?? fileURLToPath(new URL("../../banned.txt", import.meta.url));
   try {
-    const raw = await Bun.file(path).text();
-    const words = raw.split(/\r?\n/).map(w => w.trim()).filter(Boolean);
+    const raw = await Bun.file(resolvedPath).text();
+    const words = raw
+      .split(/\r?\n/)
+      .map((word) => word.trim())
+      .filter((word) => word !== "" && !word.startsWith("#"));
     _ac = new AhoCorasick(words);
-  } catch {
+  } catch (e) {
+    if (isProd) {
+      console.error("banned.txt not found or unreadable:", e instanceof Error ? e.message : String(e));
+      process.exit(1);
+    }
+    console.warn("banned.txt not found — moderation filter disabled");
     _ac = new AhoCorasick([]);
   }
   return _ac;

@@ -10,6 +10,7 @@ import { ThreadPage } from "./components/ThreadPage";
 import { MePage } from "./components/MePage";
 import { AnimatePresence, MotionConfig } from "motion/react";
 import { EditorialFrame } from "./components/EditorialFrame";
+import { InkCursor } from "./components/InkCursor";
 import { PageTransition } from "./components/PageTransition";
 import { useRouter } from "./hooks/useRouter";
 import { useTheme } from "./hooks/useTheme";
@@ -19,6 +20,7 @@ import { useMessageFeed } from "./hooks/useMessageFeed";
 import { useRealtimeEvents, type RealtimeClientEvent } from "./hooks/useRealtimeEvents";
 import { MOBILE_ROUTES_ENABLED } from "./flags";
 import { t, type Lang } from "./i18n";
+import { uploadImage } from "./api";
 
 export default function App() {
   const [lang, setLang] = useState<Lang>(() => {
@@ -46,7 +48,7 @@ export default function App() {
   const {
     messages, total, loading, loadingMore, error, replyTrees, loadingReplies,
     replyErrors,
-    handleLoadMore, handleLoadReplies, handleSubmit, handleUpdate,
+    loadMessages, handleLoadMore, handleLoadReplies, handleSubmit, handleUpdate,
     handleToggleLike, handleToggleBookmark, applyRealtimeEvent,
   } = useMessageFeed(lang, searchQuery, likedIds, setLikedIds, bookmarkedIds, setBookmarkedIds);
 
@@ -54,7 +56,7 @@ export default function App() {
     setRealtimeEvent(event);
     applyRealtimeEvent(event);
   }, [applyRealtimeEvent]);
-  const realtimeStatus = useRealtimeEvents(handleRealtimeEvent);
+  const realtimeStatus = useRealtimeEvents(handleRealtimeEvent, user?.id ?? null);
 
   const toggleLang = () => setLang((l) => {
     const next = l === "ja" ? "zh" : "ja";
@@ -99,11 +101,17 @@ export default function App() {
               )}
               {route === "/" && (
                 <>
-                  <input className="search-input" type="text" placeholder={t(lang, "search.placeholder")}
-                    value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                  <div className="search-wrap">
+                    <input className="search-input" type="text" placeholder={t(lang, "search.placeholder")}
+                      value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                    {searchQuery && (
+                      <button type="button" className="search-clear" aria-label={t(lang, "search.clear")}
+                        onClick={() => setSearchQuery("")}>&times;</button>
+                    )}
+                  </div>
                   <div ref={composerRef}>
                     <SubmitForm lang={lang}
-                      onImageUpload={async (f) => { const r = await (await import("./api")).uploadImage(f); return r.url; }}
+                      onImageUpload={async (file) => (await uploadImage(file)).url}
                       onSubmit={handleSubmit} loggedIn={!!user} />
                   </div>
                   <MessageList lang={lang}
@@ -115,6 +123,7 @@ export default function App() {
                     onLoadMore={handleLoadMore} onSubmitReply={handleSubmit}
                     onToggleLike={handleToggleLike} onToggleBookmark={handleToggleBookmark}
                     onOpenThread={MOBILE_ROUTES_ENABLED ? (id) => navigate("/message", id) : undefined}
+                    onRetry={() => loadMessages(0, searchQuery)}
                   />
                 </>
               )}
@@ -124,6 +133,7 @@ export default function App() {
         {MOBILE_ROUTES_ENABLED && (
           <MobileBottomNav lang={lang} route={route} navigate={navigate} onComposeFocus={focusComposer} />
         )}
+        <InkCursor />
         {inkAnim && (
           <div className="ink-overlay" data-target={inkAnim.theme} style={{
             '--ink-x': `${inkAnim.x}px`, '--ink-y': `${inkAnim.y}px`,

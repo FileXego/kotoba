@@ -3,7 +3,7 @@ import { type Message, type User } from "../api";
 import { t, type Lang } from "../i18n";
 import { Avatar } from "./Avatar";
 import { motion } from "motion/react";
-import { entryVariants } from "../design/motion";
+import { entryVariants, fadeInUp } from "../design/motion";
 
 interface ReplyInfo { message: Message; replies: Message[]; ownDepth: number; }
 
@@ -73,7 +73,7 @@ export function MessageCard({
   const [actionError, setActionError] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
 
-  const isMine = currentUser?.id === userId || currentUser?.username === name;
+  const isMine = userId != null && currentUser?.id === userId;
   const canReply = d < MAX_DEPTH;
   const childReplies: ReplyInfo[] = replies
     ? replies.filter((m) => m.parentId === id).map(m => ({ message: m, replies, ownDepth: d + 1 }))
@@ -111,6 +111,7 @@ export function MessageCard({
         variants={entryVariants}
         initial="hidden"
         animate="visible"
+        whileHover={{ x: 3 }}
       >
         <div className="card-header">
           <span className="card-index" aria-hidden="true">{String(id).padStart(3, "0")}</span>
@@ -128,7 +129,7 @@ export function MessageCard({
             <div className="card-content">
               {long && !expanded ? content.slice(0, TRUNCATE_AT) + "…" : renderContent(content)}
             </div>
-            {currentUser && currentUser.id === userId && signature && (
+            {signature && (
               <div className="card-signature">—— {signature}</div>
             )}
           </>
@@ -178,7 +179,8 @@ export function MessageCard({
         {replyLoadError && <p className="auth-error card-action-error">{replyLoadError}</p>}
         {actionError && <p className="auth-error card-action-error">{actionError}</p>}
         {replying && <button type="button" className="reply-sheet-backdrop" aria-label={t(lang, "form.cancel")} onClick={() => setReplying(false)} />}
-        {replying && (<form className="inline-reply-form" onSubmit={handleReplySubmit} aria-label={t(lang, "form.reply")}>
+        {replying && (<motion.form className="inline-reply-form" onSubmit={handleReplySubmit} aria-label={t(lang, "form.reply")}
+          variants={fadeInUp} initial="hidden" animate="visible">
           <textarea className="reply-textarea" placeholder={t(lang, "form.reply") + "..."}
             value={replyContent} onChange={(e) => setReplyContent(e.target.value)} maxLength={500} />
           <div className="reply-form-actions">
@@ -187,7 +189,7 @@ export function MessageCard({
             <button type="button" className="action-btn owner-btn" onClick={() => setReplying(false)}>{t(lang, "form.cancel")}</button>
           </div>
           {replyError && <p className="auth-error">{replyError}</p>}
-        </form>)}
+        </motion.form>)}
       </motion.article>
       {showReplies && childReplies.length > 0 && (<div className="reply-tree">
         {childReplies.map(({ message, replies, ownDepth }) => (

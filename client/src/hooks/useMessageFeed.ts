@@ -3,8 +3,8 @@ import {
   fetchMessages, fetchReplies, submitMessage, updateMessage, toggleLike, toggleBookmark, fetchInteractions,
   type Message,
 } from "../api";
-import { type Lang, t } from "../i18n";
-import type { RealtimeClientEvent } from "./useRealtimeEvents";
+import { type Lang, t, parseApiError } from "../i18n";
+import { getRealtimeMessageScope, type RealtimeClientEvent } from "./useRealtimeEvents";
 
 const PAGE_SIZE = 20;
 
@@ -35,7 +35,7 @@ export function useMessageFeed(
       setMessages(prev => append ? [...prev, ...result.data] : result.data);
       setTotal(result.total);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t(lang, "list.loadFail"));
+      setError(err instanceof Error ? parseApiError(lang, err.message, "list.loadFail") : t(lang, "list.loadFail"));
     } finally { setLoading(false); setLoadingMore(false); }
   }, [lang]);
 
@@ -164,13 +164,11 @@ export function useMessageFeed(
       return;
     }
 
-    const rootId = event.type === "message.restored"
-      ? event.messageId
-      : event.rootId ?? event.messageId;
-    const touchesTopLevel = event.type === "message.restored" || event.parentId === null;
+    const scope = getRealtimeMessageScope(event);
+    if (!scope) return;
 
-    if (touchesTopLevel || q) void loadMessages(0, q);
-    if (replyTrees[rootId]) void handleLoadReplies(rootId, true);
+    if (scope.touchesTopLevel || q) void loadMessages(0, q);
+    if (replyTrees[scope.rootId]) void handleLoadReplies(scope.rootId, true);
   }, [applyLikeCount, handleLoadReplies, loadMessages, q, replyTrees, setBookmarkedIds, setLikedIds]);
 
   const initialLoaded = useRef(false);

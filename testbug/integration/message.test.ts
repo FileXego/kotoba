@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { Database } from "bun:sqlite";
 import { setupApp, extractCookie } from "../helpers";
 
 type Json = Record<string, unknown>;
 
 describe("Messages", () => {
-  let app: Awaited<ReturnType<typeof import("../src/app").createApp>>;
+  let app: Awaited<ReturnType<typeof import("../../src/app").createApp>>;
   let cleanup: () => void;
   let cookie1: string | null = null;
   let cookie2: string | null = null;
@@ -119,6 +120,8 @@ describe("Messages", () => {
     expect(res.status).toBe(422);
     expect(data.success).toBe(false);
     expect(data.error).toBe("VALIDATION");
+    expect(res.headers.get("Content-Security-Policy")).toContain("font-src 'self'");
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
   });
 
   // Test 4
@@ -296,6 +299,44 @@ describe("Messages", () => {
     expect(data.total).toBe(0);
   });
 
+  it("exposes an author's signature to other readers in list and thread responses", async () => {
+    const signature = "Public signature from user two";
+    const profileRes = await app.handle(
+      new Request("http://localhost/api/auth/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: cookie2! },
+        body: JSON.stringify({ signature }),
+      }),
+    );
+    expect(profileRes.status).toBe(200);
+
+    const createRes = await app.handle(
+      new Request("http://localhost/api/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: cookie2! },
+        body: JSON.stringify({ content: "signature_visibility_probe" }),
+      }),
+    );
+    const created = await createRes.json() as Json;
+    const messageId = created.id as number;
+
+    const listRes = await app.handle(
+      new Request("http://localhost/api/messages?q=signature_visibility_probe"),
+    );
+    const list = await listRes.json() as Json;
+    const listed = (list.data as Array<Record<string, unknown>>)
+      .find((message) => message.id === messageId);
+    expect(listed?.signature).toBe(signature);
+
+    const threadRes = await app.handle(
+      new Request(`http://localhost/api/messages/${messageId}/replies`),
+    );
+    const thread = await threadRes.json() as Json;
+    const threaded = (thread.data as Array<Record<string, unknown>>)
+      .find((message) => message.id === messageId);
+    expect(threaded?.signature).toBe(signature);
+  });
+
   // ── GET /api/messages/:id/replies ───────────────────────────────────
 
   // Test 14 — 99999 is a valid number (not NaN), so it won't trigger INVALID_ID
@@ -416,6 +457,28 @@ describe("Messages", () => {
     expect(data.error).toBe("FORBIDDEN");
   });
 
+  it("does not let a same-named account claim an unbound legacy message", async () => {
+    const sqlite = new Database(process.env.TEST_DB!);
+    const result = sqlite.query(`
+      INSERT INTO messages (name, content, created_at, deleted, depth, user_id)
+      VALUES (?, ?, ?, 0, 0, NULL)
+    `).run("msgu1", "legacy unbound message", Date.now());
+    sqlite.close();
+    const legacyId = Number(result.lastInsertRowid);
+
+    const res = await app.handle(
+      new Request(`http://localhost/api/message/${legacyId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: cookie1! },
+        body: JSON.stringify({ content: "claimed by a later account" }),
+      }),
+    );
+    const data = await res.json() as Json;
+    expect(res.status).toBe(403);
+    expect(data.success).toBe(false);
+    expect(data.error).toBe("FORBIDDEN");
+  });
+
   // Test 20
   it("PATCH /api/message/:id non-existent message → 404 NOT_FOUND", async () => {
 
@@ -529,6 +592,59 @@ describe("Messages", () => {
     expect(data.count).toBe(0);
   });
 
+  it("handles concurrent like toggles without a 500 or duplicate row", async () => {
+    const responses = await Promise.all([
+      app.handle(new Request(`http://localhost/api/messages/${rootMsgId}/like`, {
+        method: "POST",
+        headers: { Cookie: cookie1! },
+      })),
+      app.handle(new Request(`http://localhost/api/messages/${rootMsgId}/like`, {
+        method: "POST",
+        headers: { Cookie: cookie1! },
+      })),
+    ]);
+    expect(responses.map((response) => response.status)).toEqual([200, 200]);
+
+    const interactionsRes = await app.handle(new Request("http://localhost/api/me/likes", {
+      headers: { Cookie: cookie1! },
+    }));
+    const interactions = await interactionsRes.json() as Json;
+    expect(interactions.liked).not.toContain(rootMsgId);
+  });
+
+  it("serializes concurrent like toggles when the interaction starts enabled", async () => {
+    const createRes = await app.handle(new Request("http://localhost/api/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookie1! },
+      body: JSON.stringify({ content: "Concurrent like state" }),
+    }));
+    const messageId = ((await createRes.json()) as Json).id as number;
+
+    const enable = await app.handle(new Request(`http://localhost/api/messages/${messageId}/like`, {
+      method: "POST",
+      headers: { Cookie: cookie1! },
+    }));
+    expect(((await enable.json()) as Json).liked).toBe(true);
+
+    const responses = await Promise.all([
+      app.handle(new Request(`http://localhost/api/messages/${messageId}/like`, {
+        method: "POST",
+        headers: { Cookie: cookie1! },
+      })),
+      app.handle(new Request(`http://localhost/api/messages/${messageId}/like`, {
+        method: "POST",
+        headers: { Cookie: cookie1! },
+      })),
+    ]);
+    expect(responses.map((response) => response.status)).toEqual([200, 200]);
+
+    const interactionsRes = await app.handle(new Request("http://localhost/api/me/likes", {
+      headers: { Cookie: cookie1! },
+    }));
+    const interactions = await interactionsRes.json() as Json;
+    expect(interactions.liked).toContain(messageId);
+  });
+
   // Test 26
   it("POST /api/messages/99999/like (non-existent) → 404 NOT_FOUND", async () => {
 
@@ -614,6 +730,59 @@ describe("Messages", () => {
     expect(res.status).toBe(200);
     expect(data.success).toBe(true);
     expect(data.bookmarked).toBe(false);
+  });
+
+  it("handles concurrent bookmark toggles without a 500 or duplicate row", async () => {
+    const responses = await Promise.all([
+      app.handle(new Request(`http://localhost/api/messages/${rootMsgId}/bookmark`, {
+        method: "POST",
+        headers: { Cookie: cookie1! },
+      })),
+      app.handle(new Request(`http://localhost/api/messages/${rootMsgId}/bookmark`, {
+        method: "POST",
+        headers: { Cookie: cookie1! },
+      })),
+    ]);
+    expect(responses.map((response) => response.status)).toEqual([200, 200]);
+
+    const interactionsRes = await app.handle(new Request("http://localhost/api/me/likes", {
+      headers: { Cookie: cookie1! },
+    }));
+    const interactions = await interactionsRes.json() as Json;
+    expect(interactions.bookmarked).not.toContain(rootMsgId);
+  });
+
+  it("serializes concurrent bookmark toggles when the interaction starts enabled", async () => {
+    const createRes = await app.handle(new Request("http://localhost/api/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookie1! },
+      body: JSON.stringify({ content: "Concurrent bookmark state" }),
+    }));
+    const messageId = ((await createRes.json()) as Json).id as number;
+
+    const enable = await app.handle(new Request(`http://localhost/api/messages/${messageId}/bookmark`, {
+      method: "POST",
+      headers: { Cookie: cookie1! },
+    }));
+    expect(((await enable.json()) as Json).bookmarked).toBe(true);
+
+    const responses = await Promise.all([
+      app.handle(new Request(`http://localhost/api/messages/${messageId}/bookmark`, {
+        method: "POST",
+        headers: { Cookie: cookie1! },
+      })),
+      app.handle(new Request(`http://localhost/api/messages/${messageId}/bookmark`, {
+        method: "POST",
+        headers: { Cookie: cookie1! },
+      })),
+    ]);
+    expect(responses.map((response) => response.status)).toEqual([200, 200]);
+
+    const interactionsRes = await app.handle(new Request("http://localhost/api/me/likes", {
+      headers: { Cookie: cookie1! },
+    }));
+    const interactions = await interactionsRes.json() as Json;
+    expect(interactions.bookmarked).toContain(messageId);
   });
 
   // Test 31

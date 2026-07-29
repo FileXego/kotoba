@@ -2,7 +2,7 @@ type PublicRealtimeEvent =
   | { type: "message.created"; messageId: number; parentId: number | null; rootId: number | null; createdAt: string }
   | { type: "message.updated"; messageId: number; parentId: number | null; rootId: number | null; updatedAt: string }
   | { type: "message.deleted"; messageId: number; parentId: number | null; rootId: number | null; updatedAt: string }
-  | { type: "message.restored"; messageId: number; updatedAt: string }
+  | { type: "message.restored"; messageId: number; parentId: number | null; rootId: number | null; updatedAt: string }
   | { type: "message.liked"; messageId: number; count: number; updatedAt: string };
 
 type PrivateRealtimeEvent = {

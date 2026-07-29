@@ -1,6 +1,6 @@
 # Kotoba 原生 App 路线与进度
 
-> 日期：2026-06-13
+> 日期：2026-07-29
 > 状态：长期路线 + 当前进度台账。本文不创建 iOS/Android 工程，不改后端认证，不引入依赖。
 
 ## 当前结论
@@ -41,14 +41,14 @@
 |---|---:|---|---|
 | P0 文档和约束盘点 | `[##########] 100%` | 已完成本轮读取和冲突整理 | 后续只维护增量 |
 | P1 Web 生产前置 | `[#########-] 95%` | Turnstile sitekey 已源码化、上线方案已写、bot guard、CSP、安全头、上传魔数校验、shared 数据部署已补齐 | 真机复核、首台 VPS 实部署 |
-| P2 Mobile Web/PWA | `[##########] 100%` | Mobile Web 可上线候选：现代东方书刊设计系统、路由、书签式底部导航、Thread/Bookmarks/Me/Admin、safe-area、触控目标、双端即时同步和上线加固 | 真机 Safari/Chrome 复核、PWA manifest/offline 决策 |
+| P2 Mobile Web | `[##########] 100%` | 2.1.2 Web 发布候选：现代东方书刊设计、路由、身份感知 SSE、session/上传/readiness/CI/部署收口 | 上线前真机 Safari/Chrome 复核；PWA manifest/offline 仍是独立后续决策 |
 | P3 原生 App 架构设计 | `[#####-----] 45%` | 框架矩阵、iOS/Android 结构、App v1 范围已完成文档化 | 写移动端认证 ADR |
 | P4 后端 mobile token | `[----------] 0%` | 现有 Web cookie 可用；App token 未实现 | 决定 `@elysia/jwt` 依赖例外或 Bun/WebCrypto signed token |
 | P5 iOS SwiftUI App | `[----------] 0%` | 无 Xcode 工程 | 等 P4 后建 `mobile/ios` |
 | P6 Android Compose App | `[----------] 0%` | 无 Gradle 工程 | iOS v1 后再建 `mobile/android` |
 | P7 商店上架材料 | `[#---------] 10%` | 商店约束已核对 | 准备隐私政策、UGC 管理、截图、账号 |
 
-当前做到的位置：**P1 Web 生产前置已基本补齐，P2 Mobile Web 已进入可上线候选（含现代东方书刊视觉系统、四种书刊版本、详情、完整回复树、收藏、Me、Admin、底部导航、safe-area、双端即时同步、reduced-motion、上传校验和 shared 数据部署），P3 框架矩阵完成；没有创建原生工程，后端 mobile token 仍未开始。**
+当前做到的位置：**P1 Web 生产前置已完成代码收口，P2 Mobile Web 2.1.2 已进入最终上线验收（含现代东方书刊视觉、完整路由/SSE、session、上传容量、readiness、可复现 CI 与 shared 数据部署）；Ubuntu staging/真实域名/异地备份仍由上线操作者验收。P3 框架矩阵完成；没有创建原生工程，后端 mobile token 仍未开始。**
 
 ## Mobile Web Phase A 完成记录
 
@@ -58,7 +58,7 @@
 
 | 组件 | 文件 | 说明 |
 |---|---|---|
-| Turnstile 源码化 | `client/src/components/Header.tsx` | `VITE_TURNSTILE_SITEKEY` -> `__KOTOBA_TURNSTILE_SITEKEY__` global -> 测试 key 三级回退 |
+| Turnstile 源码化 | `client/src/components/Header.tsx` | build key → runtime key；生产缺失/测试 key 时禁用注册并显示配置错误，开发环境才使用官方测试 key；脚本延迟加载仍能挂载 widget |
 | MobileShell | `client/src/components/MobileShell.tsx` | 响应式容器，`<=640px` 时激活移动布局 |
 | MobileBottomNav | `client/src/components/MobileBottomNav.tsx` | 四 tab：首页 / 收藏 / 书写聚焦 / 我的，fixed 底部 + safe-area |
 | ThreadPage | `client/src/components/ThreadPage.tsx` | `/message/:id` 单消息 + 完整回复树 |
@@ -100,9 +100,9 @@
 | 项目 | 结果 |
 |---|---|
 | 事件通道 | 新增 `/api/events` SSE，同源 cookie 可选，生产走 `_kb` bot gate |
-| 公共事件 | 新消息、编辑、删除、恢复、点赞计数广播给所有在线端 |
+| 公共事件 | 新消息、编辑、删除、恢复、点赞计数广播给所有在线端；恢复事件携带 parent/root scope |
 | 私有事件 | 喜欢/收藏状态只发给当前用户的连接，不泄露到其他用户 |
-| 前端入口 | `App.tsx` 只开一条 EventSource，Home/Thread/Bookmarks 共享事件；浏览器/代理异常时低频兜底同步 |
+| 前端入口 | `App.tsx` 只开一条 EventSource，登录身份变化时关闭并按当前 user id 重建；Home/Thread/Bookmarks 共享事件，浏览器/代理异常时低频兜底同步 |
 | 体验提示 | Header 下方新增低干扰实时同步状态 chip |
 | 代理要求 | nginx 为 `/api/events` 独立关闭 buffering，避免推送被攒住 |
 
@@ -122,27 +122,22 @@ VITE_MOBILE_ROUTES_ENABLED=true
 
 ### 本地验证
 
-2026-06-09 本地复核：
+2026-06-09 历史本地复核（当前 2.1.2 精确门禁见 `future/RELEASE_HANDOFF.md`）：
 
 ```powershell
 bun test
-# 91 pass, 0 fail
-
-cd client
-bun run lint
-bun run build
-# 0 errors
+bun run --cwd client lint
+bun run --cwd client build
 ```
 
-`bun run build` 仍有已知 Vite dynamic import warning，不影响产物，已记录在 `PROBLEM.md`。
+Vite 8.1.5 生产构建通过，原有 dynamic/static import warning 已消除。
 
 2026-06-09 本轮修复后复验：
 
 ```powershell
-cd client
-bun run lint
-bun run build
-# pass；Vite dynamic/static import warning 仍为既有非阻断警告
+bun run --cwd client lint
+bun run --cwd client build
+# pass；无原 dynamic/static import warning
 ```
 
 2026-06-13 移动 UX 复验：
@@ -150,7 +145,7 @@ bun run build
 ```powershell
 bun run --cwd client lint
 bun run --cwd client build
-# pass；Vite dynamic/static import warning 仍为既有非阻断警告
+# pass；无原 dynamic/static import warning
 ```
 
 浏览器自动复核：

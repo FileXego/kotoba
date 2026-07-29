@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { signCookie } from "elysia/utils";
 import { setupApp, extractCookie } from "../helpers";
 
 type Json = Record<string, unknown>;
 
 describe("Auth API", () => {
-  let app: Awaited<ReturnType<typeof import("../src/app").createApp>>;
+  let app: Awaited<ReturnType<typeof import("../../src/app").createApp>>;
   let cleanup: () => void;
   let cookie: string | null = null;
 
@@ -75,6 +76,48 @@ describe("Auth API", () => {
     expect(data.success).toBe(true);
   });
 
+  it("validates the original password before any output escaping", async () => {
+    const res = await app.handle(new Request("http://localhost/api/auth/sign-up", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: "short-password",
+        email: "short-password@test.com",
+        password: "&&",
+        captchaToken: "test-token",
+      }),
+    }));
+    const data = await res.json() as Json;
+    expect(res.status).toBe(422);
+    expect(data.success).toBe(false);
+    expect(data.error).toBe("VALIDATION");
+  });
+
+  it("preserves valid credentials instead of rewriting them as HTML entities", async () => {
+    const username = "special&user";
+    const password = "<>&\"'!";
+    const signup = await app.handle(new Request("http://localhost/api/auth/sign-up", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username,
+        email: "special-user@test.com",
+        password,
+        captchaToken: "test-token",
+      }),
+    }));
+    const signupData = await signup.json() as Json;
+    expect(signup.status).toBe(200);
+    expect((signupData.user as Record<string, unknown>).username).toBe(username);
+
+    const signin = await app.handle(new Request("http://localhost/api/auth/sign-in", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    }));
+    expect(signin.status).toBe(200);
+  });
+
   // ── Sign-in ──────────────────────────────────────────────────────
 
   it("signs in with correct credentials", async () => {
@@ -96,6 +139,8 @@ describe("Auth API", () => {
     // Save session cookie for subsequent authenticated requests
     cookie = extractCookie(res);
     expect(cookie).not.toBeNull();
+    expect(cookie).not.toMatch(/^session=\d+$/);
+    expect(cookie!.length).toBeGreaterThan("session=1".length);
   });
 
   it("rejects sign-in with wrong password", async () => {
@@ -137,6 +182,52 @@ describe("Auth API", () => {
     expect(data.success).toBe(true);
     expect(data.user).not.toBeNull();
     expect((data.user as Record<string, unknown>).username).toBe("test");
+  });
+
+  it("rejects forged and tampered session cookies", async () => {
+    const signedValue = cookie!.slice("session=".length);
+    const last = signedValue.at(-1);
+    const tamperedValue = `${signedValue.slice(0, -1)}${last === "a" ? "b" : "a"}`;
+
+    for (const forged of ["session=1", `session=${tamperedValue}`]) {
+      const res = await app.handle(new Request("http://localhost/api/auth/me", {
+        headers: { Cookie: forged },
+      }));
+      const data = await res.json() as Json;
+      expect(res.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.user).toBeNull();
+    }
+  });
+
+  it("rejects a signed legacy numeric session that has no server-side expiry", async () => {
+    const legacyValue = await signCookie("1.0", "test-secret");
+    const res = await app.handle(new Request("http://localhost/api/auth/me", {
+      headers: { Cookie: `session=${legacyValue}` },
+    }));
+    const data = await res.json() as Json;
+    expect(res.status).toBe(200);
+    expect(data.user).toBeNull();
+  });
+
+  it("rejects a correctly signed but expired structured session", async () => {
+    const expiredValue = await signCookie(`1:${Date.now() - 1_000}`, "test-secret");
+    const res = await app.handle(new Request("http://localhost/api/auth/me", {
+      headers: { Cookie: `session=${expiredValue}` },
+    }));
+    const data = await res.json() as Json;
+    expect(res.status).toBe(200);
+    expect(data.user).toBeNull();
+  });
+
+  it("does not authorize a forged numeric cookie for admin routes", async () => {
+    const res = await app.handle(new Request("http://localhost/api/admin/users", {
+      headers: { Cookie: "session=1" },
+    }));
+    const data = await res.json() as Json;
+    expect(res.status).toBe(403);
+    expect(data.success).toBe(false);
+    expect(data.error).toBe("FORBIDDEN");
   });
 
   // ── PATCH /me ────────────────────────────────────────────────────
@@ -209,6 +300,11 @@ describe("Auth API", () => {
     const data = await res.json() as Json;
     expect(res.status).toBe(200);
     expect(data.success).toBe(true);
+    const setCookie = res.headers.get("Set-Cookie") ?? "";
+    expect(setCookie).toContain("Max-Age=0");
+    expect(setCookie).toContain("Path=/");
+    expect(setCookie.toLowerCase()).toContain("httponly");
+    expect(setCookie.toLowerCase()).toContain("samesite=lax");
   });
 
   it("returns null user for GET /me after sign-out", async () => {
@@ -223,13 +319,15 @@ describe("Auth API", () => {
 
   // ── Health check ─────────────────────────────────────────────────
 
-  it("serves GET /api/health with version 2.1.0", async () => {
+  it("serves GET /api/health with the canonical release version", async () => {
 
     const req = new Request("http://localhost/api/health");
     const res = await app.handle(req);
     const data = await res.json() as Json;
     expect(res.status).toBe(200);
     expect(data.success).toBe(true);
-    expect(data.version).toBe("2.1.0");
+    expect(data.version).toBe("2.1.2");
+    expect(data.status).toBe("ready");
+    expect(typeof data.revision).toBe("string");
   });
 });

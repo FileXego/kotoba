@@ -1,6 +1,6 @@
 # App 框架体系与约束条件
 
-> 日期：2026-06-13
+> 日期：2026-07-29
 > 状态：App 形态选择和约束总表。本文只做架构框定，不创建工程、不引入依赖、不改业务代码。
 
 ## 总结
@@ -64,7 +64,7 @@ Layer 3: Native App
 
 目标：手机浏览器访问主站时已经像 App。
 
-当前状态：**Phase A 已完成，Mobile Web 进入可上线候选**。默认由 `VITE_MOBILE_ROUTES_ENABLED=false` 关闭；上线移动端时设为 `true` 后启用移动路由、底部导航、Thread、Bookmarks、Me 和 Admin 窄屏视图。本轮已补齐页面容器、底部导航 CSS 覆盖、详情入口、完整回复树默认展开、Me 页主题/头像交互、收藏页交互、回复底部 sheet、双端即时同步、safe-area 和 375/390/430 宽度自动复核。
+当前状态：**Phase A 已完成，Mobile Web 进入可上线候选**。源码安全默认值为 `VITE_MOBILE_ROUTES_ENABLED=false`，2.1.2 生产配置显式设为 `true` 后启用移动路由、底部导航、Thread、Bookmarks、Me 和 Admin 窄屏视图。本轮已补齐页面容器、底部导航 CSS 覆盖、详情入口、完整回复树默认展开、Me 页主题/头像交互、收藏页交互、回复底部 sheet、身份感知双端同步、safe-area 和 375/390/430 宽度自动复核。
 
 框架体系：
 
@@ -112,10 +112,10 @@ client/src/
 
 - 手机端首页、收藏、详情、我的、Admin 窄屏可用。✅
 - 首页到 `/message/:id` 详情入口可用，详情页默认展开完整回复树。✅
-- Home / Thread / Bookmarks 可通过 `/api/events` 接收双端即时更新，并在浏览器/代理异常时低频兜底。✅
+- Home / Thread / Bookmarks 可通过 `/api/events` 接收双端即时更新；登录身份变化会关闭旧连接并重建，恢复回复携带 parent/root scope，浏览器/代理异常时低频兜底。✅
 - Me 页头像 256KB 限制与后端一致，主题色块可直接选择目标主题。✅
 - 登录、发帖、回复、点赞、收藏、上传仍走现有 `/api`。✅
-- `bun test` 通过。✅ 92 pass
+- `bun test` 完整套件通过。✅ 精确发布证据见 `future/RELEASE_HANDOFF.md`
 - `bun run --cwd client lint` 和 `bun run --cwd client build` 通过。✅ 2026-06-13 复验
 
 ### Phase B: PWA

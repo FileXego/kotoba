@@ -8,23 +8,41 @@ import { auth } from "./plugins/auth";
 import { admin } from "./plugins/admin";
 import { assetDir, clientIndexPath, serveLocalFile, uploadDir } from "./lib/files";
 import { loadBannedWords } from "./lib/banned";
+import { assertApplicationReady } from "./lib/readiness";
+import { APP_VERSION, readReleaseRevision } from "./lib/release-info";
 
 export interface AppOptions {
   staticMode?: boolean;
+  readinessCheck?: (staticMode: boolean) => Promise<void>;
+  revision?: string;
 }
 
 const UPLOAD_EXTS = new Set(["png", "jpg", "jpeg", "webp"]);
 const ASSET_EXTS = new Set(["css", "js", "map", "png", "jpg", "jpeg", "webp", "svg", "ico", "woff", "woff2"]);
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+  "script-src 'self' https://challenges.cloudflare.com",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self' data:",
+  "img-src 'self' data:",
+  "frame-src https://challenges.cloudflare.com",
+  "connect-src 'self'",
+].join("; ");
 
 export async function createApp(options: AppOptions = {}) {
   await loadBannedWords();
-  const app = new Elysia({
-    sanitize: (value) => (typeof value === "string" ? Bun.escapeHTML(value) : value),
-  })
-    .state("csp", "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-src https://challenges.cloudflare.com; connect-src 'self'")
-    .onAfterHandle(({ set, store: { csp } }) => {
-      set.headers["Content-Security-Policy"] = csp;
+  const staticMode = options.staticMode ?? false;
+  const readinessCheck = options.readinessCheck ?? assertApplicationReady;
+  const revision = options.revision ?? readReleaseRevision();
+  const app = new Elysia()
+    .onRequest(({ set }) => {
+      set.headers["Content-Security-Policy"] = CONTENT_SECURITY_POLICY;
       set.headers["X-Content-Type-Options"] = "nosniff";
+      set.headers["X-Frame-Options"] = "DENY";
       set.headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
       set.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
     })
@@ -41,12 +59,20 @@ export async function createApp(options: AppOptions = {}) {
     .use(messageRoute)
     .use(bookmarkRoute)
     .use(uploadRoute)
-    .get("/api/health", () => ({ success: true, version: "2.1.0" }))
+    .get("/api/health", async ({ status }) => {
+      try {
+        await readinessCheck(staticMode);
+        return { success: true, status: "ready", version: APP_VERSION, revision };
+      } catch (error) {
+        console.error("Readiness check failed:", error instanceof Error ? error.message : String(error));
+        return status(503, { success: false, error: "NOT_READY" });
+      }
+    })
     .get("/uploads/*", async ({ request, status }) =>
       serveLocalFile(request, status, "/uploads/", uploadDir, UPLOAD_EXTS)
     );
 
-  if (!options.staticMode) {
+  if (!staticMode) {
     return app.get("/", () => "ElysiaJS is running!");
   }
 

@@ -27,11 +27,7 @@ export const bookmarkRoute = new Elysia({ prefix: "/api" })
           .where(and(eq(bookmarks.userId, currentUser.id), eq(messages.deleted, 0))),
       ]);
       const count = countRow[0]?.count ?? 0;
-      const data = rows.map(r => ({
-        ...r,
-        signature: (currentUser && (currentUser.id === r.userId || (r.userId == null && currentUser.username === r.name))) ? r.signature : null,
-      }));
-      return { success: true, data, total: count, offset, limit };
+      return { success: true, data: rows, total: count, offset, limit };
     },
     { query: t.Object({ offset: t.Optional(t.Numeric()), limit: t.Optional(t.Numeric()) }) }
   );

@@ -55,6 +55,9 @@ export function SubmitForm({ lang, onSubmit, onImageUpload, loggedIn }: Props) {
       <label htmlFor="content">{t(lang, "form.thought")}</label>
       <textarea id="content" value={content} onChange={(e) => setContent(e.target.value)}
         maxLength={500} placeholder={t(lang, "form.placeholder")} required />
+      <div className={`composer-char-count${content.length > 400 ? " near-limit" : ""}`}>
+        {content.length}/500
+      </div>
       {error && <p className="auth-error form-error">{error}</p>}
       <div className="form-actions">
         <input ref={fileInputRef} className="file-input" type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageUpload} />

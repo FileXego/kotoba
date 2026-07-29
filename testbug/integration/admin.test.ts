@@ -5,7 +5,7 @@ import { Database } from "bun:sqlite";
 type Json = Record<string, unknown>;
 
 describe("Admin", () => {
-  let app: Awaited<ReturnType<typeof import("../src/app").createApp>>;
+  let app: Awaited<ReturnType<typeof import("../../src/app").createApp>>;
   let cleanup: () => void;
   let adminCookie: string | null = null;
   let regularCookie: string | null = null;
@@ -147,6 +147,46 @@ describe("Admin", () => {
     const deletedMsg = msgs.find((m) => m.id === msg2Id);
     expect(deletedMsg).toBeDefined();
     expect(deletedMsg!.content as string).toBe("Second test message (to be deleted)");
+  });
+
+  it("paginates every message with stable ordering beyond the first 50", async () => {
+    const sqlite = new Database(process.env.TEST_DB!);
+    const createdAt = Date.now();
+    const insert = sqlite.prepare(
+      "INSERT INTO messages (name, content, created_at, deleted, depth, user_id) VALUES (?, ?, ?, 0, 0, ?)",
+    );
+    const insertedIds: number[] = [];
+    const addRows = sqlite.transaction(() => {
+      for (let index = 0; index < 55; index++) {
+        insert.run("regularuser", `pagination-${index}`, createdAt, regularUserId);
+        insertedIds.push(Number(sqlite.query<{ id: number }, []>("SELECT last_insert_rowid() AS id").get()!.id));
+      }
+    });
+    addRows();
+    sqlite.close();
+
+    const fetchPage = async (offset: number) => {
+      const res = await app.handle(new Request(
+        `http://localhost/api/admin/messages?offset=${offset}&limit=50`,
+        { headers: { Cookie: adminCookie! } },
+      ));
+      expect(res.status).toBe(200);
+      return await res.json() as Json;
+    };
+    const first = await fetchPage(0);
+    const second = await fetchPage(50);
+    const firstRows = first.data as Json[];
+    const secondRows = second.data as Json[];
+    const firstIds = firstRows.map((row) => row.id as number);
+    const secondIds = secondRows.map((row) => row.id as number);
+
+    expect(firstRows).toHaveLength(50);
+    expect(secondRows).toHaveLength((first.total as number) - 50);
+    expect(new Set([...firstIds, ...secondIds]).size).toBe(first.total as number);
+    expect(firstIds.some((id) => secondIds.includes(id))).toBe(false);
+
+    const orderedInsertedIds = [...firstIds, ...secondIds].filter((id) => insertedIds.includes(id));
+    expect(orderedInsertedIds).toEqual([...insertedIds].sort((a, b) => b - a));
   });
 
   // ────────────────────────────────────────────────────────────────

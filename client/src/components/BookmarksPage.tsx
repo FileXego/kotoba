@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from "react";
 import { fetchBookmarks, toggleBookmark, toggleLike, fetchInteractions, type Message, type User } from "../api";
-import { t, type Lang } from "../i18n";
+import { t, parseApiError, type Lang } from "../i18n";
 import type { RealtimeClientEvent } from "../hooks/useRealtimeEvents";
 import { MessageCard } from "./MessageCard";
 
@@ -39,7 +39,7 @@ export function BookmarksPage({ lang, currentUser, onUpdate, onSubmitReply, onOp
       setMessages(prev => offset === 0 ? result.data : [...prev, ...result.data]);
       setTotal(result.total);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t(lang, "list.loadFail"));
+      setError(err instanceof Error ? parseApiError(lang, err.message, "list.loadFail") : t(lang, "list.loadFail"));
     } finally { setLoading(false); setLoadingMore(false); }
   }, [lang]);
 

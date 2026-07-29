@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { Database } from "bun:sqlite";
 import { setupApp, extractCookie } from "../helpers";
 
 type Json = Record<string, unknown>;
@@ -36,7 +37,7 @@ function createEventReader(reader: ReadableStreamDefaultReader<Uint8Array>) {
         const timeout = Math.max(1, deadline - Date.now());
         const read = await Promise.race([
           reader.read(),
-          new Promise<ReadableStreamReadResult<Uint8Array>>((_, reject) => {
+          new Promise<never>((_, reject) => {
             setTimeout(() => reject(new Error("SSE_TIMEOUT")), timeout);
           }),
         ]);
@@ -49,7 +50,7 @@ function createEventReader(reader: ReadableStreamDefaultReader<Uint8Array>) {
 }
 
 describe("Realtime events", () => {
-  let app: Awaited<ReturnType<typeof import("../src/app").createApp>>;
+  let app: Awaited<ReturnType<typeof import("../../src/app").createApp>>;
   let cleanup: () => void;
   let cookie1: string | null = null;
   let cookie2: string | null = null;
@@ -152,6 +153,59 @@ describe("Realtime events", () => {
     } finally {
       await reader1.cancel();
       await reader2.cancel();
+    }
+  });
+
+  it("includes the restored reply parent and root so clients refresh the correct thread", async () => {
+    const sqlite = new Database(process.env.TEST_DB!);
+    sqlite.exec("UPDATE users SET is_admin = 1 WHERE username = 'realtime1'");
+    sqlite.close();
+
+    const rootResponse = await app.handle(
+      new Request("http://localhost/api/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: cookie2! },
+        body: JSON.stringify({ content: "Restore event root" }),
+      }),
+    );
+    const rootId = ((await rootResponse.json()) as Json).id as number;
+    const replyResponse = await app.handle(
+      new Request("http://localhost/api/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: cookie2! },
+        body: JSON.stringify({ content: "Restore event reply", parentId: rootId }),
+      }),
+    );
+    const replyId = ((await replyResponse.json()) as Json).id as number;
+    const deleteResponse = await app.handle(
+      new Request(`http://localhost/api/message/${replyId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: cookie1! },
+        body: JSON.stringify({ deleted: 1 }),
+      }),
+    );
+    expect(deleteResponse.status).toBe(200);
+
+    const stream = await app.handle(new Request("http://localhost/api/events"));
+    const reader = stream.body!.getReader();
+    const events = createEventReader(reader);
+    try {
+      expect((await events.next()).event).toBe("ready");
+      const restoreResponse = await app.handle(
+        new Request(`http://localhost/api/admin/messages/${replyId}/restore`, {
+          method: "PATCH",
+          headers: { Cookie: cookie1! },
+        }),
+      );
+      expect(restoreResponse.status).toBe(200);
+
+      const restored = await events.next();
+      expect(restored.event).toBe("message.restored");
+      expect(restored.data.messageId).toBe(replyId);
+      expect(restored.data.parentId).toBe(rootId);
+      expect(restored.data.rootId).toBe(rootId);
+    } finally {
+      await reader.cancel();
     }
   });
 });

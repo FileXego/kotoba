@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchReplies, type Message, type User } from "../api";
 import { t, type Lang } from "../i18n";
-import type { RealtimeClientEvent } from "../hooks/useRealtimeEvents";
+import { getRealtimeMessageScope, type RealtimeClientEvent } from "../hooks/useRealtimeEvents";
 import { MessageCard } from "./MessageCard";
 
 interface Props {
@@ -59,12 +59,8 @@ export function ThreadPage({
       setReplies(prev => prev?.map(m => m.id === realtimeEvent.messageId ? { ...m, likeCount: realtimeEvent.count } : m) ?? prev);
       return;
     }
-    if (realtimeEvent.type === "message.restored") {
-      if (realtimeEvent.messageId === messageId) void loadThread();
-      return;
-    }
-    const rootId = realtimeEvent.rootId ?? realtimeEvent.messageId;
-    if (rootId === messageId || realtimeEvent.messageId === messageId) void loadThread();
+    const scope = getRealtimeMessageScope(realtimeEvent);
+    if (scope && (scope.rootId === messageId || realtimeEvent.messageId === messageId)) void loadThread();
   }, [loadThread, messageId, realtimeEvent]);
   /* eslint-enable react-hooks/set-state-in-effect */
 

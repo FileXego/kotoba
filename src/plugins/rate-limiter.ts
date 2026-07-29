@@ -1,4 +1,5 @@
 import { Elysia } from "elysia";
+import { resolveClientIp } from "../lib/client-ip";
 
 // in-memory rate limiter: scope:IP → { count, resetAt }
 const buckets = new Map<string, { count: number; resetAt: number }>();
@@ -37,11 +38,6 @@ function cleanupBuckets(now: number) {
   }
 }
 
-function clientIp(request: Request) {
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwarded || request.headers.get("x-real-ip") || "127.0.0.1";
-}
-
 function hasCookie(request: Request, name: string, value: string) {
   return request.headers.get("cookie")
     ?.split(";")
@@ -66,7 +62,7 @@ function isBursting(ip: string): boolean {
 }
 
 // Clean up burst tracking every 60 seconds
-setInterval(() => {
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [ip, times] of requestTimes) {
     const filtered = times.filter(t => now - t < BURST_WINDOW);
@@ -74,9 +70,10 @@ setInterval(() => {
     else requestTimes.set(ip, filtered);
   }
 }, 60000);
+cleanupTimer.unref?.();
 
 export const rateLimiter = new Elysia()
-  .onRequest(({ request, set, status }) => {
+  .onRequest(({ request, server, status }) => {
     // skip rate limiting in test mode only (never in production)
     if (process.env.SKIP_RATE_LIMIT === "1") {
       if (isProd) {
@@ -85,10 +82,14 @@ export const rateLimiter = new Elysia()
       }
       return;
     }
-    const ip = clientIp(request);
+    const peerAddress = server?.requestIP(request)?.address;
+    const ip = resolveClientIp(request, peerAddress);
     const url = new URL(request.url);
+    const path = url.pathname.length > 1
+      ? url.pathname.replace(/\/+$/, "")
+      : url.pathname;
     const ua = request.headers.get("user-agent");
-    const readPath = url.pathname === "/api/messages" || url.pathname === "/api/bookmarks" || url.pathname === "/api/events";
+    const readPath = path === "/api/messages" || path === "/api/bookmarks" || path === "/api/events";
 
     // Burst check — per-IP request flood protection
     if (isBursting(ip)) return status(429, { success: false, error: "TOO_MANY_REQUESTS" });
@@ -105,19 +106,22 @@ export const rateLimiter = new Elysia()
     }
 
     // Rate-limited endpoints
-    if (url.pathname === "/api/auth/sign-up") {
+    if (path === "/api/auth/sign-up") {
       if (!checkRate("sign-up", ip, 3)) return status(429, { success: false, error: "RATE_LIMITED" });
     }
-    if (url.pathname === "/api/auth/sign-in") {
+    if (path === "/api/auth/sign-in") {
       if (!checkRate("sign-in", ip, 10)) return status(429, { success: false, error: "RATE_LIMITED" });
     }
-    if (url.pathname === "/api/upload") {
+    if (path === "/api/upload" || path === "/api/auth/avatar") {
       if (!checkRate("upload", ip, 5)) return status(429, { success: false, error: "RATE_LIMITED" });
     }
-    if (url.pathname === "/api/messages") {
+    if (path === "/api/message" && request.method === "POST") {
+      if (!checkRate("create-message", ip, 15)) return status(429, { success: false, error: "RATE_LIMITED" });
+    }
+    if (path === "/api/messages") {
       if (!checkRate("messages", ip, 60)) return status(429, { success: false, error: "RATE_LIMITED" });
     }
-    if (url.pathname === "/api/events") {
+    if (path === "/api/events") {
       if (!checkRate("events", ip, 20)) return status(429, { success: false, error: "RATE_LIMITED" });
     }
   });

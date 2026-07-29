@@ -1,230 +1,87 @@
 # Kotoba 上线方案
 
-> 目标：用当前项目上线一个可运行、可备份、可回滚的生产站点。本文已同步 2026-06-11 上线加固结果。
+> 当前 Web 发布候选：`v2.1.2`（2026-07-28）。原生 iOS/Android App 不在本次上线范围。
 
 ## 结论
 
-推荐路线：**传统 VPS + Ubuntu 22.04/24.04 + Bun + systemd + nginx + Cloudflare DNS/Turnstile**。
+第一版推荐：**单机 VPS + Ubuntu 22.04/24.04 + Bun 1.3.11 + systemd + nginx + SQLite + 本地持久上传**。
 
-不推荐第一版直接上 Cloudflare Workers / Pages Functions。当前项目依赖：
+当前后端依赖 Bun/Elysia 长驻进程、`bun:sqlite` 文件和本地上传目录，不适合直接迁到 Cloudflare Workers/Pages Functions。Cloudflare Turnstile继续用于注册校验；首发 DNS 使用 DNS only，待 nginx 可信代理 CIDR 和真实访客限频验证后再考虑橙云。
 
-- Bun/Elysia 长驻 HTTP 进程。
-- `bun:sqlite` 本地 SQLite 文件。
-- 本地上传目录。
-- 生产入口 `src/start.ts` 同时服务 `/api/*`、`/uploads/*`、`client/dist` 和 SPA fallback。
+所有可执行步骤、权限、恢复命令见 [`future/DEPLOY.md`](DEPLOY.md)。本文件只保留上线决策和验收边界。
 
-这些特性天然适合单机 VPS。Cloudflare 可以先负责 DNS/CDN、Turnstile、可选 WAF。
+## 已完成的上线收口
 
-## 当前验证结果
+| 范围 | 当前状态 |
+|---|---|
+| Git | 旧生产历史已线性包含在 `main`；本次收敛到单一 `codex/release-readiness-2026-07-28` 候选，待最终 fast-forward/tag/push/清理。未完成的 social safety implementation 已独立远端备份，不混入上线版本 |
+| 会话安全 | HMAC 签名 payload 含服务器端过期时间；伪造、篡改、旧数字 cookie 和过期 cookie 均拒绝 |
+| 输入/XSS | 密码和用户名在原值上校验；文本由 React 输出转义，不再全局改写业务输入 |
+| 限频/代理 | 只信本机 nginx 注入的 `X-Real-IP`；XFF 轮换和尾斜杠不能绕过 |
+| 数据归属 | 旧留言只在同名账号创建时间严格早于留言时通过正式 migration 回填；后来注册或同秒顺序不明的记录保持未绑定 |
+| 并发互动 | 点赞/收藏 toggle 在 SQLite 同步事务中串行化 |
+| 上传 | MIME + 魔数校验、总容量硬上限、失败预留释放、旧头像安全回收 |
+| readiness | 验证当前 release 全部 migration hash、四表必需列、DB 写事务、上传写删探针和生产静态首页；生产 revision 只来自 release 文件 |
+| 前端 | 生产缺 Turnstile site key 安全禁用注册；延迟脚本仍挂载 widget；SSE 随登录身份重连；恢复回复刷新所属线程；错误本地化与 Admin 分页完成 |
+| 依赖 | Bun 1.3.11、Vite 8.1.5、esbuild 0.25.12 override；root/client 官方 registry 完整审计均为 0 vulnerabilities |
+| CI | frozen locks、migration drift、完整回归、生产一致移动路由、lint/build、完整审计、Actions 完整 SHA、API 与真实生产入口 revision-file smoke |
+| 部署 | `/opt`/`/srv` 单拓扑、不可变 ref、专用 `kotoba-build`、严格 env/health、v2.1.1 bootstrap、维护/停写/快照/失败恢复与 healthy 标记 |
+| 备份 | shared deploy → exclusive backup 锁序；唯一 BACKUP_ID 的 DB/env/uploads + manifest；14 天本地保留；异地复制与 restore drill 仍是运维必做项 |
 
-本地验证目标：
+## 发布门禁
+
+本地已要求：
 
 ```powershell
+bun install --frozen-lockfile
+bun install --cwd client --frozen-lockfile
 bun test
-# 91 pass, 0 fail
+# 完整套件必须 0 fail；精确数见 RELEASE_HANDOFF.md
 
 bun run --cwd client lint
 bun run --cwd client build
-# 通过；仍有已知 Vite dynamic import warning
+# 均通过；无原动态导入 warning
+
+bun audit --registry=https://registry.npmjs.org
+bun audit --cwd client --registry=https://registry.npmjs.org
 ```
 
-生产入口 smoke：
+CI 不把独立后端 `tsc --noEmit` 作为 gate：Elysia 的全局 `derive` 类型依赖 `.use()` 组合，脱离运行时组合会误报 `currentUser`。后端使用完整测试和 `src/index.ts`/`src/start.ts` 烟测；前端仍由 `tsc -b` + Vite build 严格检查。
 
-```powershell
-$env:NODE_ENV='production'
-$env:COOKIE_SECRET='smoke-secret-not-for-real'
-$env:TURNSTILE_SECRET='smoke-secret-not-test-key'
-$env:VITE_TURNSTILE_SITEKEY='1x00000000000000000000AA'
-bun run src/start.ts
-```
+## 生产配置边界
 
-检查：
-
-- `GET /api/health` 返回 `200 {"success":true,"version":"2.1.0"}`。
-- SPA fallback 可用。
-- 生产 `/api/messages` 与 `/api/events` 需要先加载页面写入 `_kb=1` JS cookie，这是 bot gate 的一部分。
-- `/api/events` 使用 SSE，nginx 必须关闭该 location 的 proxy buffering，保持即时推送。
-
-## 已补齐的上线前置
-
-| 项目 | 状态 |
-|---|---|
-| Turnstile sitekey | 已支持 `VITE_TURNSTILE_SITEKEY`，Vite 从根 `.env` 读取，不再手改 `dist/index.html` |
-| Turnstile secret | 生产环境仍强制禁止测试 secret |
-| 数据持久化 | `DB_PATH` / `UPLOAD_DIR` 可配置，部署脚本使用 `/opt/kotoba/shared` |
-| deploy.sh | 已改为 release/shared 结构，不再硬编码个人仓库地址 |
-| 上传安全 | PNG/JPEG/WebP 同时校验 MIME 和文件头 |
-| 静态文件 | `/uploads/*` 和 `/assets/*` 只服务安全 basename + 允许扩展名 |
-| API 边界 | 分页 limit 有上限，路径 ID 必须正整数 |
-| 双端即时同步 | `/api/events` SSE，公共消息/点赞广播，收藏/喜欢私有事件按用户过滤；前端带浏览器/代理兜底同步 |
-| 限频 | bucket 按 endpoint scope 隔离，过期清理 |
-| 安全头 | CSP 去掉 `script-src 'unsafe-inline'`，增加 nosniff/referrer/permissions policy |
-
-## 生产目录
-
-```text
-/opt/kotoba/
-├── current -> releases/kotoba-...
-├── releases/
-└── shared/
-    ├── .env
-    ├── sqlite.db
-    ├── uploads/
-    └── backups/
-```
-
-更新和回滚只切换 `current`，不会移动 `sqlite.db` 和 `uploads/`。
-
-## 环境变量
-
-生产 `/opt/kotoba/shared/.env` 至少包含：
+生产配置位于 `/opt/kotoba/config/kotoba.env`；数据为 `/opt/kotoba/shared/data/sqlite.db` 与 `/opt/kotoba/shared/uploads`；备份为 `/opt/kotoba/backups`。至少配置真实：
 
 ```env
-COOKIE_SECRET=<openssl rand -hex 32>
-TURNSTILE_SECRET=<Cloudflare Turnstile secret key>
-VITE_TURNSTILE_SITEKEY=<Cloudflare Turnstile site key>
+COOKIE_SECRET=<64 位以上随机十六进制>
+TURNSTILE_SECRET=<真实 secret>
+VITE_TURNSTILE_SITEKEY=<真实 site key>
 VITE_MOBILE_ROUTES_ENABLED=true
-DB_PATH=/opt/kotoba/shared/sqlite.db
-UPLOAD_DIR=/opt/kotoba/shared/uploads
+UPLOAD_MAX_BYTES=5368709120
 ```
 
-不要使用：
+依赖安装和构建交给无登录、无 sudo、无附加组的 `kotoba-build`；`env -i` 只传 `PATH/HOME/XDG_CACHE_HOME/TMPDIR/CI/NODE_ENV` 与两个公开 `VITE_*` 字段，并在结束后清理该账号残留进程。builder 只写 node_modules/dist；reviewed source、`.git` 和 root 运维模板始终不可写，交权前验证 Git 无漂移且 dist 无 symlink/特殊文件。服务端、代理/CA 覆盖、云厂商、GitHub 和 SSH 环境变量、默认 HOME 内容与 origin URL 不传给 builder；这仍不是容器沙箱，所以 deploy 账号只能持有专用只读仓库密钥。`DB_PATH`、`UPLOAD_DIR`、`HOST=127.0.0.1`、`PORT=3000` 和 `NODE_ENV=production` 由部署脚本强制落到生产路径；生产 env 只接受当前 10 个键，拓扑只允许通过 `/opt` 或 `/srv` 下安全规范的 `APP_BASE` 整体移动。
 
-- `COOKIE_SECRET=dev-secret-change-me`
-- Cloudflare Turnstile 测试 secret
-- `SKIP_CAPTCHA=1`
-- `SKIP_RATE_LIMIT=1`
+## 生产验收标准
 
-## 推荐服务器
+- `/api/health` 返回 `ready`、`version: "2.1.2"` 和期望的 40 位 commit revision。
+- 首页、静态资产、上传文件和 SPA fallback 可访问。
+- 3000 端口只能由本机 nginx 访问。
+- 注册使用真实 Turnstile；伪造 session 不能访问用户或管理员功能。
+- 发帖、回复、编辑、点赞、收藏、头像、签名、主题、Admin 分页和软删除恢复均通过。
+- SSE 在 nginx 下持续工作，断线后前端能重同步。
+- A 登出后 B 在同一页面登录，SSE 会按 B 的身份重建，私有互动不会沿用 A 的连接。
+- 管理员恢复回复后，已展开的所属线程会自动刷新；在 Turnstile 脚本加载前打开注册弹窗，脚本完成后仍会出现 widget。
+- 375/390/430/768/1024/1440 宽度无关键溢出；reduced-motion 生效；控制台无错误。
+- Ubuntu staging 的 nginx/systemd 权限验证、升级失败演练和完整备份恢复演练通过。
+- 监控覆盖磁盘 80%/90%、服务不可用、health 503 和备份缺失。
 
-最低配置：
+## 更新与回滚原则
 
-- Ubuntu 22.04+ 或 24.04 LTS。
-- 1 vCPU / 1GB RAM 可跑，推荐 2 vCPU / 2GB RAM。
-- 20GB+ SSD。
-- 开放 22、80、443 端口。
+每次部署必须提供已推送的 `vX.Y.Z` tag 或完整 SHA。v2.1.1 的旧数据/配置拓扑禁止直接 `update`，必须从独立 v2.1.2 checkout 执行版本化 bootstrap。常规更新先在线构建，验证现有 nginx 安全钩子后再进入维护、停服、备份、迁移、切换与 readiness；通过后写 `.release-healthy` 才放流。自动更新失败会恢复迁移前精确 DB 快照；手工代码 rollback 只选择带 healthy 标记的 release，且不自动倒退数据库，因为这可能丢失上线后的业务数据。
 
-大陆服务器需要备案；免备案可选香港、日本、新加坡等 VPS。
+本机 14 天备份不等于灾备。上线前必须建立加密异地副本，并在隔离环境完成恢复演练。
 
-## 自动部署
+## 原生 App 边界
 
-先在服务器安装基础包：
-
-```bash
-apt update
-apt install -y git nginx curl unzip sqlite3 certbot python3-certbot-nginx
-
-curl -fsSL https://bun.sh/install | bash
-source ~/.bashrc
-ln -sf "$(which bun)" /usr/local/bin/bun
-```
-
-克隆你的仓库到临时目录并运行：
-
-```bash
-git clone <your-repository-url> kotoba-src
-cd kotoba-src
-chmod +x future/deploy.sh
-
-export KOTOBA_REPO_URL="<your-repository-url>"
-./future/deploy.sh init
-```
-
-第一次会生成 `/opt/kotoba/shared/.env` 并退出。编辑后再运行同一条 `init`。
-
-脚本默认部署最新 `v*` tag；没有 tag 时部署 `main`。可用 `KOTOBA_REF` 指定：
-
-```bash
-export KOTOBA_REF="v2.1.1"
-./future/deploy.sh update
-```
-
-## nginx / HTTPS
-
-脚本会安装 nginx site。把 `YOUR_DOMAIN` 替换为真实域名：
-
-```bash
-nano /etc/nginx/sites-available/kotoba
-nginx -t
-systemctl reload nginx
-certbot --nginx -d example.com -d www.example.com
-```
-
-检查：
-
-```bash
-curl -f http://127.0.0.1:3000/api/health
-curl -f https://example.com/api/health
-```
-
-Cloudflare SSL/TLS 建议用 `Full (strict)`；不要缓存 `/api/*`。
-
-`/api/events` 是长连接，保留 `future/nginx.conf` 中独立 location 的 `proxy_buffering off` 和 `proxy_read_timeout 1h`。Cloudflare 侧不要给 `/api/*` 配缓存规则。
-
-## 管理员初始化
-
-注册第一个用户后：
-
-```bash
-sqlite3 /opt/kotoba/shared/sqlite.db \
-  "UPDATE users SET is_admin = 1 WHERE username = '<your-username>';"
-
-systemctl restart kotoba
-```
-
-## 更新、回滚、备份
-
-更新：
-
-```bash
-export KOTOBA_REPO_URL="<your-repository-url>"
-/opt/kotoba/current/future/deploy.sh update
-```
-
-回滚：
-
-```bash
-/opt/kotoba/current/future/deploy.sh rollback
-```
-
-每日备份由 cron 调用：
-
-```text
-0 3 * * * /opt/kotoba/current/future/backup.sh
-```
-
-备份会保存在 `/opt/kotoba/shared/backups/`。更稳的做法是同步到另一台机器或对象存储。
-
-## 后续建议
-
-- 首次真实部署后，用浏览器注册、登录、发帖、上传、收藏、管理恢复完整走一遍。
-- nginx 后续可以直接服务 `/assets/*` 和 `/uploads/*`，Bun 只处理 API。
-- 站点有真实访问量后再考虑结构化日志、定期 vacuum、对象存储或托管数据库。
-
-## 手机 App 端上线检查
-
-结论：**当前仓库没有可上架的原生手机 App 工程**。
-
-实际检查结果：
-
-- 没有 `mobile/` 目录。
-- 没有 iOS 工程：无 `.xcodeproj` / `.xcworkspace` / `Package.swift` / SwiftUI 入口。
-- 没有 Android 工程：无 `build.gradle` / Gradle wrapper / Kotlin Compose 入口。
-- `Trying/` 里有 mobile Web 原型，但不是正式 App 工程。
-- `LONGTODO.md` 规划了 iOS SwiftUI 和 Android Compose，但仍是未来路线。
-
-因此：
-
-- 移动 Web 可以随主站一起上线；生产 build 前把 `VITE_MOBILE_ROUTES_ENABLED=true` 写入 `/opt/kotoba/shared/.env`。
-- PWA 是下一步，需要 manifest、icons、service worker、安装体验和离线策略。
-- 原生 App 不能现在直接上架；需要新增 iOS/Android 工程、认证策略、API base、上传权限、隐私政策、商店资料和构建签名。
-
-WebView 套壳不建议作为第一版上架：Apple/Google 审核、登录态、上传权限、离线、网络错误、安全存储都需要原生侧补齐。
-
-## 参考
-
-- Cloudflare Turnstile server-side validation: https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
-- Cloudflare D1: https://developers.cloudflare.com/d1/
-- Cloudflare R2: https://developers.cloudflare.com/r2/
-- Apple App Review Guidelines: https://developer.apple.com/app-store/review/guidelines/
-- Google Play target API level requirements: https://developer.android.com/google/play/requirements/target-sdk
+当前仓库没有 `.xcodeproj`、SwiftUI、Gradle 或 Compose 工程，也没有移动端 token、离线队列、商店签名与隐私材料。因此本次只上线响应式 Web；`2.2.0 App v1 (iOS)` 仍保留在长期路线，不以 WebView 套壳冒充原生交付。

@@ -4,7 +4,7 @@ import { setupApp, extractCookie } from "../helpers";
 type Json = Record<string, unknown>;
 
 describe("Bookmarks", () => {
-  let app: Awaited<ReturnType<typeof import("../src/app").createApp>>;
+  let app: Awaited<ReturnType<typeof import("../../src/app").createApp>>;
   let cleanup: () => void;
   let cookie: string | null = null;
   let userId: number;
@@ -244,5 +244,50 @@ describe("Bookmarks", () => {
     // Remaining: message 3 and message 1 (most recent first)
     expect(items[0]!.id).toBe(messageIds[2]);
     expect(items[1]!.id).toBe(messageIds[0]);
+  });
+
+  it("shows the author's signature when bookmarking another user's message", async () => {
+    const signUpRes = await app.handle(new Request("http://localhost/api/auth/sign-up", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: "bookmarkauthor",
+        email: "bookmarkauthor@test.com",
+        password: "123456",
+        captchaToken: "test-token",
+      }),
+    }));
+    const authorCookie = extractCookie(signUpRes);
+    expect(authorCookie).not.toBeNull();
+
+    const signature = "Visible signature from another author";
+    const profileRes = await app.handle(new Request("http://localhost/api/auth/me", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: authorCookie! },
+      body: JSON.stringify({ signature }),
+    }));
+    expect(profileRes.status).toBe(200);
+
+    const createRes = await app.handle(new Request("http://localhost/api/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: authorCookie! },
+      body: JSON.stringify({ content: "Another author's bookmarked message" }),
+    }));
+    const created = await createRes.json() as Json;
+    const messageId = created.id as number;
+
+    const bookmarkRes = await app.handle(new Request(
+      `http://localhost/api/messages/${messageId}/bookmark`,
+      { method: "POST", headers: { Cookie: cookie! } },
+    ));
+    expect(bookmarkRes.status).toBe(200);
+
+    const listRes = await app.handle(new Request("http://localhost/api/bookmarks", {
+      headers: { Cookie: cookie! },
+    }));
+    const list = await listRes.json() as Json;
+    const item = (list.data as Array<Record<string, unknown>>)
+      .find((message) => message.id === messageId);
+    expect(item?.signature).toBe(signature);
   });
 });

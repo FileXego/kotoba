@@ -118,7 +118,7 @@ export async function updateMe(body: { signature?: string; theme?: ThemeName }) 
 export interface AdminUser { id: number; username: string; email: string; isAdmin?: number; }
 
 export async function adminFetchMessages(offset = 0, limit = 50) {
-  return requestJSON<{ success: boolean; data: Message[]; total: number }>(`${BASE}/admin/messages?offset=${offset}&limit=${limit}`);
+  return requestJSON<MessagesResponse>(`${BASE}/admin/messages?offset=${offset}&limit=${limit}`);
 }
 
 export async function adminRestoreMessage(id: number): Promise<void> {

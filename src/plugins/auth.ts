@@ -1,15 +1,22 @@
 import { Elysia, t } from "elysia";
+import { signCookie, unsignCookie } from "elysia/utils";
 import { db } from "../db";
 import { users } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { ensureUploadDir, uploadDir } from "../lib/files";
 import { hasExpectedImageSignature, imageExtForMime } from "../lib/images";
+import { resolveInsideDir } from "../lib/files";
+import { uploadCapacity } from "../lib/upload-storage";
+import { unlink } from "node:fs/promises";
 
 const THEMES = new Set(["light", "dark", "sumi", "sakura"]);
 const isProd = import.meta.env.NODE_ENV === "production";
 const rawSecret = import.meta.env.COOKIE_SECRET;
-if (!rawSecret) {
-  if (isProd) { console.error("COOKIE_SECRET is required in production"); process.exit(1); }
+if (!rawSecret || (isProd && (rawSecret === "dev-secret-change-me" || rawSecret.length < 32))) {
+  if (isProd) {
+    console.error("COOKIE_SECRET must be at least 32 characters and not the default dev value in production");
+    process.exit(1);
+  }
 }
 const COOKIE_SECRET = rawSecret ?? "dev-secret-change-me";
 const SESSION_AGE = 60 * 60 * 24 * 7;
@@ -48,12 +55,41 @@ async function lookupUser(userId: number) {
   return user ?? null;
 }
 
-const setSession = (session: any, userId: number) => {
-  session.value = String(userId); session.secret = COOKIE_SECRET;
+const setSession = async (session: any, userId: number) => {
+  const expiresAt = Date.now() + SESSION_AGE * 1_000;
+  session.value = await signCookie(`${userId}:${expiresAt}`, COOKIE_SECRET);
   session.path = "/"; session.httpOnly = true; session.maxAge = SESSION_AGE;
   session.sameSite = "lax";
   session.secure = isProd;
 };
+
+const clearSession = (session: any) => {
+  session.value = "";
+  session.path = "/";
+  session.httpOnly = true;
+  session.maxAge = 0;
+  session.sameSite = "lax";
+  session.secure = isProd;
+};
+
+// Unsign + parse the session cookie. Tampered or malformed cookies yield null (logged out).
+async function readSessionUserId(value: unknown): Promise<number | null> {
+  if (typeof value !== "string" || value === "") return null;
+  const unsigned = await unsignCookie(value, COOKIE_SECRET);
+  if (unsigned === false) return null;
+  const parts = unsigned.split(":");
+  const uidPart = parts[0];
+  const expiryPart = parts[1];
+  if (parts.length !== 2 || !uidPart || !expiryPart || !/^[1-9]\d*$/.test(uidPart) || !/^\d+$/.test(expiryPart)) {
+    return null;
+  }
+  const uid = Number(uidPart);
+  const expiresAt = Number(expiryPart);
+  if (!Number.isSafeInteger(uid) || !Number.isSafeInteger(expiresAt) || expiresAt <= Date.now()) {
+    return null;
+  }
+  return uid;
+}
 
 export const auth = new Elysia({ prefix: "/api/auth" })
   .model({
@@ -73,9 +109,8 @@ export const auth = new Elysia({ prefix: "/api/auth" })
     }),
   })
   .derive({ as: "global" }, async ({ cookie: { session } }) => {
-    if (session.value == null || session.value === "") return { currentUser: null };
-    const uid = Number(session.value);
-    if (isNaN(uid)) return { currentUser: null };
+    const uid = await readSessionUserId(session.value);
+    if (uid === null) return { currentUser: null };
     return { currentUser: await lookupUser(uid) };
   })
   .post(
@@ -89,7 +124,7 @@ export const auth = new Elysia({ prefix: "/api/auth" })
         username: body.username, email: body.email, passwordHash,
       }).onConflictDoNothing().returning({ id: users.id, username: users.username, email: users.email, isAdmin: users.isAdmin, avatarUrl: users.avatarUrl, signature: users.signature, theme: users.theme });
       if (!user) return status(409, { success: false, error: "DUPLICATE" });
-      setSession(session, user.id);
+      await setSession(session!, user.id);
       return { success: true, user };
     },
     { body: "signUp" }
@@ -103,17 +138,19 @@ export const auth = new Elysia({ prefix: "/api/auth" })
       if (!user || !(await Bun.password.verify(body.password, user.passwordHash))) {
         return status(401, { success: false, error: "INVALID_CREDENTIALS" });
       }
-      setSession(session, user.id);
+      await setSession(session!, user.id);
       const { passwordHash: _, ...safe } = user;
       return { success: true, user: safe };
     },
     { body: "signIn" }
   )
-  .post("/sign-out", ({ cookie: { session } }) => { session.value = ""; session.maxAge = 0; return { success: true }; })
+  .post("/sign-out", ({ cookie: { session } }) => {
+    clearSession(session!);
+    return { success: true };
+  })
   .get("/me", async ({ cookie: { session } }) => {
-    if (session.value == null || session.value === "") return { success: true, user: null };
-    const uid = Number(session.value);
-    if (isNaN(uid)) return { success: true, user: null };
+    const uid = await readSessionUserId(session?.value);
+    if (uid === null) return { success: true, user: null };
     return { success: true, user: await lookupUser(uid) };
   })
   // PATCH /me — partial profile update
@@ -139,11 +176,29 @@ export const auth = new Elysia({ prefix: "/api/auth" })
     if (!ext || !(await hasExpectedImageSignature(file))) {
       return status(400, { success: false, error: "INVALID_FILE_TYPE" });
     }
+    const reservation = await uploadCapacity.reserve(file.size);
+    if (!reservation) return status(507, { success: false, error: "STORAGE_LIMIT" });
     ensureUploadDir();
     const filename = `avatar-${currentUser.id}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
-    await Bun.write(uploadDir + "/" + filename, file);
+    const filepath = uploadDir + "/" + filename;
     const avatarUrl = `/uploads/${filename}`;
-    await db.update(users).set({ avatarUrl }).where(eq(users.id, currentUser.id));
+    try {
+      await Bun.write(filepath, file);
+      await db.update(users).set({ avatarUrl }).where(eq(users.id, currentUser.id));
+      await reservation.commit();
+    } catch (error) {
+      await reservation.release();
+      await unlink(filepath).catch(() => undefined);
+      console.error("Avatar update failed:", error instanceof Error ? error.message : String(error));
+      return status(500, { success: false, error: "INTERNAL_ERROR" });
+    }
+
+    const oldAvatar = currentUser.avatarUrl;
+    const match = oldAvatar?.match(/^\/uploads\/(avatar-(\d+)-[A-Za-z0-9._-]+\.(?:png|jpg|webp))$/);
+    if (match && Number(match[2]) === currentUser.id) {
+      const oldPath = resolveInsideDir(uploadDir, match[1]!);
+      if (oldPath && oldPath !== filepath) await unlink(oldPath).catch(() => undefined);
+    }
     return { success: true, user: await lookupUser(currentUser.id) };
   }, {
     body: t.Object({ file: t.File({ format: "image/png, image/jpeg, image/webp", maxSize: 256 * 1024 }) }),

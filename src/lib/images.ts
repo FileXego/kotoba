@@ -12,7 +12,7 @@ export async function hasExpectedImageSignature(file: File) {
   const ext = imageExtForMime(file.type);
   if (!ext) return false;
 
-  const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  const head = new Uint8Array(await (file as Blob).slice(0, 16).arrayBuffer());
   if (file.type === "image/png") {
     const png = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
     return png.every((byte, i) => head[i] === byte);

@@ -1,18 +1,16 @@
 import { useState, useEffect, useRef, type FormEvent } from "react";
 import { signUp, signIn, signOut, type User } from "../api";
-import { t, type Lang, type Key } from "../i18n";
+import { t, parseApiError, type Lang, type Key } from "../i18n";
 import { type ThemeName, nextTheme } from "../theme/theme";
+import {
+  mountTurnstileWidget,
+  resetTurnstileWidget,
+  resolveTurnstileSiteKey,
+  TURNSTILE_SCRIPT_ID,
+} from "../config";
 
 const themeKeys: Record<ThemeName, Key> = {
   light: "theme.light", dark: "theme.dark", sumi: "theme.sumi", sakura: "theme.sakura",
-};
-
-const AUTH_ERRS: Record<string, Key> = {
-  INVALID_CREDENTIALS: "error.INVALID_CREDENTIALS",
-  DUPLICATE: "error.DUPLICATE",
-  CAPTCHA_FAIL: "error.CAPTCHA_FAIL",
-  RATE_LIMITED: "error.RATE_LIMITED",
-  VALIDATION: "error.VALIDATION",
 };
 
 declare global {
@@ -21,12 +19,17 @@ declare global {
       render: (el: HTMLElement, opts: { sitekey: string }) => string;
       getResponse: (id?: string) => string;
       reset: (id?: string) => void;
+      remove: (id: string) => void;
     };
     __KOTOBA_TURNSTILE_SITEKEY__?: string;
   }
 }
 
-const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITEKEY || window.__KOTOBA_TURNSTILE_SITEKEY__ || "1x00000000000000000000AA";
+const SITE_KEY = resolveTurnstileSiteKey({
+  buildKey: import.meta.env.VITE_TURNSTILE_SITEKEY,
+  runtimeKey: window.__KOTOBA_TURNSTILE_SITEKEY__,
+  production: import.meta.env.PROD,
+});
 
 interface Props {
   theme: ThemeName; lang: Lang;
@@ -45,10 +48,17 @@ export function Header({ theme, lang, onToggleTheme, onToggleLang, user, onUserC
   const widgetId = useRef<string | undefined>(undefined);
 
   useEffect(() => {
-    if (showAuth && mode === "up" && captchaRef.current && !widgetId.current) {
-      widgetId.current = window.turnstile?.render(captchaRef.current, { sitekey: SITE_KEY });
+    if (!SITE_KEY || !showAuth || mode !== "up" || !captchaRef.current) {
+      widgetId.current = undefined;
+      return;
     }
-    return () => { widgetId.current = undefined; };
+    return mountTurnstileWidget({
+      script: document.getElementById(TURNSTILE_SCRIPT_ID),
+      getTurnstile: () => window.turnstile,
+      container: captchaRef.current,
+      siteKey: SITE_KEY,
+      onWidgetId: (id) => { widgetId.current = id; },
+    });
   }, [showAuth, mode]);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -56,6 +66,11 @@ export function Header({ theme, lang, onToggleTheme, onToggleLang, user, onUserC
     try {
       let token = "";
       if (mode === "up") {
+        if (!SITE_KEY) {
+          setError(t(lang, "auth.configError"));
+          setLoading(false);
+          return;
+        }
         token = window.turnstile?.getResponse(widgetId.current) ?? "";
         if (!token) { setError(t(lang, "auth.captcha")); setLoading(false); return; }
       }
@@ -66,10 +81,9 @@ export function Header({ theme, lang, onToggleTheme, onToggleLang, user, onUserC
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
-      const code = msg.split("] ")[1] || "";
-      setError(code && AUTH_ERRS[code] ? t(lang, AUTH_ERRS[code]) : (msg || t(lang, "auth.network")));
+      setError(parseApiError(lang, msg, "auth.network"));
     }
-    finally { setLoading(false); window.turnstile?.reset(widgetId.current); }
+    finally { setLoading(false); resetTurnstileWidget(window.turnstile, widgetId.current); }
   };
 
   const handleSignOut = async () => { await signOut(); onUserChange(null); };
@@ -120,17 +134,19 @@ export function Header({ theme, lang, onToggleTheme, onToggleLang, user, onUserC
             <button type="button" className={`auth-tab ${mode === "up" ? "active" : ""}`}
               onClick={() => setMode("up")}>{t(lang, "auth.signUp")}</button>
           </div>
-          <input className="auth-input" type="text" placeholder={t(lang, "auth.username")}
+          <input className="auth-input" type="text" autoComplete="username" placeholder={t(lang, "auth.username")}
             value={username} onChange={(e) => setUsername(e.target.value)} required />
           {mode === "up" && (
-            <input className="auth-input" type="email" placeholder={t(lang, "auth.email")}
+            <input className="auth-input" type="email" autoComplete="email" placeholder={t(lang, "auth.email")}
               value={email} onChange={(e) => setEmail(e.target.value)} required />
           )}
-          <input className="auth-input" type="password" placeholder={t(lang, "auth.password")}
+          <input className="auth-input" type="password"
+            autoComplete={mode === "in" ? "current-password" : "new-password"} placeholder={t(lang, "auth.password")}
             value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required />
-          {mode === "up" && <div ref={captchaRef} className="captcha-widget" />}
+          {mode === "up" && SITE_KEY && <div ref={captchaRef} className="captcha-widget" />}
+          {mode === "up" && !SITE_KEY && <p className="auth-error">{t(lang, "auth.configError")}</p>}
           {error && <p className="auth-error">{error}</p>}
-          <button className="auth-submit" type="submit" disabled={loading}>
+          <button className="auth-submit" type="submit" disabled={loading || (mode === "up" && !SITE_KEY)}>
             {loading ? "..." : mode === "in" ? t(lang, "auth.signIn") : t(lang, "auth.signUp")}
           </button>
         </form>

@@ -1,34 +1,168 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
+      - "codex/release-*"
   pull_request:
     branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   backend:
+    name: Backend, migrations, and production smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with: { bun-version: latest }
-      - run: bun install
-      - run: bun run db:generate && bun run db:migrate
-      - run: bun test
-      - run: bun run src/index.ts &
-      - run: sleep 3 && curl -f http://localhost:3000/
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Setup repository-pinned Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+
+      - name: Install backend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install client dependencies for full-stack smoke
+        run: bun install --cwd client --frozen-lockfile
+
+      - name: Verify committed migrations and migrate a clean database
+        env:
+          DB_PATH: ${{ runner.temp }}/kotoba-ci.sqlite
+        run: |
+          set -euo pipefail
+          bun run db:generate
+          git diff --exit-code -- drizzle/migrations
+          bun run db:migrate
+
+      - name: Run backend and integration tests
+        run: bun test
+
+      - name: Audit backend dependency graph
+        run: bun audit --registry=https://registry.npmjs.org
+
+      - name: Smoke-test the API composition entrypoint
+        env:
+          DB_PATH: ${{ runner.temp }}/kotoba-ci.sqlite
+          UPLOAD_DIR: ${{ runner.temp }}/kotoba-api-uploads
+          UPLOAD_MAX_BYTES: "33554432"
+          HOST: 127.0.0.1
+          PORT: "3000"
+        run: |
+          set -euo pipefail
+          bun run src/index.ts > "${RUNNER_TEMP}/kotoba-api.log" 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "${SERVER_PID}" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            curl --fail --silent http://127.0.0.1:3000/api/health >/dev/null && break
+            if [ "$attempt" -eq 30 ]; then
+              cat "${RUNNER_TEMP}/kotoba-api.log"
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Build production client
+        env:
+          VITE_TURNSTILE_SITEKEY: ci-real-site-key
+          VITE_MOBILE_ROUTES_ENABLED: "true"
+        run: bun run --cwd client build
+
+      - name: Smoke-test the actual production entrypoint
+        env:
+          NODE_ENV: production
+          COOKIE_SECRET: 0123456789abcdef0123456789abcdef
+          TURNSTILE_SECRET: ci-real-server-key
+          VITE_TURNSTILE_SITEKEY: ci-real-site-key
+          DB_PATH: ${{ runner.temp }}/kotoba-ci.sqlite
+          UPLOAD_DIR: ${{ runner.temp }}/kotoba-production-uploads
+          UPLOAD_MAX_BYTES: "33554432"
+          RELEASE_REVISION: ${{ github.sha }}
+          HOST: 127.0.0.1
+          PORT: "3001"
+        run: |
+          set -euo pipefail
+          SERVER_PID=""
+          cleanup() {
+            if [ -n "$SERVER_PID" ]; then
+              kill "$SERVER_PID" 2>/dev/null || true
+            fi
+            rm -f .release-revision
+          }
+          trap cleanup EXIT
+          EXPECTED_VERSION="$(bun -e '
+            const packageJson = await Bun.file("package.json").json();
+            if (typeof packageJson.version !== "string"
+              || !/^[0-9]+\.[0-9]+\.[0-9]+([._-][A-Za-z0-9._-]+)?$/.test(packageJson.version)) {
+              process.exit(1);
+            }
+            process.stdout.write(packageJson.version);
+          ')"
+          export EXPECTED_VERSION
+          printf '%s\n' "$RELEASE_REVISION" > .release-revision
+          bun run src/start.ts > "${RUNNER_TEMP}/kotoba-production.log" 2>&1 &
+          SERVER_PID=$!
+          HEALTH=""
+          for attempt in $(seq 1 30); do
+            if HEALTH=$(curl --fail --silent http://127.0.0.1:3001/api/health); then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              cat "${RUNNER_TEMP}/kotoba-production.log"
+              exit 1
+            fi
+            sleep 1
+          done
+          HEALTH_JSON="$HEALTH" bun -e '
+            const body = JSON.parse(process.env.HEALTH_JSON ?? "");
+            const matches = body !== null
+              && typeof body === "object"
+              && !Array.isArray(body)
+              && body.success === true
+              && body.status === "ready"
+              && body.version === process.env.EXPECTED_VERSION
+              && body.revision === process.env.RELEASE_REVISION;
+            if (!matches) process.exit(1);
+          '
+          curl --fail --silent http://127.0.0.1:3001/ | grep -qiE '<!doctype html|<div id="root"'
 
   frontend:
+    name: Frontend lint, build, and audit
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with: { bun-version: latest }
-      - run: bun install
-      - run: bun install --cwd client
-      - run: bun run --cwd client lint
-      - run: bun run --cwd client build
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Setup repository-pinned Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+
+      - name: Install client dependencies
+        run: bun install --cwd client --frozen-lockfile
+
+      - name: Lint
+        run: bun run --cwd client lint
+
+      - name: Build
+        env:
+          VITE_TURNSTILE_SITEKEY: ci-real-site-key
+          VITE_MOBILE_ROUTES_ENABLED: "true"
+        run: bun run --cwd client build
+
+      - name: Audit client dependency graph
+        run: bun audit --cwd client --registry=https://registry.npmjs.org

@@ -43,9 +43,9 @@ export function resolveInsideDir(dir: string, filename: string) {
   return target;
 }
 
-export async function serveLocalFile(
+export async function serveLocalFile<TStatus>(
   request: Request,
-  status: (code: number, response: { success: false; error: string }) => Response,
+  status: (code: number, response: { success: false; error: string }) => TStatus,
   marker: string,
   dir: string,
   allowedExts?: Set<string>,

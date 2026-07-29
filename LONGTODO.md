@@ -1,4 +1,4 @@
-# LONGTODO.md — 言 葉 从 0.8 到 1.0
+# LONGTODO.md — 言 葉 发布与长期路线
 
 > 路线：**可信型 0.9**，不是功能型 0.9。
 > 0.8 已证明审美+架构+交互。接下来证明经得起运行、攻击、审查。
@@ -120,7 +120,7 @@
 
 | # | 任务 | 决定 |
 |---|------|------|
-| A | messages 表加 `userId` | migration + 全量补旧留言（name 反查 users）。userId=NULL 旧留言不被同名新用户认领 |
+| A | messages 表加 `userId` | 只回填同名账号创建时间严格早于留言的记录；后来注册或同秒顺序不明的记录保持 NULL，不被认领 |
 | B | pushState 路由 | ~15 行 `useRouter` hook，0 依赖，/、/admin、/bookmarks |
 | C | PATCH /api/auth/me 扩展 | `t.Optional` 局部更新，不加新端点。signature>100→INVALID_PROFILE，theme 不在白名单→INVALID_THEME |
 | D | 主题预设 | light/dark/sumi/sakura。DB 存储 + localStorage 缓存。删主题 fallback "light" |
@@ -138,7 +138,7 @@
 | # | 任务 | 决定 |
 |---|------|------|
 | 4 | users 表加 `signature` | TEXT, max 100 chars |
-| 5 | MessageCard 独立渲染签名 | 卡片底部，作者本人可见；需 userId 匹配 |
+| 5 | MessageCard 独立渲染签名 | 卡片底部公开展示；只有资料修改权限属于账号本人 |
 
 ### 主题扩展
 
@@ -169,7 +169,7 @@
 | # | 任务 | 决定 |
 |---|------|------|
 | 10 | onError 全局兜底 | VALIDATION→422，NOT_FOUND→404，未处理→500，全部 error code |
-| 11 | GET /api/health | `{ success: true, version }` |
+| 11 | GET /api/health | 历史形态为 `{ success: true, version }`；已由 2.1.2 migration/列/存储/静态资源 readiness + revision 契约取代 |
 | 12 | bun:test 基础覆盖 | app.handle() 测 auth/NAN/权限。先抽 createApp()，测试 import 它 |
 | 13 | SUGGESTION.md 参考 | 1970 行详细实施建议——数据层/API/前端/App/主题/Elysia 最佳实践 |
 
@@ -188,6 +188,26 @@
 
 ---
 
+### 2.1.2 🚢 Web 发布收口（候选）
+
+> 范围只包含现有 Web 产品的安全、数据、CI、部署和可运维性；不占用 `2.2.0 App v1 (iOS)` 的产品范围。
+
+| 范围 | 状态 | 交付 |
+|---|---|---|
+| 分支治理 | ⏳ | 旧 production/mobile/realtime 分支均已包含；social implementation 已独立远端保存；待最终 main fast-forward/tag/push 后清理祖先分支 |
+| 会话/输入 | ✅ | HMAC session 含服务端过期；原值校验，不用全局 sanitize 改写密码 |
+| 数据一致性 | ✅ | 旧留言仅按严格时间先后回填、同秒保持 NULL；点赞/收藏事务串行化、Admin 稳定分页 |
+| 上传 | ✅ | MIME+魔数、总容量硬上限、并发预留、旧头像安全生命周期 |
+| readiness | ✅ | 当前 release migration hashes + 必需列、DB/上传/静态首页探测；生产 revision 只来自 release 文件 |
+| 前端运行时 | ✅ | Turnstile 缺配置/延迟加载安全处理、机器错误本地化、SSE 身份重绑/重同步、恢复回复 scope、动效冲突修复 |
+| 依赖/CI | ✅ | Bun 1.3.11、Vite 8.1.5、frozen locks、完整审计、Actions 完整 SHA、真实 migration 与 revision-file 生产 smoke |
+| 部署/备份 | ✅ 代码 | 专用 `kotoba-build`、v2.1.1 bootstrap、严格 env/health、deploy→backup 锁序、唯一 BACKUP_ID 完整集与恢复 |
+| 生产运维 | ⏳ | Ubuntu staging 的 nginx/systemd/权限/restore drill、真实域名 TLS、异地备份与磁盘告警由上线操作者执行 |
+
+发布门禁为完整 bun:test 套件 + client lint/build + 两端 full audit；最终精确证据与分支处置见 `future/RELEASE_HANDOFF.md`。
+
+---
+
 ## App 移动端设计
 
 | 决策 | 选择 |
@@ -199,21 +219,21 @@
 | 依赖 | App 也极简——HttpURLConnection，不装 OkHttp/Coil/第三方库 |
 | 开发顺序 | iOS v1 → Android v1 |
 
-### 当前进度（2026-07-10）
+### 当前进度（2026-07-28）
 
 详细台账见 `future/NATIVE_APP_ROADMAP.md`。
 
 | 阶段 | 进度 | 状态 |
 |------|------|------|
 | 文档和约束盘点 | `[##########] 100%` | 已读取 LONGTODO / Trying / SUGGESTION / future 上线文档 |
-| Mobile Web/PWA | `[##########] 100%` | Mobile Web 可上线候选：现代东方书刊设计系统、底部书签导航、详情、收藏、Me、Admin、safe-area、触控目标、双端即时同步与上线加固已补齐；PWA 仍需 manifest/offline ADR |
+| Mobile Web/PWA | `[##########] 100%` | 2.1.2 Web 发布候选：现代东方书刊设计、完整路由/SSE、session/上传/readiness/CI/部署收口已补齐；PWA 仍需 manifest/offline ADR |
 | 原生 App 架构设计 | `[#####-----] 45%` | 已完成框架矩阵和长期路线；未创建原生工程 |
 | 后端 mobile token | `[----------] 0%` | 待写认证 ADR；Web cookie 保持不变 |
 | iOS SwiftUI App | `[----------] 0%` | 待 `mobile/ios` 工程 |
 | Android Compose App | `[----------] 0%` | iOS v1 后再启动 |
 | 商店上架材料 | `[#---------] 10%` | 已核对商店门槛；UGC/隐私/截图未准备 |
 
-当前结论：手机浏览器版本可以进入上线前真机验收；原生 App 仍不要空建 `mobile/` 工程。框架体系见 `future/APP_FRAMEWORKS_AND_CONSTRAINTS.md`；下一步先写移动端认证 ADR，再做 `/api/mobile/*` 和 iOS SwiftUI v1。2026-07-10 已将全站统一为现代东方书刊系统，并完成四主题、375/390/430/768/1024/1440 宽度、底部导航和 reduced-motion 浏览器复核。
+当前结论：2.1.2 手机浏览器版本进入最终上线验收；原生 App 仍不要空建 `mobile/` 工程。未完成的 social safety 代码保留在独立分支，不能因发布收口提前进入生产。框架体系见 `future/APP_FRAMEWORKS_AND_CONSTRAINTS.md`；Web 稳定后再写移动端认证 ADR，继续 `/api/mobile/*` 和 iOS SwiftUI v1。
 
 ### 2.2.0 App v1 (iOS)
 

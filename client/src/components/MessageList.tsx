@@ -13,16 +13,22 @@ interface Props {
   onSubmitReply: (content: string, parentId?: number) => Promise<void>;
   onToggleLike: (id: number) => void; onToggleBookmark: (id: number) => void;
   onOpenThread?: (id: number) => void;
+  onRetry?: () => void;
 }
 
 export function MessageList({
   lang, messages, total, loading, loadingMore, error,
   replyTrees, loadingReplies, replyErrors, currentUser, likedIds, bookmarkedIds,
   onUpdate, onLoadReplies, onLoadMore, onSubmitReply,
-  onToggleLike, onToggleBookmark, onOpenThread,
+  onToggleLike, onToggleBookmark, onOpenThread, onRetry,
 }: Props) {
   if (loading) return <div className="loading">{t(lang, "list.loading")}</div>;
-  if (error) return <div className="error-msg">{error}</div>;
+  if (error) return (
+    <div className="error-msg">
+      <p>{error}</p>
+      {onRetry && <button className="load-more-btn" onClick={onRetry}>{t(lang, "list.retry")}</button>}
+    </div>
+  );
   if (messages.length === 0)
     return <div className="empty-state"><p>{t(lang, "list.empty")}</p><span>{t(lang, "list.emptySub")}</span></div>;
 

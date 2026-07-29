@@ -5,6 +5,8 @@ node_modules
 out
 dist
 *.tgz
+output/playwright/
+.playwright-cli/
 
 # code coverage
 coverage
@@ -21,6 +23,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .env.test.local
 .env.production.local
 .env.local
+.release-revision
 
 # database
 sqlite.db
@@ -35,6 +38,7 @@ uploads/
 testbug/.test-*.db
 testbug/.test-*.db-wal
 testbug/.test-*.db-shm
+testbug/.uploads-*/
 .test-*.db
 .test-*.db-wal
 .test-*.db-shm
@@ -43,6 +47,9 @@ testbug/.test-*.db-shm
 .eslintcache
 .cache
 *.tsbuildinfo
+
+# linked Git worktrees used for isolated feature development
+.worktrees/
 
 # meta
 OTHERS.md

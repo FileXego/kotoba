@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { setupApp, extractCookie } from "../helpers";
 import { resolve } from "node:path";
+import { mkdirSync, readdirSync, rmSync, truncateSync, writeFileSync } from "node:fs";
 
 type Json = Record<string, unknown>;
 
@@ -13,7 +14,7 @@ function testPngBlob(): Blob {
 }
 
 describe("Upload", () => {
-  let app: Awaited<ReturnType<typeof import("../src/app").createApp>>;
+  let app: Awaited<ReturnType<typeof import("../../src/app").createApp>>;
   let cleanup: () => void;
   let cookie: string | null = null;
 
@@ -95,7 +96,7 @@ describe("Upload", () => {
     // Verify the file exists on disk
     const url = data.url as string; // e.g. "/uploads/1685000000-abc12345.png"
     const filename = url.replace("/uploads/", "");
-    const filePath = resolve("uploads", filename);
+    const filePath = resolve(process.env.UPLOAD_DIR!, filename);
     const uploadedFile = Bun.file(filePath);
     expect(await uploadedFile.exists()).toBe(true);
   });
@@ -137,6 +138,54 @@ describe("Upload", () => {
     const data = (await res.json()) as Json;
     expect(data.success).toBe(false);
     expect(data.error).toBe("INVALID_FILE_TYPE");
+  });
+
+  it("returns 507 without writing when managed storage has reached its hard limit", async () => {
+    const uploadDir = process.env.UPLOAD_DIR!;
+    mkdirSync(uploadDir, { recursive: true });
+    const blocker = resolve(uploadDir, "quota-blocker.bin");
+    writeFileSync(blocker, "");
+    truncateSync(blocker, Number(process.env.UPLOAD_MAX_BYTES));
+    const before = new Set(readdirSync(uploadDir));
+    try {
+      const fd = new FormData();
+      fd.append("file", testPngBlob(), "quota.png");
+      const res = await app.handle(new Request("http://localhost/api/upload", {
+        method: "POST",
+        headers: { Cookie: cookie! },
+        body: fd,
+      }));
+      const data = await res.json() as Json;
+      expect(res.status).toBe(507);
+      expect(data.error).toBe("STORAGE_LIMIT");
+      expect(new Set(readdirSync(uploadDir))).toEqual(before);
+    } finally {
+      rmSync(blocker, { force: true });
+    }
+  });
+
+  it("removes the previous managed avatar only after a replacement succeeds", async () => {
+    const uploadAvatar = async () => {
+      const fd = new FormData();
+      fd.append("file", testPngBlob(), "avatar.png");
+      const res = await app.handle(new Request("http://localhost/api/auth/avatar", {
+        method: "PATCH",
+        headers: { Cookie: cookie! },
+        body: fd,
+      }));
+      expect(res.status).toBe(200);
+      return ((await res.json()) as Json).user as Json;
+    };
+
+    const first = await uploadAvatar();
+    const firstPath = resolve(process.env.UPLOAD_DIR!, String(first.avatarUrl).replace("/uploads/", ""));
+    expect(await Bun.file(firstPath).exists()).toBe(true);
+
+    const second = await uploadAvatar();
+    const secondPath = resolve(process.env.UPLOAD_DIR!, String(second.avatarUrl).replace("/uploads/", ""));
+    expect(second.avatarUrl).not.toBe(first.avatarUrl);
+    expect(await Bun.file(secondPath).exists()).toBe(true);
+    expect(await Bun.file(firstPath).exists()).toBe(false);
   });
 
   it("GET /uploads blocks encoded path traversal", async () => {
